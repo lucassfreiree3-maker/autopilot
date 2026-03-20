@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "description": "Compliance overlay for company-specific markers that must never land in the personal/public product repository. Customize forbiddenPatterns with your own company identifiers.",
+  "scanExtensions": [
+    ".md",
+    ".txt",
+    ".ps1",
+    ".cmd",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".go",
+    ".toml",
+    ".sh",
+    ".html",
+    ".xml"
+  ],
+  "selfExcludeFiles": [],
+  "forbiddenPatterns": [
+    {
+      "name": "oauth_github_token",
+      "pattern": "gho_[A-Za-z0-9_]{20,}",
+      "reason": "GitHub OAuth token"
+    },
+    {
+      "name": "corp_repo_controller",
+      "pattern": "YOUR_CONTROLLER_REPO_NAME",
+      "reason": "Internal controller repository name — replace with your repo"
+    },
+    {
+      "name": "corp_repo_agent",
+      "pattern": "YOUR_AGENT_REPO_NAME",
+      "reason": "Internal agent repository name — replace with your repo"
+    },
+    {
+      "name": "corp_repo_releases",
+      "pattern": "YOUR_RELEASES_REPO_NAME",
+      "reason": "Internal release repository name — replace with your repo"
+    },
+    {
+      "name": "corp_repo_deploy",
+      "pattern": "YOUR_DEPLOY_REPO_NAME",
+      "reason": "Internal deployment repository name — replace with your repo"
+    },
+    {
+      "name": "corp_ci_workflow",
+      "pattern": "YOUR_CI_WORKFLOW_NAME",
+      "reason": "Internal CI workflow name — replace with your workflow"
+    },
+    {
+      "name": "corp_ci_pipeline",
+      "pattern": "YOUR_CI_PIPELINE_LABEL",
+      "reason": "Internal CI pipeline label — replace with your pipeline label"
+    },
+    {
+      "name": "corp_branch_staging",
+      "pattern": "YOUR_STAGING_BRANCH",
+      "reason": "Internal staging deployment branch — replace with your branch pattern"
+    },
+    {
+      "name": "corp_branch_production",
+      "pattern": "YOUR_PRODUCTION_BRANCH",
+      "reason": "Internal production deployment branch — replace with your branch pattern"
+    },
+    {
+      "name": "corp_openshift_path",
+      "pattern": "YOUR_OPENSHIFT_PATH",
+      "reason": "Internal OpenShift path — replace with your path"
+    },
+    {
+      "name": "corp_registry",
+      "pattern": "YOUR_REGISTRY_HOST",
+      "reason": "Internal container registry host — replace with your registry"
+    },
+    {
+      "name": "corp_domain_intranet",
+      "pattern": "\\.intranet\\.",
+      "reason": "Internal intranet domain"
+    },
+    {
+      "name": "corp_domain",
+      "pattern": "\\.yourcompany\\.com",
+      "reason": "Corporate domain — replace with your company domain"
+    },
+    {
+      "name": "corp_proxy_domain",
+      "pattern": "\\.mcas\\.ms",
+      "reason": "Corporate web proxy domain (Microsoft Cloud App Security)"
+    },
+    {
+      "name": "corp_name_full",
+      "pattern": "YourCompany S\\.A",
+      "reason": "Corporate legal name — replace with your company name"
+    },
+    {
+      "name": "corp_name_short",
+      "pattern": "(?i)YourCompany",
+      "reason": "Company name — replace with your company name"
+    },
+    {
+      "name": "corp_cloud_storage",
+      "pattern": "OneDrive - YourCompany",
+      "reason": "Corporate cloud storage path — replace with your company name"
+    },
+    {
+      "name": "corp_github_org",
+      "pattern": "your-org",
+      "reason": "Internal GitHub organization name — replace with your org"
+    }
+  ]
+}

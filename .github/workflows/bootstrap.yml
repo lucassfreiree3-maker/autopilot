@@ -36,46 +36,55 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
+          set -euo pipefail
+          REPO="lucassfreiree/autopilot"
           echo "Verificando se branch ja existe..."
-          if git ls-remote --exit-code --heads \
-            "https://x-access-token:${GH_TOKEN}@github.com/lucassfreiree/autopilot.git" \
-            autopilot-state 2>/dev/null; then
+          if gh api "repos/$REPO/git/refs/heads/autopilot-state" --silent 2>/dev/null; then
             echo "Branch autopilot-state ja existe. Pulando."
-          else
-            echo "Criando branch autopilot-state..."
-            BASE_SHA=$(gh api "repos/lucassfreiree/autopilot/git/refs/heads/main" \
-              --jq '.object.sha')
-            echo "Base SHA: $BASE_SHA"
-            printf '%s\n' '{"base_tree":"","tree":[{"path":"state/controller-state.json","mode":"100644","type":"blob","content":"{\"schemaVersion\":1,\"tenantId\":\"bbvinet\",\"component\":\"psc-sre-automacao-controller\",\"initialized\":true,\"lastReleasedSha\":\"\",\"lastTag\":\"\",\"updatedAt\":\"\",\"runId\":\"\",\"note\":\"Controller via GitLab interno\"}"},{"path":"state/agent-state.json","mode":"100644","type":"blob","content":"{\"schemaVersion\":1,\"tenantId\":\"bbvinet\",\"component\":\"psc-sre-automacao-agent\",\"initialized\":true,\"lastReleasedSha\":\"\",\"lastTag\":\"\",\"updatedAt\":\"\",\"runId\":\"\"}"},{"path":"README.md","mode":"100644","type":"blob","content":"# autopilot-state\n\nBranch de estado persistente do BBDevOpsAutopilot.\n**Nao edite manualmente.**"}]}' > /tmp/tree.json
-            TREE=$(gh api "repos/lucassfreiree/autopilot/git/trees" \
-              --method POST \
-              --input /tmp/tree.json \
-              --jq '.sha')
-            echo "Tree SHA: $TREE"
-            COMMIT=$(gh api "repos/lucassfreiree/autopilot/git/commits" \
-              --method POST \
-              -f "message=chore: init autopilot-state para bbvinet [skip ci]" \
-              -f "tree=$TREE" \
-              --jq '.sha')
-            echo "Commit SHA: $COMMIT"
-            gh api "repos/lucassfreiree/autopilot/git/refs" \
-              --method POST \
-              -f "ref=refs/heads/autopilot-state" \
-              -f "sha=$COMMIT"
-            echo "Branch autopilot-state criado com sucesso."
+            exit 0
           fi
+          echo "Criando branch autopilot-state..."
+          BASE_SHA=$(gh api "repos/$REPO/git/refs/heads/main" --jq '.object.sha')
+          echo "Base SHA: $BASE_SHA"
+          gh api "repos/$REPO/git/refs" \
+            --method POST \
+            -f "ref=refs/heads/autopilot-state" \
+            -f "sha=$BASE_SHA"
+          echo "Branch criado. Adicionando arquivos de estado..."
+          CTRL='{"schemaVersion":1,"tenantId":"bbvinet","component":"psc-sre-automacao-controller","initialized":true,"lastReleasedSha":"","lastTag":"","updatedAt":"","runId":"","note":"Controller via GitLab interno - promocao manual por ora"}'
+          CTRL_B64=$(echo "$CTRL" | base64 -w0)
+          gh api "repos/$REPO/contents/state/controller-state.json" \
+            --method PUT \
+            -f "branch=autopilot-state" \
+            -f "message=chore: add controller-state.json [skip ci]" \
+            -f "content=$CTRL_B64"
+          AGENT='{"schemaVersion":1,"tenantId":"bbvinet","component":"psc-sre-automacao-agent","initialized":true,"lastReleasedSha":"","lastTag":"","updatedAt":"","runId":""}'
+          AGENT_B64=$(echo "$AGENT" | base64 -w0)
+          gh api "repos/$REPO/contents/state/agent-state.json" \
+            --method PUT \
+            -f "branch=autopilot-state" \
+            -f "message=chore: add agent-state.json [skip ci]" \
+            -f "content=$AGENT_B64"
+          README_B64=$(echo "# autopilot-state\n\nBranch de estado persistente do BBDevOpsAutopilot - tenant bbvinet.\n**Nao edite manualmente.**" | base64 -w0)
+          gh api "repos/$REPO/contents/README.md" \
+            --method PUT \
+            -f "branch=autopilot-state" \
+            -f "message=chore: add README [skip ci]" \
+            -f "content=$README_B64"
+          echo "Branch autopilot-state criado com sucesso."
 
       # ── ETAPA 2: push release-autopilot.yml no agent ───────
       - name: "2/4 - Push release-autopilot.yml no repo do agent"
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
+          set -euo pipefail
           TARGET_REPO="bbvinet/psc-sre-automacao-agent"
           TARGET_PATH=".github/workflows/release-autopilot.yml"
           CONTENT=$(cat .github/workflows/release-autopilot.yml)
+          ENCODED=$(echo "$CONTENT" | base64 -w0)
           EXISTING=$(gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
             --jq '.sha' 2>/dev/null || echo "")
-          ENCODED=$(echo "$CONTENT" | base64 -w0)
           if [ -n "$EXISTING" ]; then
             echo "Arquivo ja existe. Atualizando..."
             gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
@@ -98,6 +107,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
           SECRET_VALUE: ${{ secrets.BBVINET_TOKEN }}
         run: |
+          set -euo pipefail
           TARGET_REPO="bbvinet/psc-sre-automacao-agent"
           echo "$SECRET_VALUE" | gh secret set RELEASE_TOKEN \
             --repo "$TARGET_REPO"
@@ -108,12 +118,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
+          set -euo pipefail
           TARGET_REPO="lucassfreiree/autopilot"
           TARGET_PATH=".github/workflows/health-check.yml"
           CONTENT=$(cat .github/workflows/health-check.yml)
+          ENCODED=$(echo "$CONTENT" | base64 -w0)
           EXISTING=$(gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
             --jq '.sha' 2>/dev/null || echo "")
-          ENCODED=$(echo "$CONTENT" | base64 -w0)
           if [ -n "$EXISTING" ]; then
             gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
               --method PUT \

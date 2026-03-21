@@ -1,0 +1,12 @@
+{
+  "operation": "e2e-test",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-21T22:19:38Z",
+  "runId": "23389746784",
+  "dryRun": false,
+  "ciResult": "pending",
+  "promoted": false,
+  "version": "2.0.10",
+  "testBranch": "autopilot/e2e-test-20260321220155",
+  "tag": ""
+}

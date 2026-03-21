@@ -1,16 +1,34 @@
 {
   "schemaVersion": 2,
   "workspaceId": "ws-default",
-  "checkedAt": "2026-03-21T21:52:00Z",
-  "overall": "healthy",
+  "checkedAt": "2026-03-21T21:51:30Z",
+  "overall": "degraded",
   "checks": {
-    "workspace": { "status": "pass", "message": "OK" },
-    "controllerRelease": { "status": "warn", "message": "Never released" },
-    "agentRelease": { "status": "pass", "message": "Tag: 1.1.0-d6e1476", "detail": "Age: 0h" },
-    "stuckRuns": { "status": "pass", "message": "None" },
-    "locks": { "status": "pass", "message": "No active locks" },
-    "drift": { "status": "pass", "message": "No drift" },
-    "deployConsistency": { "status": "pass", "message": "Deploy and CAP match: 1.1.0-d6e1476" }
+    "workspace": {
+      "status": "pass",
+      "message": "OK"
+    },
+    "controllerRelease": {
+      "status": "warn",
+      "message": "Never released"
+    },
+    "agentRelease": {
+      "status": "pass",
+      "message": "Tag: 1.1.0-d6e1476",
+      "detail": "Age: 0h"
+    },
+    "stuckRuns": {
+      "status": "pass",
+      "message": "None"
+    },
+    "locks": {
+      "status": "pass",
+      "message": "No active locks"
+    },
+    "drift": {
+      "status": "warn",
+      "message": "? commits ahead"
+    }
   },
-  "summary": "healthy at 2026-03-21T21:52:00Z — agent release successful"
+  "summary": "degraded at 2026-03-21T21:51:30Z"
 }

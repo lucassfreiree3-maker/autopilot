@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "workspaceId": "ws-default",
-  "displayName": "Default Workspace (E2E Sim)",
+  "displayName": "Default Workspace",
   "createdAt": "2026-03-21T21:41:00Z",
-  "updatedAt": "2026-03-21T21:50:00Z",
+  "updatedAt": "2026-03-21T21:55:00Z",
   "controller": {
-    "sourceRepo": "",
+    "sourceRepo": "bbvinet/psc-sre-automacao-controller",
     "deployRepo": "",
     "deployBranch": "main",
     "deployValuesPath": "",
@@ -13,16 +13,15 @@
     "imagePattern": ""
   },
   "agent": {
-    "sourceRepo": "lucassfreiree/autopilot",
-    "sourceRef": "sim-source",
-    "deployRepo": "lucassfreiree/autopilot",
-    "deployBranch": "sim-deploy",
-    "deployValuesPath": "releases/deploy/values.yaml",
-    "capRepo": "lucassfreiree/autopilot",
-    "capBranch": "sim-cap",
-    "capValuesPath": "releases/cap/values.yaml",
-    "ciWorkflowName": "CI",
-    "imagePattern": "registry.example.com/sim-agent"
+    "sourceRepo": "bbvinet/psc-sre-automacao-agent",
+    "deployRepo": "",
+    "deployBranch": "main",
+    "deployValuesPath": "",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-agent",
+    "capBranch": "main",
+    "capValuesPath": "",
+    "ciWorkflowName": "",
+    "imagePattern": ""
   },
   "settings": {
     "promotionTarget": "both",

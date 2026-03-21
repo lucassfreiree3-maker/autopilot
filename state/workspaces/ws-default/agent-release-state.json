@@ -2,33 +2,12 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "agent",
-  "lastReleasedSha": "d6e1476e621e1d451cfe8d79bef95a818c0cdbbc",
-  "lastTag": "1.1.0-d6e1476",
-  "lastVersion": "1.1.0",
-  "updatedAt": "2026-03-21T21:50:00Z",
-  "runId": "e2e-sim-001",
+  "lastReleasedSha": "",
+  "lastTag": "",
+  "lastVersion": "",
+  "updatedAt": "2026-03-21T22:00:00Z",
+  "runId": "",
   "runUrl": "",
-  "promotions": [
-    {
-      "target": "deploy",
-      "repo": "lucassfreiree/autopilot",
-      "branch": "sim-deploy",
-      "path": "releases/deploy/values.yaml",
-      "tag": "1.1.0-d6e1476",
-      "sha": "d6e1476e621e1d451cfe8d79bef95a818c0cdbbc",
-      "timestamp": "2026-03-21T21:50:00Z",
-      "status": "success"
-    },
-    {
-      "target": "cap",
-      "repo": "lucassfreiree/autopilot",
-      "branch": "sim-cap",
-      "path": "releases/cap/values.yaml",
-      "tag": "1.1.0-d6e1476",
-      "sha": "d6e1476e621e1d451cfe8d79bef95a818c0cdbbc",
-      "timestamp": "2026-03-21T21:50:00Z",
-      "status": "success"
-    }
-  ],
-  "status": "promoted"
+  "promotions": [],
+  "status": "idle"
 }

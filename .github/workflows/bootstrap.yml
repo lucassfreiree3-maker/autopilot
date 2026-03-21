@@ -67,54 +67,58 @@ jobs:
             -f "content=$README_B64"
           echo "Branch autopilot-state criado com sucesso."
 
-      - name: "2/4 - Criar PR com release-autopilot.yml no repo do agent"
+      - name: "2/4 - Solicitar release-autopilot.yml no repo do agent"
         id: step2
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+          GH_TOKEN_STATE: ${{ secrets.RELEASE_TOKEN }}
         run: |
           exec 2> /tmp/step2-err.log
           TARGET_REPO="bbvinet/psc-sre-automacao-agent"
+          STATE_REPO="lucassfreiree/autopilot"
           TARGET_PATH=".github/workflows/release-autopilot.yml"
-          BRANCH_NAME="autopilot/add-release-workflow"
           CONTENT=$(cat .github/workflows/release-autopilot.yml)
           ENCODED=$(echo "$CONTENT" | base64 -w0)
-          EXISTING_PR=$(gh api "repos/$TARGET_REPO/pulls?head=bbvinet:$BRANCH_NAME&state=open" \
+          EXISTING_ISSUE=$(gh api "repos/$TARGET_REPO/issues?labels=autopilot&state=open" \
             --jq '.[0].number' 2>/dev/null || echo "")
-          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
-            echo "PR #$EXISTING_PR ja existe. Pulando."
-            echo "PR: https://github.com/$TARGET_REPO/pull/$EXISTING_PR"
+          if [ -n "$EXISTING_ISSUE" ] && [ "$EXISTING_ISSUE" != "null" ]; then
+            echo "Issue #$EXISTING_ISSUE ja existe no repo do agent. Pulando."
             exit 0
           fi
-          MAIN_SHA=$(gh api "repos/$TARGET_REPO/git/refs/heads/main" --jq '.object.sha')
-          gh api "repos/$TARGET_REPO/git/refs" \
-            --method POST \
-            -f "ref=refs/heads/$BRANCH_NAME" \
-            -f "sha=$MAIN_SHA" 2>/dev/null || true
-          EXISTING_FILE=$(gh api "repos/$TARGET_REPO/contents/$TARGET_PATH?ref=$BRANCH_NAME" \
+          ISSUE_BODY="## Autopilot: adicionar workflow de release"
+          ISSUE_BODY="${ISSUE_BODY}\n\nO Autopilot precisa do workflow abaixo em \`${TARGET_PATH}\`."
+          ISSUE_BODY="${ISSUE_BODY}\n\nO conteudo esta salvo em: \`autopilot-state\` branch do repo \`${STATE_REPO}\`"
+          ISSUE_BODY="${ISSUE_BODY}\n  path: \`pending/release-autopilot.yml\`"
+          ISSUE_BODY="${ISSUE_BODY}\n\n### Passos:"
+          ISSUE_BODY="${ISSUE_BODY}\n1. Copie o conteudo de \`pending/release-autopilot.yml\` do branch \`autopilot-state\`"
+          ISSUE_BODY="${ISSUE_BODY}\n2. Crie o arquivo \`${TARGET_PATH}\` no repo"
+          ISSUE_BODY="${ISSUE_BODY}\n3. Feche esta issue"
+          printf '%b' "$ISSUE_BODY" > /tmp/issue-body.txt
+          gh issue create \
+            --repo "$TARGET_REPO" \
+            --title "chore: adicionar release-autopilot.yml [autopilot]" \
+            --body-file /tmp/issue-body.txt || echo "Nao foi possivel criar issue no repo do agent"
+          echo "Salvando workflow pendente no autopilot-state..."
+          GH_TOKEN="$GH_TOKEN_STATE"
+          export GH_TOKEN
+          EXISTING_PENDING=$(gh api "repos/$STATE_REPO/contents/pending/release-autopilot.yml?ref=autopilot-state" \
             --jq '.sha' 2>/dev/null || echo "")
-          if [ -n "$EXISTING_FILE" ] && [ "$EXISTING_FILE" != "null" ]; then
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
+          if [ -n "$EXISTING_PENDING" ] && [ "$EXISTING_PENDING" != "null" ]; then
+            gh api "repos/$STATE_REPO/contents/pending/release-autopilot.yml" \
               --method PUT \
-              -f "branch=$BRANCH_NAME" \
-              -f "message=chore: update release-autopilot workflow [autopilot]" \
+              -f "branch=autopilot-state" \
+              -f "message=chore: update pending release-autopilot.yml [skip ci]" \
               -f "content=$ENCODED" \
-              -f "sha=$EXISTING_FILE"
+              -f "sha=$EXISTING_PENDING"
           else
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
+            gh api "repos/$STATE_REPO/contents/pending/release-autopilot.yml" \
               --method PUT \
-              -f "branch=$BRANCH_NAME" \
-              -f "message=chore: add release-autopilot workflow [autopilot]" \
+              -f "branch=autopilot-state" \
+              -f "message=chore: add pending release-autopilot.yml [skip ci]" \
               -f "content=$ENCODED"
           fi
-          PR_URL=$(gh api "repos/$TARGET_REPO/pulls" \
-            --method POST \
-            -f "title=chore: add Autopilot release workflow" \
-            -f "head=$BRANCH_NAME" \
-            -f "base=main" \
-            -f "body=Workflow criado automaticamente pelo Autopilot bootstrap. Dispara release apos CI passar em main." \
-            --jq '.html_url')
-          echo "PR criado: $PR_URL"
+          echo "Workflow salvo em autopilot-state/pending/release-autopilot.yml"
 
       - name: "3/4 - Configurar secret RELEASE_TOKEN no repo do agent"
         id: step3

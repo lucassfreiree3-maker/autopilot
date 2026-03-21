@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "workspaceId": "ws-default",
-  "displayName": "Default Workspace",
+  "displayName": "Default Workspace (E2E Sim)",
   "createdAt": "2026-03-21T21:41:00Z",
-  "updatedAt": "2026-03-21T21:41:00Z",
+  "updatedAt": "2026-03-21T21:50:00Z",
   "controller": {
     "sourceRepo": "",
     "deployRepo": "",
@@ -13,15 +13,16 @@
     "imagePattern": ""
   },
   "agent": {
-    "sourceRepo": "",
-    "deployRepo": "",
-    "deployBranch": "main",
-    "deployValuesPath": "",
-    "capRepo": "",
-    "capBranch": "main",
-    "capValuesPath": "",
-    "ciWorkflowName": "",
-    "imagePattern": ""
+    "sourceRepo": "lucassfreiree/autopilot",
+    "sourceRef": "sim-source",
+    "deployRepo": "lucassfreiree/autopilot",
+    "deployBranch": "sim-deploy",
+    "deployValuesPath": "releases/deploy/values.yaml",
+    "capRepo": "lucassfreiree/autopilot",
+    "capBranch": "sim-cap",
+    "capValuesPath": "releases/cap/values.yaml",
+    "ciWorkflowName": "CI",
+    "imagePattern": "registry.example.com/sim-agent"
   },
   "settings": {
     "promotionTarget": "both",

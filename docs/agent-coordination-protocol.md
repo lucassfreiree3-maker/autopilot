@@ -207,6 +207,7 @@ Aplicar nesta ordem **antes** de escalar ao usuário:
 | `docs/agent-shared-learnings.md` | Aprendizados técnicos compartilhados |
 | `secrets/github-token.txt` | Token GitHub (Texto puro) — compartilhado |
 | `docs/gemini-controller-release-guide.md` | Guia operacional para Gemini |
+| `docs/claude-code-operations.md` | Guia operacional para Claude Code |
 
 ---
 

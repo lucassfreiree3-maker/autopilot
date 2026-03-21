@@ -1,6 +1,9 @@
 name: "Test: Corporate E2E Flow"
 
 on:
+  push:
+    branches: [main]
+    paths: ['trigger/e2e-test.json']
   workflow_dispatch:
     inputs:
       workspace_id:
@@ -17,13 +20,13 @@ on:
         description: "Dry run (no push, no promote)"
         required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
 
 concurrency:
-  group: test-corporate-${{ github.event.inputs.workspace_id }}
+  group: test-corporate-flow
   cancel-in-progress: false
 
 env:
@@ -36,13 +39,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 0. Resolve inputs (push trigger reads from file) ─────
+      - name: "0/9 - Resolve inputs"
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/e2e-test.json ]; then
+            echo "Reading inputs from trigger/e2e-test.json..."
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/e2e-test.json)
+            DRY_RUN=$(jq -r '.dry_run // "false"' trigger/e2e-test.json)
+          else
+            WS_ID="${{ steps.inputs.outputs.workspace_id }}"
+            DRY_RUN="${{ steps.inputs.outputs.dry_run }}"
+          fi
+          [ -z "$WS_ID" ] && WS_ID="ws-default"
+          [ -z "$DRY_RUN" ] && DRY_RUN="false"
+          echo "workspace_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+          echo "Inputs: workspace=$WS_ID dry_run=$DRY_RUN"
+
       # ── 1. Read workspace config ──────────────────────────────
       - name: "1/9 - Read workspace config"
         id: ws
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_ID="${{ steps.inputs.outputs.workspace_id }}"
           WS_PATH="state/workspaces/${WS_ID}"
           WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
             --jq '.content' | base64 -d)
@@ -69,7 +93,7 @@ jobs:
           echo "| Source | $SOURCE_REPO |" >> "$GITHUB_STEP_SUMMARY"
           echo "| CAP | $CAP_REPO |" >> "$GITHUB_STEP_SUMMARY"
           echo "| CI Workflow | $CI_WORKFLOW |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Dry Run | ${{ github.event.inputs.dry_run }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Dry Run | ${{ steps.inputs.outputs.dry_run }} |" >> "$GITHUB_STEP_SUMMARY"
 
       # ── 2. Clone source repo ──────────────────────────────────
       - name: "2/9 - Clone source repo"
@@ -124,7 +148,7 @@ jobs:
 
       # ── 4. Push test branch ───────────────────────────────────
       - name: "4/9 - Push test branch"
-        if: github.event.inputs.dry_run != 'true'
+        if: steps.inputs.outputs.dry_run != 'true'
         id: push
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -137,7 +161,7 @@ jobs:
 
       # ── 5. Wait for CI ────────────────────────────────────────
       - name: "5/9 - Wait for CI"
-        if: github.event.inputs.dry_run != 'true'
+        if: steps.inputs.outputs.dry_run != 'true'
         id: ci
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -188,7 +212,7 @@ jobs:
 
       # ── 6. Promote tag in CAP repo ───────────────────────────
       - name: "6/9 - Promote tag in CAP repo"
-        if: github.event.inputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
+        if: steps.inputs.outputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
         id: promote
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -237,7 +261,7 @@ jobs:
 
       # ── 7. Save state ─────────────────────────────────────────
       - name: "7/9 - Save state"
-        if: github.event.inputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
+        if: steps.inputs.outputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -260,7 +284,7 @@ jobs:
               '[{target:"cap", repo:$repo, branch:$branch, path:$path, tag:$tag, sha:$sha, timestamp:$ts, status:"success"}]')
           fi
           NEW_STATE=$(jq -n \
-            --arg ws "${{ github.event.inputs.workspace_id }}" \
+            --arg ws "${{ steps.inputs.outputs.workspace_id }}" \
             --arg sha "${{ steps.change.outputs.new_sha }}" \
             --arg tag "$TAG" \
             --arg ver "${{ steps.change.outputs.new_version }}" \
@@ -277,7 +301,7 @@ jobs:
 
       # ── 8. Cleanup test branch ────────────────────────────────
       - name: "8/9 - Cleanup test branch (zero traces)"
-        if: always() && github.event.inputs.dry_run != 'true' && steps.push.outputs.pushed == 'true'
+        if: always() && steps.inputs.outputs.dry_run != 'true' && steps.push.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
@@ -295,7 +319,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_ID="${{ steps.inputs.outputs.workspace_id }}"
           WS_PATH="${{ steps.ws.outputs.ws_path }}"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(echo "$NOW" | tr ':' '-')
@@ -307,7 +331,7 @@ jobs:
             --arg ws "$WS_ID" \
             --arg ts "$NOW" \
             --arg run "${{ github.run_id }}" \
-            --arg dry "${{ github.event.inputs.dry_run }}" \
+            --arg dry "${{ steps.inputs.outputs.dry_run }}" \
             --arg ci "$CI_RESULT" \
             --arg promoted "$PROMOTED" \
             --arg ver "${{ steps.change.outputs.new_version }}" \

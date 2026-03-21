@@ -2,10 +2,9 @@
   "lockId": "agent-release",
   "workspaceId": "ws-default",
   "operation": "agent-release",
-  "acquiredAt": "2026-03-21T21:42:00Z",
-  "acquiredBy": "test-manual",
-  "runId": "test-run-001",
-  "expiresAt": "2026-03-21T22:12:00Z",
-  "released": true,
-  "releasedAt": "2026-03-21T21:43:00Z"
+  "acquiredAt": "2026-03-21T21:50:00Z",
+  "acquiredBy": "e2e-test-release",
+  "runId": "e2e-sim-001",
+  "expiresAt": "2026-03-21T22:20:00Z",
+  "released": false
 }

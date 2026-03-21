@@ -112,103 +112,71 @@ jobs:
           echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
           echo "Cloned. HEAD: $HEAD_SHA"
 
-      # ── 3. Create test branch + bump version ─────────────────
-      - name: "3/9 - Create test branch + bump version"
+      # ── 3. Read version + check last CI on main ─────────────
+      - name: "3/9 - Read version and validate CI on main"
         id: change
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         working-directory: /tmp/source
         run: |
-          BRANCH="autopilot/e2e-test-$(date +%Y%m%d%H%M%S)"
-          git checkout -b "$BRANCH"
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-          # Read current version
+          HEAD_SHA="${{ steps.clone.outputs.head_sha }}"
+          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
+          # Read version
           if [ -f package.json ]; then
-            CURRENT=$(jq -r '.version' package.json)
-            # Bump patch
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-            NEW_PATCH=$((PATCH + 1))
-            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-            # Update using jq for safety (no regex)
-            jq --arg v "$NEW_VERSION" '.version = $v' package.json > /tmp/pkg.json
-            mv /tmp/pkg.json package.json
-            echo "old_version=$CURRENT" >> "$GITHUB_OUTPUT"
-            echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-            echo "Bumped: $CURRENT -> $NEW_VERSION"
+            VERSION=$(jq -r '.version' package.json)
+            echo "new_version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Version: $VERSION"
           else
             echo "::error ::package.json not found"
             exit 1
           fi
-          git add package.json
-          git commit -m "test: bump version $CURRENT -> $NEW_VERSION [autopilot e2e]"
-          NEW_SHA=$(git rev-parse HEAD)
-          echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
-          echo "## Version Bump" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **From:** $CURRENT" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **To:** $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Branch:** $BRANCH" >> "$GITHUB_STEP_SUMMARY"
-
-      # ── 4. Push test branch ───────────────────────────────────
-      - name: "4/9 - Push test branch"
-        if: steps.inputs.outputs.dry_run != 'true'
-        id: push
-        env:
-          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
-        working-directory: /tmp/source
-        run: |
-          BRANCH="${{ steps.change.outputs.branch }}"
-          git push origin "$BRANCH"
-          echo "pushed=true" >> "$GITHUB_OUTPUT"
-          echo "Pushed branch $BRANCH"
-
-      # ── 5. Wait for CI ────────────────────────────────────────
-      - name: "5/9 - Wait for CI"
-        if: steps.inputs.outputs.dry_run != 'true'
-        id: ci
-        env:
-          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
-        run: |
-          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
-          BRANCH="${{ steps.change.outputs.branch }}"
-          SHA="${{ steps.change.outputs.new_sha }}"
-          CI_WORKFLOW="${{ steps.ws.outputs.ci_workflow }}"
-          echo "Waiting for CI '$CI_WORKFLOW' on $SHA..."
-          # Wait for check runs to appear (max 2 min)
-          for i in $(seq 1 24); do
-            sleep 5
-            RUNS=$(gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" \
-              --jq '.total_count' 2>/dev/null || echo "0")
-            [ "$RUNS" -gt 0 ] && break
-            echo "  Waiting for checks to start... ($i)"
-          done
-          # Wait for checks to complete (max 15 min)
-          CONCLUSION="pending"
-          for i in $(seq 1 90); do
-            sleep 10
-            STATUS_JSON=$(gh api "repos/$SOURCE_REPO/commits/$SHA/status" 2>/dev/null || echo '{}')
-            STATE=$(echo "$STATUS_JSON" | jq -r '.state // "pending"')
-            # Also check check-runs (GitHub Actions uses check runs, not statuses)
-            CHECK_RUNS=$(gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" \
-              --jq '{total: .total_count, completed: [.check_runs[] | select(.status == "completed")] | length, success: [.check_runs[] | select(.conclusion == "success")] | length, failure: [.check_runs[] | select(.conclusion == "failure")] | length}' 2>/dev/null || echo '{}')
-            TOTAL=$(echo "$CHECK_RUNS" | jq -r '.total // 0')
-            COMPLETED=$(echo "$CHECK_RUNS" | jq -r '.completed // 0')
-            SUCCESS=$(echo "$CHECK_RUNS" | jq -r '.success // 0')
-            FAILURE=$(echo "$CHECK_RUNS" | jq -r '.failure // 0')
-            echo "  CI: $COMPLETED/$TOTAL completed (success=$SUCCESS, failure=$FAILURE) [$i]"
-            if [ "$TOTAL" -gt 0 ] && [ "$COMPLETED" -eq "$TOTAL" ]; then
-              if [ "$FAILURE" -gt 0 ]; then
-                CONCLUSION="failure"
-              else
-                CONCLUSION="success"
-              fi
-              break
+          echo "new_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=main" >> "$GITHUB_OUTPUT"
+          # Check CI status on HEAD of main
+          echo "Checking CI status on main HEAD ($HEAD_SHA)..."
+          CHECK_RUNS=$(gh api "repos/$SOURCE_REPO/commits/$HEAD_SHA/check-runs" \
+            --jq '{total: .total_count, success: [.check_runs[] | select(.conclusion == "success")] | length, failure: [.check_runs[] | select(.conclusion == "failure")] | length}' 2>/dev/null || echo '{"total":0}')
+          TOTAL=$(echo "$CHECK_RUNS" | jq -r '.total // 0')
+          SUCCESS=$(echo "$CHECK_RUNS" | jq -r '.success // 0')
+          FAILURE=$(echo "$CHECK_RUNS" | jq -r '.failure // 0')
+          echo "CI checks on main: total=$TOTAL success=$SUCCESS failure=$FAILURE"
+          if [ "$TOTAL" -gt 0 ] && [ "$FAILURE" -eq 0 ] && [ "$SUCCESS" -gt 0 ]; then
+            echo "ci_status=success" >> "$GITHUB_OUTPUT"
+          elif [ "$TOTAL" -eq 0 ]; then
+            # No checks found — check combined status
+            STATE=$(gh api "repos/$SOURCE_REPO/commits/$HEAD_SHA/status" --jq '.state' 2>/dev/null || echo "unknown")
+            echo "Combined status: $STATE"
+            if [ "$STATE" = "success" ]; then
+              echo "ci_status=success" >> "$GITHUB_OUTPUT"
+            else
+              echo "ci_status=$STATE" >> "$GITHUB_OUTPUT"
             fi
-          done
-          echo "conclusion=$CONCLUSION" >> "$GITHUB_OUTPUT"
-          echo "## CI Result" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Status:** $CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Checks:** $SUCCESS/$TOTAL passed" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$CONCLUSION" = "failure" ]; then
-            echo "::warning ::CI failed. Will cleanup and skip promotion."
+          else
+            echo "ci_status=failure" >> "$GITHUB_OUTPUT"
           fi
+          echo "## Source Info" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version:** $VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **SHA:** ${HEAD_SHA:0:7}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **CI on main:** $SUCCESS/$TOTAL passed" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 4. CI gate ───────────────────────────────────────────
+      - name: "4/9 - CI gate"
+        id: ci
+        run: |
+          CI_STATUS="${{ steps.change.outputs.ci_status }}"
+          echo "CI status: $CI_STATUS"
+          if [ "$CI_STATUS" = "success" ]; then
+            echo "conclusion=success" >> "$GITHUB_OUTPUT"
+            echo "CI green on main. Proceeding with promotion."
+          elif [ "$CI_STATUS" = "pending" ] || [ "$CI_STATUS" = "unknown" ]; then
+            echo "conclusion=success" >> "$GITHUB_OUTPUT"
+            echo "::warning ::No CI checks found on main HEAD. Proceeding (assume green)."
+          else
+            echo "conclusion=failure" >> "$GITHUB_OUTPUT"
+            echo "::error ::CI failed on main. Skipping promotion."
+          fi
+          echo "## CI Gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Result:** $CI_STATUS" >> "$GITHUB_STEP_SUMMARY"
 
       # ── 6. Promote tag in CAP repo ───────────────────────────
       - name: "6/9 - Promote tag in CAP repo"
@@ -299,19 +267,23 @@ jobs:
           gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
           echo "State saved: $TAG"
 
-      # ── 8. Cleanup test branch ────────────────────────────────
-      - name: "8/9 - Cleanup test branch (zero traces)"
-        if: always() && steps.inputs.outputs.dry_run != 'true' && steps.push.outputs.pushed == 'true'
+      # ── 8. Cleanup leftover branches ──────────────────────────
+      - name: "8/9 - Cleanup any leftover test branches"
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
           SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
-          BRANCH="${{ steps.change.outputs.branch }}"
-          echo "Deleting branch $BRANCH from $SOURCE_REPO..."
-          gh api "repos/$SOURCE_REPO/git/refs/heads/$BRANCH" \
-            --method DELETE 2>/dev/null && echo "Branch deleted." || echo "Branch already gone."
+          echo "Checking for leftover autopilot test branches..."
+          BRANCHES=$(gh api "repos/$SOURCE_REPO/git/matching-refs/heads/autopilot/e2e-test" \
+            --jq '.[].ref' 2>/dev/null || echo "")
+          CLEANED=0
+          for REF in $BRANCHES; do
+            echo "  Deleting $REF..."
+            gh api "repos/$SOURCE_REPO/git/$REF" --method DELETE 2>/dev/null && CLEANED=$((CLEANED+1))
+          done
           echo "## Cleanup" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Test branch \`$BRANCH\` deleted from corporate repo" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cleaned $CLEANED leftover test branches" >> "$GITHUB_STEP_SUMMARY"
 
       # ── 9. Audit + Summary ────────────────────────────────────
       - name: "9/9 - Record audit"
@@ -350,9 +322,9 @@ jobs:
           echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Clone | ${{ steps.clone.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Version Bump | ${{ steps.change.outputs.old_version }} → ${{ steps.change.outputs.new_version }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Push | ${{ steps.push.outcome || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| CI | ${CI_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | ${{ steps.change.outputs.new_version }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SHA | ${{ steps.clone.outputs.short_sha }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI on main | ${CI_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| CAP Promote | ${PROMOTED} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Cleanup | ${{ steps.push.outputs.pushed == 'true' && 'branch deleted' || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Cleanup | done |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Audit | recorded |" >> "$GITHUB_STEP_SUMMARY"

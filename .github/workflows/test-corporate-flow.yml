@@ -1,0 +1,334 @@
+name: "Test: Corporate E2E Flow"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      component:
+        description: "Component to test"
+        required: true
+        type: choice
+        options:
+          - agent
+      dry_run:
+        description: "Dry run (no push, no promote)"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: test-corporate-${{ github.event.inputs.workspace_id }}
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  test-flow:
+    name: "E2E: clone → change → push → CI → promote → cleanup"
+    runs-on: ubuntu-latest
+    steps:
+
+      # ── 1. Read workspace config ──────────────────────────────
+      - name: "1/9 - Read workspace config"
+        id: ws
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          if [ -z "$WS_JSON" ]; then
+            echo "::error ::Workspace $WS_ID not found"
+            exit 1
+          fi
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')
+          CAP_REPO=$(echo "$WS_JSON" | jq -r '.agent.capRepo')
+          CAP_BRANCH=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')
+          CAP_VALUES=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')
+          CI_WORKFLOW=$(echo "$WS_JSON" | jq -r '.agent.ciWorkflowName')
+          IMAGE_PATTERN=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')
+          echo "source_repo=$SOURCE_REPO" >> "$GITHUB_OUTPUT"
+          echo "cap_repo=$CAP_REPO" >> "$GITHUB_OUTPUT"
+          echo "cap_branch=$CAP_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "cap_values=$CAP_VALUES" >> "$GITHUB_OUTPUT"
+          echo "ci_workflow=$CI_WORKFLOW" >> "$GITHUB_OUTPUT"
+          echo "image_pattern=$IMAGE_PATTERN" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+          echo "## Workspace Config" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source | $SOURCE_REPO |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CAP | $CAP_REPO |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI Workflow | $CI_WORKFLOW |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Dry Run | ${{ github.event.inputs.dry_run }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 2. Clone source repo ──────────────────────────────────
+      - name: "2/9 - Clone source repo"
+        id: clone
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
+          echo "Cloning $SOURCE_REPO..."
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source
+          cd /tmp/source
+          git config user.name "autopilot[bot]"
+          git config user.email "autopilot[bot]@users.noreply.github.com"
+          HEAD_SHA=$(git rev-parse HEAD)
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "Cloned. HEAD: $HEAD_SHA"
+
+      # ── 3. Create test branch + bump version ─────────────────
+      - name: "3/9 - Create test branch + bump version"
+        id: change
+        working-directory: /tmp/source
+        run: |
+          BRANCH="autopilot/e2e-test-$(date +%Y%m%d%H%M%S)"
+          git checkout -b "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          # Read current version
+          if [ -f package.json ]; then
+            CURRENT=$(jq -r '.version' package.json)
+            # Bump patch
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            # Update using jq for safety (no regex)
+            jq --arg v "$NEW_VERSION" '.version = $v' package.json > /tmp/pkg.json
+            mv /tmp/pkg.json package.json
+            echo "old_version=$CURRENT" >> "$GITHUB_OUTPUT"
+            echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+            echo "Bumped: $CURRENT -> $NEW_VERSION"
+          else
+            echo "::error ::package.json not found"
+            exit 1
+          fi
+          git add package.json
+          git commit -m "test: bump version $CURRENT -> $NEW_VERSION [autopilot e2e]"
+          NEW_SHA=$(git rev-parse HEAD)
+          echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
+          echo "## Version Bump" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **From:** $CURRENT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **To:** $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Branch:** $BRANCH" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 4. Push test branch ───────────────────────────────────
+      - name: "4/9 - Push test branch"
+        if: github.event.inputs.dry_run != 'true'
+        id: push
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        working-directory: /tmp/source
+        run: |
+          BRANCH="${{ steps.change.outputs.branch }}"
+          git push origin "$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "Pushed branch $BRANCH"
+
+      # ── 5. Wait for CI ────────────────────────────────────────
+      - name: "5/9 - Wait for CI"
+        if: github.event.inputs.dry_run != 'true'
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
+          BRANCH="${{ steps.change.outputs.branch }}"
+          SHA="${{ steps.change.outputs.new_sha }}"
+          CI_WORKFLOW="${{ steps.ws.outputs.ci_workflow }}"
+          echo "Waiting for CI '$CI_WORKFLOW' on $SHA..."
+          # Wait for check runs to appear (max 2 min)
+          for i in $(seq 1 24); do
+            sleep 5
+            RUNS=$(gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" \
+              --jq '.total_count' 2>/dev/null || echo "0")
+            [ "$RUNS" -gt 0 ] && break
+            echo "  Waiting for checks to start... ($i)"
+          done
+          # Wait for checks to complete (max 15 min)
+          CONCLUSION="pending"
+          for i in $(seq 1 90); do
+            sleep 10
+            STATUS_JSON=$(gh api "repos/$SOURCE_REPO/commits/$SHA/status" 2>/dev/null || echo '{}')
+            STATE=$(echo "$STATUS_JSON" | jq -r '.state // "pending"')
+            # Also check check-runs (GitHub Actions uses check runs, not statuses)
+            CHECK_RUNS=$(gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" \
+              --jq '{total: .total_count, completed: [.check_runs[] | select(.status == "completed")] | length, success: [.check_runs[] | select(.conclusion == "success")] | length, failure: [.check_runs[] | select(.conclusion == "failure")] | length}' 2>/dev/null || echo '{}')
+            TOTAL=$(echo "$CHECK_RUNS" | jq -r '.total // 0')
+            COMPLETED=$(echo "$CHECK_RUNS" | jq -r '.completed // 0')
+            SUCCESS=$(echo "$CHECK_RUNS" | jq -r '.success // 0')
+            FAILURE=$(echo "$CHECK_RUNS" | jq -r '.failure // 0')
+            echo "  CI: $COMPLETED/$TOTAL completed (success=$SUCCESS, failure=$FAILURE) [$i]"
+            if [ "$TOTAL" -gt 0 ] && [ "$COMPLETED" -eq "$TOTAL" ]; then
+              if [ "$FAILURE" -gt 0 ]; then
+                CONCLUSION="failure"
+              else
+                CONCLUSION="success"
+              fi
+              break
+            fi
+          done
+          echo "conclusion=$CONCLUSION" >> "$GITHUB_OUTPUT"
+          echo "## CI Result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Status:** $CONCLUSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Checks:** $SUCCESS/$TOTAL passed" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CONCLUSION" = "failure" ]; then
+            echo "::warning ::CI failed. Will cleanup and skip promotion."
+          fi
+
+      # ── 6. Promote tag in CAP repo ───────────────────────────
+      - name: "6/9 - Promote tag in CAP repo"
+        if: github.event.inputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
+        id: promote
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          CAP_REPO="${{ steps.ws.outputs.cap_repo }}"
+          CAP_BRANCH="${{ steps.ws.outputs.cap_branch }}"
+          CAP_VALUES="${{ steps.ws.outputs.cap_values }}"
+          IMAGE_PATTERN="${{ steps.ws.outputs.image_pattern }}"
+          VERSION="${{ steps.change.outputs.new_version }}"
+          SHORT_SHA="${{ steps.clone.outputs.short_sha }}"
+          TAG="${VERSION}-${SHORT_SHA}"
+          if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ] || [ "$CAP_REPO" = "" ]; then
+            echo "::warning ::CAP repo not configured. Skipping."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Reading $CAP_VALUES from $CAP_REPO..."
+          VALUES_CONTENT=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" \
+            --jq '.content' | base64 -d)
+          VALUES_SHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" \
+            --jq '.sha')
+          # Update tag using sed with the image pattern
+          UPDATED=$(echo "$VALUES_CONTENT" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
+          if [ "$VALUES_CONTENT" = "$UPDATED" ]; then
+            echo "::warning ::Pattern '$IMAGE_PATTERN' not found in values. Trying simple tag replace."
+            # Fallback: replace any tag: "..." line under image:
+            UPDATED=$(echo "$VALUES_CONTENT" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+          fi
+          if [ "$VALUES_CONTENT" = "$UPDATED" ]; then
+            echo "::error ::Could not update values.yaml. No matching pattern."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          ENCODED=$(echo "$UPDATED" | base64 -w0)
+          gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" \
+            --method PUT \
+            -f "branch=$CAP_BRANCH" \
+            -f "message=chore(release): agent -> ${TAG} [autopilot e2e]" \
+            -f "content=$ENCODED" \
+            -f "sha=$VALUES_SHA"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "## CAP Promotion" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Tag:** $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **File:** $CAP_VALUES" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 7. Save state ─────────────────────────────────────────
+      - name: "7/9 - Save state"
+        if: github.event.inputs.dry_run != 'true' && steps.ci.outputs.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          FILE="${WS_PATH}/agent-release-state.json"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          FILE_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          TAG="${{ steps.promote.outputs.tag }}"
+          [ -z "$TAG" ] && TAG="${{ steps.change.outputs.new_version }}-${{ steps.clone.outputs.short_sha }}"
+          PROMOTIONS='[]'
+          if [ "${{ steps.promote.outputs.pushed }}" = "true" ]; then
+            PROMOTIONS=$(jq -n \
+              --arg repo "${{ steps.ws.outputs.cap_repo }}" \
+              --arg branch "${{ steps.ws.outputs.cap_branch }}" \
+              --arg path "${{ steps.ws.outputs.cap_values }}" \
+              --arg tag "$TAG" \
+              --arg sha "${{ steps.change.outputs.new_sha }}" \
+              --arg ts "$NOW" \
+              '[{target:"cap", repo:$repo, branch:$branch, path:$path, tag:$tag, sha:$sha, timestamp:$ts, status:"success"}]')
+          fi
+          NEW_STATE=$(jq -n \
+            --arg ws "${{ github.event.inputs.workspace_id }}" \
+            --arg sha "${{ steps.change.outputs.new_sha }}" \
+            --arg tag "$TAG" \
+            --arg ver "${{ steps.change.outputs.new_version }}" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --argjson promo "$PROMOTIONS" \
+            '{schemaVersion:2, workspaceId:$ws, component:"agent", lastReleasedSha:$sha, lastTag:$tag, lastVersion:$ver, updatedAt:$ts, runId:$run, runUrl:$url, promotions:$promo, status:"promoted"}')
+          ENCODED=$(echo "$NEW_STATE" | base64 -w0)
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: agent -> $TAG [skip ci]" -f "content=$ENCODED")
+          [ -n "$FILE_SHA" ] && [ "$FILE_SHA" != "null" ] && ARGS+=(-f "sha=$FILE_SHA")
+          gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
+          echo "State saved: $TAG"
+
+      # ── 8. Cleanup test branch ────────────────────────────────
+      - name: "8/9 - Cleanup test branch (zero traces)"
+        if: always() && github.event.inputs.dry_run != 'true' && steps.push.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
+          BRANCH="${{ steps.change.outputs.branch }}"
+          echo "Deleting branch $BRANCH from $SOURCE_REPO..."
+          gh api "repos/$SOURCE_REPO/git/refs/heads/$BRANCH" \
+            --method DELETE 2>/dev/null && echo "Branch deleted." || echo "Branch already gone."
+          echo "## Cleanup" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Test branch \`$BRANCH\` deleted from corporate repo" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── 9. Audit + Summary ────────────────────────────────────
+      - name: "9/9 - Record audit"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(echo "$NOW" | tr ':' '-')
+          CI_RESULT="${{ steps.ci.outputs.conclusion }}"
+          [ -z "$CI_RESULT" ] && CI_RESULT="skipped"
+          PROMOTED="${{ steps.promote.outputs.pushed }}"
+          [ -z "$PROMOTED" ] && PROMOTED="false"
+          AUDIT=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg dry "${{ github.event.inputs.dry_run }}" \
+            --arg ci "$CI_RESULT" \
+            --arg promoted "$PROMOTED" \
+            --arg ver "${{ steps.change.outputs.new_version }}" \
+            --arg branch "${{ steps.change.outputs.branch }}" \
+            --arg tag "${{ steps.promote.outputs.tag }}" \
+            '{operation:"e2e-test", workspaceId:$ws, timestamp:$ts, runId:$run, dryRun:($dry == "true"), ciResult:$ci, promoted:($promoted == "true"), version:$ver, testBranch:$branch, tag:$tag}')
+          ENCODED=$(echo "$AUDIT" | base64 -w0)
+          gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/e2e-test-${SAFE_NOW}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: e2e-test $WS_ID [skip ci]" \
+            -f "content=$ENCODED" 2>/dev/null || echo "Audit write skipped"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Final Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Clone | ${{ steps.clone.outcome }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version Bump | ${{ steps.change.outputs.old_version }} → ${{ steps.change.outputs.new_version }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Push | ${{ steps.push.outcome || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI | ${CI_RESULT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CAP Promote | ${PROMOTED} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Cleanup | ${{ steps.push.outputs.pushed == 'true' && 'branch deleted' || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Audit | recorded |" >> "$GITHUB_STEP_SUMMARY"

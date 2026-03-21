@@ -1,0 +1,118 @@
+# ===========================================================
+# REPO:  lucassfreiree/autopilot
+# PATH:  .github/workflows/health-check.yml
+#
+# Health check periodico (a cada hora) do autopilot.
+# Verifica:
+#   1. Estado persistido do agent (ultima tag, SHA, idade)
+#   2. Runs travados no GitHub Actions do agent
+#   3. Drift entre HEAD do main e ultimo SHA promovido
+#
+# PRE-REQUISITOS:
+#   Secret RELEASE_TOKEN neste repo (lucassfreiree/autopilot)
+# ===========================================================
+name: "Autopilot: Health Check"
+
+on:
+  schedule:
+    - cron: '10 * * * *'
+  workflow_dispatch:
+
+env:
+  STUCK_MIN: 120
+  STATE_BRANCH: autopilot-state
+  WS: lucassfreiree/autopilot
+  AGENT_REPO: bbvinet/psc-sre-automacao-agent
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ler estado do agent
+        id: agent
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          STATE=$(gh api "repos/$WS/contents/state/agent-state.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          TAG=$(echo "$STATE" | jq -r '.lastTag // ""')
+          SHA=$(echo "$STATE" | jq -r '.lastReleasedSha // ""')
+          TS=$(echo "$STATE"  | jq -r '.updatedAt // ""')
+          echo "tag=$TAG"       >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA:0:8}" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$SHA"  >> "$GITHUB_OUTPUT"
+          if [ -n "$TS" ] && [ "$TS" != "null" ]; then
+            NOW_S=$(date +%s); LAST_S=$(date -d "$TS" +%s 2>/dev/null || echo "$NOW_S")
+            echo "age_h=$(( (NOW_S - LAST_S) / 3600 ))" >> "$GITHUB_OUTPUT"
+          else
+            echo "age_h=-1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detectar runs travados
+        id: stuck
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW_S=$(date +%s); THRESH=$(( STUCK_MIN * 60 )); COUNT=0; DETAILS=""
+          while IFS='|' read -r ID NAME CREATED URL; do
+            [ -z "$ID" ] && continue
+            CREATED_S=$(date -d "$CREATED" +%s 2>/dev/null || echo "$NOW_S")
+            AGE=$(( NOW_S - CREATED_S ))
+            if [ "$AGE" -gt "$THRESH" ]; then
+              COUNT=$(( COUNT + 1 ))
+              DETAILS="$DETAILS\n- Run #$ID ($NAME) ha $(( AGE / 60 ))min"
+            fi
+          done < <(gh api "repos/$AGENT_REPO/actions/runs?status=in_progress&per_page=20" \
+            --jq '.workflow_runs[] | "\(.id)|\(.name)|\(.created_at)|\(.html_url)"' 2>/dev/null)
+          echo "count=$COUNT"     >> "$GITHUB_OUTPUT"
+          echo "details=$DETAILS" >> "$GITHUB_OUTPUT"
+
+      - name: Detectar drift
+        id: drift
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          LAST_SHA="${{ steps.agent.outputs.full_sha }}"
+          HEAD_SHA=$(gh api "repos/$AGENT_REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+          if [ -z "$HEAD_SHA" ] || [ -z "$LAST_SHA" ]; then
+            echo "status=unknown" >> "$GITHUB_OUTPUT"
+          elif [ "$HEAD_SHA" = "$LAST_SHA" ]; then
+            echo "status=none"    >> "$GITHUB_OUTPUT"
+          else
+            AHEAD=$(gh api "repos/$AGENT_REPO/compare/$LAST_SHA...$HEAD_SHA" \
+              --jq '.ahead_by' 2>/dev/null || echo "?")
+            echo "status=detected" >> "$GITHUB_OUTPUT"
+            echo "ahead=$AHEAD"    >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resumo
+        run: |
+          STUCK="${{ steps.stuck.outputs.count }}"
+          AGE="${{ steps.agent.outputs.age_h }}"
+          [ "$STUCK" -gt 0 ] 2>/dev/null && ICON="X" || ICON="OK"
+          [ "$AGE" = "-1" ] && AGE_STR="nunca" || AGE_STR="${AGE}h atras"
+          echo "## Health Check bbvinet/agent $(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Valor |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tag | ${{ steps.agent.outputs.tag }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SHA | ${{ steps.agent.outputs.sha }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Atualizado | $AGE_STR |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Drift | ${{ steps.drift.outputs.status }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Runs travados | $STUCK ($ICON) |" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$STUCK" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Runs travados (>${STUCK_MIN}min)" >> "$GITHUB_STEP_SUMMARY"
+            echo -e "${{ steps.stuck.outputs.details }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "${{ steps.drift.outputs.status }}" = "detected" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### Drift detectado" >> "$GITHUB_STEP_SUMMARY"
+            echo "HEAD do main esta ${{ steps.drift.outputs.ahead }} commits a frente do ultimo release." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Falhar se critico
+        if: steps.stuck.outputs.count > 0
+        run: |
+          echo "::error ::${{ steps.stuck.outputs.count }} run(s) travado(s) detectado(s)."
+          exit 1

@@ -1,0 +1,129 @@
+name: "Drift Correction"
+
+on:
+  schedule:
+    - cron: '30 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID (leave empty for all)"
+        required: false
+      dry_run:
+        description: "Dry run (true = report only)"
+        required: false
+        default: "true"
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Detect and correct drift"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'true' }}"
+          WS_FILTER="${{ github.event.inputs.workspace_id }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Discover workspaces
+          if [ -n "$WS_FILTER" ]; then
+            WS_LIST="$WS_FILTER"
+          else
+            WS_LIST=$(gh api "repos/$REPO/contents/state/workspaces?ref=$STATE_BRANCH" \
+              --jq '[.[].name] | join(" ")' 2>/dev/null || echo "")
+          fi
+
+          echo "## Drift Report - $NOW" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          TOTAL_DRIFT=0
+
+          for WS_ID in $WS_LIST; do
+            WS_PATH="state/workspaces/${WS_ID}"
+
+            # Check freeze
+            FREEZE=$(gh api "repos/$REPO/contents/${WS_PATH}/release-freeze.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"frozen":false}')
+            IS_FROZEN=$(echo "$FREEZE" | jq -r '.frozen // false')
+            if [ "$IS_FROZEN" = "true" ]; then
+              echo "### $WS_ID — FROZEN (skipped)" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+
+            # Read workspace config
+            WS_JSON=$(gh api "repos/$REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+            echo "### $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Component | Source HEAD | Last Released | Drift |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|-----------|------------|---------------|-------|" >> "$GITHUB_STEP_SUMMARY"
+
+            for COMP in controller agent; do
+              SRC_REPO=$(echo "$WS_JSON" | jq -r ".${COMP}.sourceRepo // \"\"")
+              [ -z "$SRC_REPO" ] || [ "$SRC_REPO" = "null" ] && continue
+
+              # Read release state
+              STATE=$(gh api "repos/$REPO/contents/${WS_PATH}/${COMP}-release-state.json?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+              LAST_SHA=$(echo "$STATE" | jq -r '.lastReleasedSha // ""')
+              LAST_VER=$(echo "$STATE" | jq -r '.lastVersion // "none"')
+
+              [ -z "$LAST_SHA" ] && {
+                echo "| $COMP | ? | never released | N/A |" >> "$GITHUB_STEP_SUMMARY"
+                continue
+              }
+
+              # Get source HEAD
+              HEAD_SHA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SRC_REPO/commits/main" \
+                --jq '.sha' 2>/dev/null || echo "")
+
+              if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" = "$LAST_SHA" ]; then
+                echo "| $COMP | ${HEAD_SHA:0:7} | ${LAST_SHA:0:7} (v$LAST_VER) | **none** |" >> "$GITHUB_STEP_SUMMARY"
+                continue
+              fi
+
+              # Calculate drift
+              AHEAD=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SRC_REPO/compare/${LAST_SHA}...${HEAD_SHA}" \
+                --jq '.ahead_by' 2>/dev/null || echo "?")
+              TOTAL_DRIFT=$((TOTAL_DRIFT + 1))
+              echo "| $COMP | ${HEAD_SHA:0:7} | ${LAST_SHA:0:7} (v$LAST_VER) | **$AHEAD commits** |" >> "$GITHUB_STEP_SUMMARY"
+
+              # Auto-correct if not dry run and drift > 0
+              if [ "$DRY_RUN" != "true" ] && [ "$AHEAD" != "?" ] && [ "$AHEAD" -gt 0 ]; then
+                echo "Triggering release for $WS_ID/$COMP..."
+                # Trigger the full flow test which handles bump + CI + promote
+                gh api "repos/$REPO/actions/workflows/test-full-flow.yml/dispatches" \
+                  --method POST \
+                  -f "ref=main" \
+                  -f "inputs[workspace_id]=$WS_ID" \
+                  -f "inputs[test_type]=${COMP}-only" 2>/dev/null || \
+                echo "::warning ::Could not trigger release for $COMP"
+              fi
+            done
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total drifted components:** $TOTAL_DRIFT" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Mode:** $([ "$DRY_RUN" = "true" ] && echo "Report only" || echo "Auto-correct")" >> "$GITHUB_STEP_SUMMARY"
+
+          # Write drift state
+          DRIFT=$(jq -n --arg ts "$NOW" --argjson count "$TOTAL_DRIFT" --arg run "${{ github.run_id }}" \
+            '{checkedAt:$ts,driftedComponents:$count,runId:$run}')
+          # Store per first workspace for now
+          FIRST_WS=$(echo "$WS_LIST" | awk '{print $1}')
+          if [ -n "$FIRST_WS" ]; then
+            SN=$(date -u +%s%N | cut -c1-13)
+            gh api "repos/$REPO/contents/state/workspaces/${FIRST_WS}/audit/drift-${SN}.json" \
+              --method PUT -f "branch=$STATE_BRANCH" \
+              -f "message=audit: drift check [skip ci]" \
+              -f "content=$(echo "$DRIFT" | base64 -w0)" 2>/dev/null || true
+          fi

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Approval",
+  "type": "object",
+  "required": ["approvalId", "workspaceId", "component", "version", "approvedAt", "approvedBy", "status"],
+  "properties": {
+    "approvalId": { "type": "string" },
+    "workspaceId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$" },
+    "component": { "type": "string", "enum": ["controller", "agent", "both"] },
+    "version": { "type": "string" },
+    "approvedAt": { "type": "string", "format": "date-time" },
+    "approvedBy": { "type": "string" },
+    "runId": { "type": "string" },
+    "status": { "type": "string", "enum": ["approved", "rejected", "expired"] }
+  }
+}

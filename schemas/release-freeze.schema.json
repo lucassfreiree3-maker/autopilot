@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Freeze State",
+  "type": "object",
+  "required": ["frozen", "workspaceId"],
+  "properties": {
+    "frozen": { "type": "boolean" },
+    "workspaceId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$" },
+    "reason": { "type": "string" },
+    "frozenAt": { "type": "string", "format": "date-time" },
+    "frozenBy": { "type": "string" },
+    "runId": { "type": "string" },
+    "expiresAt": { "type": ["string", "null"], "format": "date-time" },
+    "unfrozenAt": { "type": "string", "format": "date-time" },
+    "unfrozenBy": { "type": "string" }
+  }
+}

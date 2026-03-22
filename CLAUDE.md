@@ -35,10 +35,13 @@ state/workspaces/<workspace_id>/
   controller-release-state.json
   agent-release-state.json
   health.json
+  release-freeze.json         # Release freeze state
   locks/                      # Active locks
   audit/                      # Audit trail
   handoffs/                   # Agent handoff queue
   improvements/               # Improvement records
+  approvals/                  # Release approvals
+  metrics/                    # Daily metrics (YYYY-MM-DD.json)
 ```
 
 ## Workflows
@@ -48,12 +51,18 @@ state/workspaces/<workspace_id>/
 | seed-workspace.yml | Create/update a workspace |
 | health-check.yml | Hourly health validation |
 | backup-state.yml | Snapshot state to backups branch |
+| restore-state.yml | Rollback state from backups |
 | workspace-lock-gc.yml | Clean up expired locks |
 | ci-failure-analysis.yml | Analyze CI failures |
 | enqueue-agent-handoff.yml | Create agent handoff |
 | record-improvement.yml | Record improvements |
-| release-controller.yml | Controller release template |
-| release-agent.yml | Agent release template |
+| release-controller.yml | Controller release template (freeze-aware) |
+| release-agent.yml | Agent release template (freeze-aware) |
+| release-freeze.yml | Freeze/unfreeze releases per workspace |
+| release-approval.yml | Manual approval gate for releases |
+| release-metrics.yml | Daily metrics collection and SLO tracking |
+| alert-notify.yml | Auto-create GitHub Issues on failures |
+| drift-correction.yml | Detect and auto-correct source/deploy drift |
 | deploy-panel.yml | Deploy GitHub Pages panel |
 
 ## Agent Compatibility

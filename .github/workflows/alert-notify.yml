@@ -1,0 +1,136 @@
+name: "Alert & Notify"
+
+on:
+  workflow_run:
+    workflows:
+      - "Health Check"
+      - "Test: Full Flow (Controller + Agent)"
+      - "Test: Corporate Flow"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      severity:
+        description: "Alert severity"
+        required: true
+        type: choice
+        options:
+          - info
+          - warning
+          - critical
+      title:
+        description: "Alert title"
+        required: true
+      body:
+        description: "Alert details"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  REPO: lucassfreiree/autopilot
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Evaluate trigger"
+        id: eval
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          # Manual dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "source=manual" >> "$GITHUB_OUTPUT"
+            echo "severity=${{ github.event.inputs.severity }}" >> "$GITHUB_OUTPUT"
+            echo "title=${{ github.event.inputs.title }}" >> "$GITHUB_OUTPUT"
+            echo "body=${{ github.event.inputs.body }}" >> "$GITHUB_OUTPUT"
+            echo "should_alert=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Workflow run trigger
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          RUN_URL="${{ github.event.workflow_run.html_url }}"
+
+          echo "source=workflow" >> "$GITHUB_OUTPUT"
+          echo "workflow=$WORKFLOW_NAME" >> "$GITHUB_OUTPUT"
+          echo "conclusion=$CONCLUSION" >> "$GITHUB_OUTPUT"
+          echo "run_url=$RUN_URL" >> "$GITHUB_OUTPUT"
+
+          # Only alert on failures
+          if [ "$CONCLUSION" = "failure" ]; then
+            echo "should_alert=true" >> "$GITHUB_OUTPUT"
+
+            if [ "$WORKFLOW_NAME" = "Health Check" ]; then
+              echo "severity=critical" >> "$GITHUB_OUTPUT"
+              echo "title=Health Check Failed" >> "$GITHUB_OUTPUT"
+              echo "body=Health check detected critical issues. [Run details]($RUN_URL)" >> "$GITHUB_OUTPUT"
+            else
+              echo "severity=warning" >> "$GITHUB_OUTPUT"
+              echo "title=${WORKFLOW_NAME} Failed" >> "$GITHUB_OUTPUT"
+              echo "body=Workflow **${WORKFLOW_NAME}** failed. [Run details]($RUN_URL)" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "should_alert=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Create alert issue"
+        if: steps.eval.outputs.should_alert == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SEVERITY="${{ steps.eval.outputs.severity }}"
+          TITLE="${{ steps.eval.outputs.title }}"
+          BODY="${{ steps.eval.outputs.body }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Check for duplicate open issues
+          EXISTING=$(gh api "repos/$REPO/issues?state=open&labels=autopilot-alert&per_page=10" \
+            --jq "[.[] | select(.title == \"[autopilot] $TITLE\")] | length" 2>/dev/null || echo "0")
+
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "::warning ::Duplicate alert issue already open for: $TITLE"
+            # Add comment to existing issue instead
+            ISSUE_NUM=$(gh api "repos/$REPO/issues?state=open&labels=autopilot-alert&per_page=10" \
+              --jq "[.[] | select(.title == \"[autopilot] $TITLE\")] | first | .number" 2>/dev/null || echo "")
+            if [ -n "$ISSUE_NUM" ] && [ "$ISSUE_NUM" != "null" ]; then
+              gh api "repos/$REPO/issues/${ISSUE_NUM}/comments" \
+                --method POST \
+                -f "body=**Recurring alert** at $NOW\n\n$BODY" 2>/dev/null || true
+            fi
+            exit 0
+          fi
+
+          # Determine labels
+          LABELS="autopilot-alert,severity:${SEVERITY}"
+
+          # Create issue
+          ISSUE_BODY=$(cat <<EOBODY
+          ## Alert: ${TITLE}
+          Severity: ${SEVERITY}
+          Timestamp: ${NOW}
+          Source: ${{ steps.eval.outputs.source }}
+          ---
+          ${BODY}
+          ---
+          This issue was automatically created by the Autopilot alert system.
+          Close this issue when the alert is resolved.
+          EOBODY
+          )
+
+          gh api "repos/$REPO/issues" \
+            --method POST \
+            -f "title=[autopilot] ${TITLE}" \
+            -f "body=${ISSUE_BODY}" \
+            -f "labels[]=${LABELS%%,*}" 2>/dev/null || \
+          gh issue create --repo "$REPO" \
+            --title "[autopilot] ${TITLE}" \
+            --body "$ISSUE_BODY" 2>/dev/null || true
+
+          echo "## Alert Created" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Title:** $TITLE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Severity:** $SEVERITY" >> "$GITHUB_STEP_SUMMARY"

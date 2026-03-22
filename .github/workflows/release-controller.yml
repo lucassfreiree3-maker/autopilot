@@ -60,6 +60,21 @@ jobs:
             fi
           fi
 
+          # Check freeze
+          FREEZE=$(gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/${WS_ID}/release-freeze.json?ref=autopilot-state" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"frozen":false}')
+          IS_FROZEN=$(echo "$FREEZE" | jq -r '.frozen // false')
+          if [ "$IS_FROZEN" = "true" ]; then
+            REASON=$(echo "$FREEZE" | jq -r '.reason // "unknown"')
+            EXPIRES=$(echo "$FREEZE" | jq -r '.expiresAt // "never"')
+            if [ "$EXPIRES" != "never" ] && [ "$EXPIRES" != "null" ]; then
+              EXPIRES_S=$(date -d "$EXPIRES" +%s 2>/dev/null || echo "9999999999")
+              [ "$(date +%s)" -ge "$EXPIRES_S" ] && { echo "Freeze expired."; exit 0; }
+            fi
+            echo "::error ::Releases frozen: $REASON (expires: $EXPIRES)"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
     name: Promote deploy
     needs: guard

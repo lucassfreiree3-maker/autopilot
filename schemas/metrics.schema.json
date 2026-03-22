@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Metrics (Daily)",
+  "type": "object",
+  "required": ["workspaceId", "date", "collectedAt"],
+  "properties": {
+    "workspaceId": { "type": "string" },
+    "date": { "type": "string", "format": "date" },
+    "collectedAt": { "type": "string", "format": "date-time" },
+    "controller": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string" },
+        "status": { "type": "string" },
+        "ciResult": { "type": "string" }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "string" },
+        "status": { "type": "string" },
+        "ciResult": { "type": "string" }
+      }
+    },
+    "totalAuditEntries": { "type": "integer" },
+    "runsLast24h": { "type": "integer" },
+    "failuresLast24h": { "type": "integer" },
+    "frozen": { "type": "boolean" },
+    "health": { "type": "string", "enum": ["healthy", "degraded", "critical", "unknown"] },
+    "runId": { "type": "string" }
+  }
+}

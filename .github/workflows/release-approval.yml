@@ -1,0 +1,137 @@
+name: "Release Approval Gate"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      component:
+        description: "Component to release"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+          - both
+      version:
+        description: "Version to approve (e.g. 2.1.8)"
+        required: true
+      approver:
+        description: "Approver (GitHub username)"
+        required: false
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check freeze"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          FREEZE=$(gh api "repos/$REPO/contents/state/workspaces/${WS_ID}/release-freeze.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"frozen":false}')
+          IS_FROZEN=$(echo "$FREEZE" | jq -r '.frozen // false')
+          if [ "$IS_FROZEN" = "true" ]; then
+            REASON=$(echo "$FREEZE" | jq -r '.reason // "unknown"')
+            EXPIRES=$(echo "$FREEZE" | jq -r '.expiresAt // "never"')
+            # Check if expired
+            if [ "$EXPIRES" != "never" ] && [ "$EXPIRES" != "null" ]; then
+              EXPIRES_S=$(date -d "$EXPIRES" +%s 2>/dev/null || echo "9999999999")
+              NOW_S=$(date +%s)
+              if [ "$NOW_S" -ge "$EXPIRES_S" ]; then
+                echo "::warning ::Freeze expired at $EXPIRES. Proceeding."
+                exit 0
+              fi
+            fi
+            echo "::error ::Releases frozen for $WS_ID. Reason: $REASON. Expires: $EXPIRES"
+            exit 1
+          fi
+
+      - name: "Validate state"
+        id: validate
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          COMPONENT="${{ github.event.inputs.component }}"
+          VERSION="${{ github.event.inputs.version }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+
+          check_component() {
+            local COMP="$1"
+            local STATE_FILE="${WS_PATH}/${COMP}-release-state.json"
+            local STATE=$(gh api "repos/$REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+            local CURRENT_VER=$(echo "$STATE" | jq -r '.lastVersion // "none"')
+            local CI_RESULT=$(echo "$STATE" | jq -r '.ciResult // "unknown"')
+            local STATUS=$(echo "$STATE" | jq -r '.status // "unknown"')
+            echo "  $COMP: version=$CURRENT_VER ci=$CI_RESULT status=$STATUS"
+
+            if [ "$CI_RESULT" = "failure" ]; then
+              echo "::error ::$COMP CI failed. Cannot approve release."
+              exit 1
+            fi
+          }
+
+          if [ "$COMPONENT" = "both" ] || [ "$COMPONENT" = "controller" ]; then
+            check_component "controller"
+          fi
+          if [ "$COMPONENT" = "both" ] || [ "$COMPONENT" = "agent" ]; then
+            check_component "agent"
+          fi
+          echo "Validation passed."
+
+      - name: "Record approval"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(date -u +%s%N | cut -c1-13)
+          WS_PATH="state/workspaces/${WS_ID}"
+          APPROVER="${{ github.event.inputs.approver || github.actor }}"
+
+          APPROVAL=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg comp "${{ github.event.inputs.component }}" \
+            --arg ver "${{ github.event.inputs.version }}" \
+            --arg ts "$NOW" \
+            --arg by "$APPROVER" \
+            --arg run "${{ github.run_id }}" \
+            '{
+              approvalId: ("approval-" + $run),
+              workspaceId: $ws,
+              component: $comp,
+              version: $ver,
+              approvedAt: $ts,
+              approvedBy: $by,
+              runId: $run,
+              status: "approved"
+            }')
+
+          FSHA=$(gh api "repos/$REPO/contents/${WS_PATH}/approvals/approval-${SN}.json?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          ARGS=(-f "branch=$STATE_BRANCH" \
+            -f "message=approval: ${WS_ID} ${comp} v${{ github.event.inputs.version }} [skip ci]" \
+            -f "content=$(echo "$APPROVAL" | base64 -w0)")
+          [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
+          gh api "repos/$REPO/contents/${WS_PATH}/approvals/approval-${SN}.json" \
+            --method PUT "${ARGS[@]}"
+
+          echo "## Release Approved" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Workspace:** $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Component:** ${{ github.event.inputs.component }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Version:** ${{ github.event.inputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Approved by:** $APPROVER" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Timestamp:** $NOW" >> "$GITHUB_STEP_SUMMARY"

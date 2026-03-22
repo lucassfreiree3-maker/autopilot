@@ -1,0 +1,129 @@
+name: "Release Metrics"
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID (leave empty for all)"
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Collect metrics"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_FILTER="${{ github.event.inputs.workspace_id }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          TODAY=$(date -u +%Y-%m-%d)
+
+          if [ -n "$WS_FILTER" ]; then
+            WS_LIST="$WS_FILTER"
+          else
+            WS_LIST=$(gh api "repos/$REPO/contents/state/workspaces?ref=$STATE_BRANCH" \
+              --jq '[.[].name] | join(" ")' 2>/dev/null || echo "")
+          fi
+
+          echo "## Release Metrics - $TODAY" >> "$GITHUB_STEP_SUMMARY"
+
+          for WS_ID in $WS_LIST; do
+            WS_PATH="state/workspaces/${WS_ID}"
+
+            # Count audit entries
+            AUDIT_FILES=$(gh api "repos/$REPO/contents/${WS_PATH}/audit?ref=$STATE_BRANCH" \
+              --jq '[.[].name] | length' 2>/dev/null || echo "0")
+
+            # Read release states
+            CTRL_STATE=$(gh api "repos/$REPO/contents/${WS_PATH}/controller-release-state.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+            AGENT_STATE=$(gh api "repos/$REPO/contents/${WS_PATH}/agent-release-state.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+            CTRL_VER=$(echo "$CTRL_STATE" | jq -r '.lastVersion // "none"')
+            CTRL_STATUS=$(echo "$CTRL_STATE" | jq -r '.status // "unknown"')
+            CTRL_CI=$(echo "$CTRL_STATE" | jq -r '.ciResult // "unknown"')
+            AGENT_VER=$(echo "$AGENT_STATE" | jq -r '.lastVersion // "none"')
+            AGENT_STATUS=$(echo "$AGENT_STATE" | jq -r '.status // "unknown"')
+            AGENT_CI=$(echo "$AGENT_STATE" | jq -r '.ciResult // "unknown"')
+
+            # Count recent workflow runs (last 24h)
+            RUNS_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&created=>$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --jq '.total_count' 2>/dev/null || echo "0")
+
+            # Count failures in last 24h
+            FAILURES_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&status=failure&created=>$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              --jq '.total_count' 2>/dev/null || echo "0")
+
+            # Check freeze
+            FROZEN=$(gh api "repos/$REPO/contents/${WS_PATH}/release-freeze.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.frozen // false' 2>/dev/null || echo "false")
+
+            # Health
+            HEALTH=$(gh api "repos/$REPO/contents/${WS_PATH}/health.json?ref=$STATE_BRANCH" \
+              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.overall // "unknown"' 2>/dev/null || echo "unknown")
+
+            # Build metrics JSON
+            METRICS=$(jq -n \
+              --arg ws "$WS_ID" \
+              --arg ts "$NOW" \
+              --arg date "$TODAY" \
+              --arg ctrl_ver "$CTRL_VER" \
+              --arg ctrl_status "$CTRL_STATUS" \
+              --arg ctrl_ci "$CTRL_CI" \
+              --arg agent_ver "$AGENT_VER" \
+              --arg agent_status "$AGENT_STATUS" \
+              --arg agent_ci "$AGENT_CI" \
+              --argjson audit "$AUDIT_FILES" \
+              --argjson runs "$RUNS_24H" \
+              --argjson failures "$FAILURES_24H" \
+              --arg frozen "$FROZEN" \
+              --arg health "$HEALTH" \
+              --arg run "${{ github.run_id }}" \
+              '{
+                workspaceId: $ws,
+                date: $date,
+                collectedAt: $ts,
+                controller: {version: $ctrl_ver, status: $ctrl_status, ciResult: $ctrl_ci},
+                agent: {version: $agent_ver, status: $agent_status, ciResult: $agent_ci},
+                totalAuditEntries: $audit,
+                runsLast24h: $runs,
+                failuresLast24h: $failures,
+                frozen: ($frozen == "true"),
+                health: $health,
+                runId: $run
+              }')
+
+            # Save metrics
+            METRICS_FILE="${WS_PATH}/metrics/${TODAY}.json"
+            FSHA=$(gh api "repos/$REPO/contents/${METRICS_FILE}?ref=$STATE_BRANCH" \
+              --jq '.sha' 2>/dev/null || echo "")
+            ARGS=(-f "branch=$STATE_BRANCH" \
+              -f "message=metrics: ${WS_ID} ${TODAY} [skip ci]" \
+              -f "content=$(echo "$METRICS" | base64 -w0)")
+            [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
+            gh api "repos/$REPO/contents/${METRICS_FILE}" --method PUT "${ARGS[@]}" 2>/dev/null || true
+
+            # Summary
+            echo "### $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Health | $HEALTH |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Controller | v$CTRL_VER ($CTRL_STATUS, CI: $CTRL_CI) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Agent | v$AGENT_VER ($AGENT_STATUS, CI: $AGENT_CI) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Runs (24h) | $RUNS_24H |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Failures (24h) | $FAILURES_24H |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Audit entries | $AUDIT_FILES |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Frozen | $FROZEN |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          done

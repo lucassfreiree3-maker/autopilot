@@ -1,0 +1,176 @@
+name: "Restore State (Rollback)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_id:
+        description: "Snapshot ID (e.g. 20260322-120000). Leave empty for latest."
+        required: false
+      workspace_id:
+        description: "Workspace ID to restore (leave empty for all)"
+        required: false
+      dry_run:
+        description: "Dry run (true = preview only)"
+        required: false
+        default: "true"
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+  BACKUP_BRANCH: autopilot-backups
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Find snapshot"
+        id: snapshot
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SNAP_ID="${{ github.event.inputs.snapshot_id }}"
+          if [ -z "$SNAP_ID" ]; then
+            echo "No snapshot specified, finding latest..."
+            SNAP_ID=$(gh api "repos/$REPO/contents/snapshots?ref=$BACKUP_BRANCH" \
+              --jq '[.[].name] | sort | last' 2>/dev/null || echo "")
+            if [ -z "$SNAP_ID" ] || [ "$SNAP_ID" = "null" ]; then
+              echo "::error ::No backups found on $BACKUP_BRANCH"
+              exit 1
+            fi
+          fi
+          echo "snapshot_id=$SNAP_ID" >> "$GITHUB_OUTPUT"
+          echo "Snapshot: $SNAP_ID"
+
+          # Read manifest
+          MANIFEST=$(gh api "repos/$REPO/contents/snapshots/${SNAP_ID}/manifest.json?ref=$BACKUP_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          echo "Manifest: $MANIFEST"
+          echo "manifest=$MANIFEST" >> "$GITHUB_OUTPUT"
+
+      - name: "Preview restore"
+        id: preview
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SNAP_ID="${{ steps.snapshot.outputs.snapshot_id }}"
+          WS_FILTER="${{ github.event.inputs.workspace_id }}"
+          SNAP_PATH="snapshots/${SNAP_ID}/state/workspaces"
+
+          echo "## Restore Preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Snapshot:** $SNAP_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Filter:** ${WS_FILTER:-all workspaces}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # List workspaces in snapshot
+          WS_LIST=$(gh api "repos/$REPO/contents/${SNAP_PATH}?ref=$BACKUP_BRANCH" \
+            --jq '[.[].name] | join(" ")' 2>/dev/null || echo "")
+          echo "Workspaces in snapshot: $WS_LIST"
+
+          FILE_COUNT=0
+          RESTORE_LIST=""
+          for WS in $WS_LIST; do
+            if [ -n "$WS_FILTER" ] && [ "$WS" != "$WS_FILTER" ]; then continue; fi
+
+            FILES=$(gh api "repos/$REPO/contents/${SNAP_PATH}/${WS}?ref=$BACKUP_BRANCH" \
+              --jq '.[] | select(.type=="file") | .name' 2>/dev/null || echo "")
+            for F in $FILES; do
+              FILE_COUNT=$((FILE_COUNT + 1))
+              RESTORE_LIST="${RESTORE_LIST}${WS}/${F}\n"
+            done
+            # Check subdirectories
+            DIRS=$(gh api "repos/$REPO/contents/${SNAP_PATH}/${WS}?ref=$BACKUP_BRANCH" \
+              --jq '.[] | select(.type=="dir") | .name' 2>/dev/null || echo "")
+            for D in $DIRS; do
+              SUBFILES=$(gh api "repos/$REPO/contents/${SNAP_PATH}/${WS}/${D}?ref=$BACKUP_BRANCH" \
+                --jq '.[] | select(.type=="file") | .name' 2>/dev/null || echo "")
+              for SF in $SUBFILES; do
+                FILE_COUNT=$((FILE_COUNT + 1))
+                RESTORE_LIST="${RESTORE_LIST}${WS}/${D}/${SF}\n"
+              done
+            done
+          done
+
+          echo "file_count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "| File | Action |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo -e "$RESTORE_LIST" | while read -r F; do
+            [ -z "$F" ] && continue
+            echo "| $F | restore |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total files:** $FILE_COUNT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "Execute restore"
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SNAP_ID="${{ steps.snapshot.outputs.snapshot_id }}"
+          WS_FILTER="${{ github.event.inputs.workspace_id }}"
+          SNAP_BASE="snapshots/${SNAP_ID}/state/workspaces"
+          STATE_BASE="state/workspaces"
+          RESTORED=0
+
+          restore_file() {
+            local SNAP_FILE="$1"
+            local STATE_FILE="$2"
+            # Read backup content
+            CONTENT=$(gh api "repos/$REPO/contents/${SNAP_FILE}?ref=$BACKUP_BRANCH" \
+              --jq '.content' 2>/dev/null || echo "")
+            [ -z "$CONTENT" ] && return
+
+            # Check if state file exists (need SHA for update)
+            EXISTING_SHA=$(gh api "repos/$REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+              --jq '.sha' 2>/dev/null || echo "")
+
+            ARGS=(-f "branch=$STATE_BRANCH" \
+              -f "message=restore: ${STATE_FILE} from ${SNAP_ID} [skip ci]" \
+              -f "content=$CONTENT")
+            [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+
+            gh api "repos/$REPO/contents/${STATE_FILE}" --method PUT "${ARGS[@]}" 2>/dev/null
+            RESTORED=$((RESTORED + 1))
+            echo "  Restored: $STATE_FILE"
+          }
+
+          restore_dir() {
+            local SNAP_DIR="$1"
+            local STATE_DIR="$2"
+            local ITEMS=$(gh api "repos/$REPO/contents/${SNAP_DIR}?ref=$BACKUP_BRANCH" \
+              --jq '.[] | "\(.name)|\(.type)"' 2>/dev/null || echo "")
+            while IFS='|' read -r NAME TYPE; do
+              [ -z "$NAME" ] && continue
+              if [ "$TYPE" = "file" ]; then
+                restore_file "${SNAP_DIR}/${NAME}" "${STATE_DIR}/${NAME}"
+              elif [ "$TYPE" = "dir" ]; then
+                restore_dir "${SNAP_DIR}/${NAME}" "${STATE_DIR}/${NAME}"
+              fi
+            done <<< "$ITEMS"
+          }
+
+          WS_LIST=$(gh api "repos/$REPO/contents/${SNAP_BASE}?ref=$BACKUP_BRANCH" \
+            --jq '[.[].name] | join(" ")' 2>/dev/null || echo "")
+
+          for WS in $WS_LIST; do
+            if [ -n "$WS_FILTER" ] && [ "$WS" != "$WS_FILTER" ]; then continue; fi
+            echo "=== Restoring workspace: $WS ==="
+            restore_dir "${SNAP_BASE}/${WS}" "${STATE_BASE}/${WS}"
+          done
+
+          echo "## Restore Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Files restored:** $RESTORED" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **From snapshot:** $SNAP_ID" >> "$GITHUB_STEP_SUMMARY"
+
+          # Write audit entry
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(date -u +%s%N | cut -c1-13)
+          AUDIT=$(jq -n --arg ts "$NOW" --arg snap "$SNAP_ID" --arg run "${{ github.run_id }}" \
+            --arg ws "${WS_FILTER:-all}" --argjson count "$RESTORED" \
+            '{operation:"restore-state",timestamp:$ts,snapshot:$snap,workspace:$ws,filesRestored:$count,runId:$run}')
+          gh api "repos/$REPO/contents/state/workspaces/${WS_FILTER:-ws-default}/audit/restore-${SN}.json" \
+            --method PUT -f "branch=$STATE_BRANCH" \
+            -f "message=audit: restore from $SNAP_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true

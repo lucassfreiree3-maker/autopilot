@@ -64,6 +64,8 @@
       <div class="tab active" onclick="showTab('product')">Product</div>
       <div class="tab" onclick="showTab('corporate')">Corporate</div>
       <div class="tab" onclick="showTab('workspace')">Active Workspace</div>
+      <div class="tab" onclick="showTab('operations')">Operations</div>
+      <div class="tab" onclick="showTab('metrics')">Metrics</div>
     </div>
 
     <div id="loading" style="display:none">Loading state...</div>
@@ -145,6 +147,56 @@
       </div>
     </div>
 
+    <!-- OPERATIONS TAB -->
+    <div class="panel" id="panel-operations">
+      <div style="margin-bottom:16px">
+        <label style="color:var(--muted);font-size:14px">Workspace:</label>
+        <select id="opsWsSelect" onchange="loadOperations()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:14px">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Release Freeze</h3>
+          <div id="freezeContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Recent Approvals</h3>
+          <div id="approvalsContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Quick Actions</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/release-freeze.yml" target="_blank" style="text-align:center;text-decoration:none">Freeze / Unfreeze</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/release-approval.yml" target="_blank" style="text-align:center;text-decoration:none">Approve Release</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/restore-state.yml" target="_blank" style="text-align:center;text-decoration:none">Rollback State</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/drift-correction.yml" target="_blank" style="text-align:center;text-decoration:none">Check Drift</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/backup-state.yml" target="_blank" style="text-align:center;text-decoration:none">Manual Backup</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Open Alerts</h3>
+          <div id="alertsContent" class="empty">Connect to load</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICS TAB -->
+    <div class="panel" id="panel-metrics">
+      <div style="margin-bottom:16px">
+        <label style="color:var(--muted);font-size:14px">Workspace:</label>
+        <select id="metricsWsSelect" onchange="loadMetrics()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:14px">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div class="card" style="grid-column: 1 / -1">
+          <h3>Daily Metrics</h3>
+          <div id="metricsContent" class="empty">Select workspace</div>
+        </div>
+      </div>
+    </div>
+
     <footer>
       Autopilot Control Plane &mdash; 100% web-only, GitHub-centric, zero local dependencies
     </footer>
@@ -182,6 +234,7 @@
       document.getElementById('tokenInput').value = '';
       document.getElementById('disconnectBtn').style.display = '';
       await loadWorkspaces();
+      await populateSelectors();
     }
 
     function disconnect() {
@@ -347,10 +400,98 @@
       } else { auditEl.innerHTML = '<div class="empty">No audit records</div>'; }
     }
 
+    async function loadOperations() {
+      const wsId = document.getElementById('opsWsSelect').value;
+      if (!wsId) return;
+      const wsPath = `state/workspaces/${wsId}`;
+
+      // Freeze
+      const freeze = await ghContent(`${wsPath}/release-freeze.json`);
+      const freezeEl = document.getElementById('freezeContent');
+      if (freeze && freeze.frozen) {
+        freezeEl.innerHTML = `<table>
+          <tr><th>Status</th><td>${badge('critical')} FROZEN</td></tr>
+          <tr><th>Reason</th><td>${freeze.reason || '-'}</td></tr>
+          <tr><th>Since</th><td>${freeze.frozenAt || '-'}</td></tr>
+          <tr><th>By</th><td>${freeze.frozenBy || '-'}</td></tr>
+          <tr><th>Expires</th><td>${freeze.expiresAt || 'never'}</td></tr>
+        </table>`;
+      } else {
+        freezeEl.innerHTML = `<p>${badge('healthy')} No active freeze</p>`;
+      }
+
+      // Approvals
+      const approvals = await ghGet(`repos/${REPO}/contents/${wsPath}/approvals?ref=${STATE_BRANCH}`);
+      const appEl = document.getElementById('approvalsContent');
+      if (approvals && Array.isArray(approvals) && approvals.length > 0) {
+        let html = '<table><tr><th>Component</th><th>Version</th><th>By</th><th>Date</th></tr>';
+        for (const f of approvals.filter(x => x.name.endsWith('.json')).slice(-5).reverse()) {
+          const a = await ghContent(`${wsPath}/approvals/${f.name}`);
+          if (a) html += `<tr><td>${a.component}</td><td>${a.version}</td><td>${a.approvedBy}</td><td>${a.approvedAt}</td></tr>`;
+        }
+        html += '</table>';
+        appEl.innerHTML = html;
+      } else { appEl.innerHTML = '<div class="empty">No approvals recorded</div>'; }
+
+      // Alerts (GitHub Issues)
+      const issues = await ghGet(`repos/${REPO}/issues?state=open&labels=autopilot-alert&per_page=5`);
+      const alertsEl = document.getElementById('alertsContent');
+      if (issues && Array.isArray(issues) && issues.length > 0) {
+        let html = '<table><tr><th>Alert</th><th>Created</th></tr>';
+        issues.forEach(i => {
+          html += `<tr><td><a href="${i.html_url}" style="color:var(--blue)">${i.title}</a></td><td>${i.created_at?.substring(0,10)}</td></tr>`;
+        });
+        html += '</table>';
+        alertsEl.innerHTML = html;
+      } else { alertsEl.innerHTML = '<div class="empty">No open alerts</div>'; }
+    }
+
+    async function loadMetrics() {
+      const wsId = document.getElementById('metricsWsSelect').value;
+      if (!wsId) return;
+      const wsPath = `state/workspaces/${wsId}`;
+
+      const metricsDir = await ghGet(`repos/${REPO}/contents/${wsPath}/metrics?ref=${STATE_BRANCH}`);
+      const metricsEl = document.getElementById('metricsContent');
+      if (metricsDir && Array.isArray(metricsDir) && metricsDir.length > 0) {
+        let html = '<table><tr><th>Date</th><th>Health</th><th>Controller</th><th>Agent</th><th>Runs</th><th>Failures</th><th>Frozen</th></tr>';
+        for (const f of metricsDir.filter(x => x.name.endsWith('.json')).slice(-14).reverse()) {
+          const m = await ghContent(`${wsPath}/metrics/${f.name}`);
+          if (m) {
+            html += `<tr>
+              <td>${m.date}</td>
+              <td>${badge(m.health)}</td>
+              <td>v${m.controller?.version || '-'} ${badge(m.controller?.status || 'unknown')}</td>
+              <td>v${m.agent?.version || '-'} ${badge(m.agent?.status || 'unknown')}</td>
+              <td>${m.runsLast24h}</td>
+              <td>${m.failuresLast24h}</td>
+              <td>${m.frozen ? badge('critical') : badge('pass')}</td>
+            </tr>`;
+          }
+        }
+        html += '</table>';
+        metricsEl.innerHTML = html;
+      } else { metricsEl.innerHTML = '<div class="empty">No metrics collected yet. Runs daily at midnight UTC.</div>'; }
+    }
+
+    // Populate workspace selectors in all tabs
+    async function populateSelectors() {
+      const data = await ghGet(`repos/${REPO}/contents/state/workspaces?ref=${STATE_BRANCH}`);
+      if (!data || !Array.isArray(data)) return;
+      const dirs = data.filter(d => d.type === 'dir');
+      ['opsWsSelect', 'metricsWsSelect'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Select...</option>';
+        dirs.forEach(d => { sel.innerHTML += `<option value="${d.name}">${d.name}</option>`; });
+      });
+    }
+
     // Auto-connect if token exists in session
     if (getToken()) {
       document.getElementById('disconnectBtn').style.display = '';
       loadWorkspaces();
+      populateSelectors();
     }
   </script>
 </body>

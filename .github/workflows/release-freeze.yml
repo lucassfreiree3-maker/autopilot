@@ -1,0 +1,118 @@
+name: "Release Freeze"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      action:
+        description: "Action: freeze or unfreeze"
+        required: true
+        type: choice
+        options:
+          - freeze
+          - unfreeze
+      reason:
+        description: "Reason for freeze (required for freeze)"
+        required: false
+      expires_at:
+        description: "Auto-unfreeze at (ISO 8601, e.g. 2026-03-25T18:00:00Z). Leave empty for indefinite."
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "${{ github.event.inputs.action }} releases"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          ACTION="${{ github.event.inputs.action }}"
+          REASON="${{ github.event.inputs.reason }}"
+          EXPIRES="${{ github.event.inputs.expires_at }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          WS_PATH="state/workspaces/${WS_ID}"
+          FREEZE_FILE="${WS_PATH}/release-freeze.json"
+
+          if [ "$ACTION" = "freeze" ]; then
+            if [ -z "$REASON" ]; then
+              echo "::error ::Reason is required for freeze"
+              exit 1
+            fi
+
+            FREEZE=$(jq -n \
+              --arg ws "$WS_ID" \
+              --arg reason "$REASON" \
+              --arg ts "$NOW" \
+              --arg by "${{ github.actor }}" \
+              --arg run "${{ github.run_id }}" \
+              --arg expires "$EXPIRES" \
+              '{
+                frozen: true,
+                workspaceId: $ws,
+                reason: $reason,
+                frozenAt: $ts,
+                frozenBy: $by,
+                runId: $run,
+                expiresAt: (if $expires == "" then null else $expires end)
+              }')
+
+            FSHA=$(gh api "repos/$REPO/contents/${FREEZE_FILE}?ref=$STATE_BRANCH" \
+              --jq '.sha' 2>/dev/null || echo "")
+            ARGS=(-f "branch=$STATE_BRANCH" \
+              -f "message=freeze: ${WS_ID} - ${REASON} [skip ci]" \
+              -f "content=$(echo "$FREEZE" | base64 -w0)")
+            [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
+            gh api "repos/$REPO/contents/${FREEZE_FILE}" --method PUT "${ARGS[@]}"
+
+            echo "## Release Freeze Active" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Workspace:** $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Reason:** $REASON" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Frozen at:** $NOW" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Expires:** ${EXPIRES:-never (manual unfreeze required)}" >> "$GITHUB_STEP_SUMMARY"
+
+          elif [ "$ACTION" = "unfreeze" ]; then
+            # Check if freeze exists
+            FSHA=$(gh api "repos/$REPO/contents/${FREEZE_FILE}?ref=$STATE_BRANCH" \
+              --jq '.sha' 2>/dev/null || echo "")
+            if [ -z "$FSHA" ] || [ "$FSHA" = "null" ]; then
+              echo "::warning ::No active freeze for $WS_ID"
+              exit 0
+            fi
+
+            UNFREEZE=$(jq -n \
+              --arg ws "$WS_ID" \
+              --arg ts "$NOW" \
+              --arg by "${{ github.actor }}" \
+              '{frozen: false, workspaceId: $ws, unfrozenAt: $ts, unfrozenBy: $by}')
+
+            gh api "repos/$REPO/contents/${FREEZE_FILE}" --method PUT \
+              -f "branch=$STATE_BRANCH" \
+              -f "message=unfreeze: ${WS_ID} [skip ci]" \
+              -f "content=$(echo "$UNFREEZE" | base64 -w0)" \
+              -f "sha=$FSHA"
+
+            echo "## Release Unfreeze" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Workspace:** $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Unfrozen at:** $NOW" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Audit
+          SN=$(date -u +%s%N | cut -c1-13)
+          AUDIT=$(jq -n --arg ts "$NOW" --arg ws "$WS_ID" --arg action "$ACTION" \
+            --arg reason "$REASON" --arg run "${{ github.run_id }}" \
+            '{operation:"release-freeze",timestamp:$ts,workspaceId:$ws,action:$action,reason:$reason,runId:$run}')
+          gh api "repos/$REPO/contents/${WS_PATH}/audit/freeze-${SN}.json" \
+            --method PUT -f "branch=$STATE_BRANCH" \
+            -f "message=audit: ${ACTION} ${WS_ID} [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true

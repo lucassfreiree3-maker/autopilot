@@ -31,7 +31,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (34 files)
+  audit/ (35 files)
   improvements/ (1 files)
   metrics/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   handoffs/ (1 files)
@@ -143,6 +143,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | fix-and-validate.yml | Fix CI + Validate Full Flow | trigger file, manual |
 | fix-corporate-ci.yml | Fix: Corporate CI Errors | trigger file, manual |
 | health-check.yml | Health Check | scheduled, manual |
+| langchain-orchestrator.yml | LangChain Orchestrator | manual, reusable |
 | record-improvement.yml | Record Improvement | manual |
 | release-agent.yml | Autopilot: Agent Release | manual |
 | release-approval.yml | Release Approval Gate | manual |
@@ -172,6 +173,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | fix-and-validate.yml | workspace_id |
 | fix-corporate-ci.yml | workspace_id |
 | health-check.yml | workspace_id |
+| langchain-orchestrator.yml | workspace_id, task, context |
 | record-improvement.yml | workspace_id, category, description, source, recorded_by |
 | release-agent.yml | workspace_id, force |
 | release-approval.yml | workspace_id, component, version, approver |
@@ -228,4 +230,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-22T15:11:33Z | Run: 23405940043*
+*Last synced: 2026-03-22T16:56:51Z | Run: 23407882257*

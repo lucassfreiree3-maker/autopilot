@@ -65,6 +65,29 @@ state/workspaces/<workspace_id>/
 | drift-correction.yml | Detect and auto-correct source/deploy drift |
 | deploy-panel.yml | Deploy GitHub Pages panel |
 
+## Multi-Agent Safety (CRITICAL)
+Multiple agents (Claude Code, Codex) may share the same GitHub account.
+To prevent conflicts:
+
+1. **Session Guard**: All state-changing workflows MUST call `session-guard.yml` first
+2. **Lock before write**: Acquire session lock before modifying corporate repos or state
+3. **Agent identification**: Every commit must identify the agent (claude-code or codex)
+4. **Protected repos**: NEVER modify these without session lock:
+   - Corporate source repos (agent, controller)
+   - CAP/deploy repos
+   - `autopilot-state` branch
+5. **Concurrent protection**: If another agent holds a lock, WAIT or ABORT — never force
+
+### Protected Operations
+| Operation | Requires Lock | Agent Must Identify |
+|-----------|:---:|:---:|
+| Push to corporate repo | Yes | Yes |
+| Modify state branch | Yes | Yes |
+| Promote to CAP | Yes | Yes |
+| Read workspace config | No | No |
+| Run health check | No | No |
+| Read audit/metrics | No | No |
+
 ## Agent Compatibility
 This architecture is operable by Claude, ChatGPT, and Codex web.
 See `contracts/` for per-agent instructions.

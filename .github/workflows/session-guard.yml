@@ -1,0 +1,132 @@
+name: "Session Guard: Prevent Concurrent Agent Conflicts"
+
+# This workflow protects against concurrent modifications from
+# different agents (Claude Code vs Codex) sharing the same account.
+# It acquires a session lock before any state-changing operation
+# and blocks if another agent is already active.
+
+on:
+  workflow_call:
+    inputs:
+      agent_id:
+        description: "Agent identifier (claude-code, codex, manual)"
+        required: true
+        type: string
+      operation:
+        description: "Operation being performed"
+        required: true
+        type: string
+      workspace_id:
+        description: "Workspace ID"
+        required: false
+        type: string
+        default: "ws-default"
+      lock_ttl_minutes:
+        description: "Lock TTL in minutes"
+        required: false
+        type: number
+        default: 30
+    outputs:
+      lock_acquired:
+        description: "Whether lock was acquired"
+        value: ${{ jobs.guard.outputs.lock_acquired }}
+      lock_id:
+        description: "Lock ID for release"
+        value: ${{ jobs.guard.outputs.lock_id }}
+      blocked_by:
+        description: "Agent that blocked us (if any)"
+        value: ${{ jobs.guard.outputs.blocked_by }}
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  guard:
+    name: "Session Guard"
+    runs-on: ubuntu-latest
+    outputs:
+      lock_acquired: ${{ steps.lock.outputs.acquired }}
+      lock_id: ${{ steps.lock.outputs.lock_id }}
+      blocked_by: ${{ steps.lock.outputs.blocked_by }}
+    steps:
+      - name: "Check & acquire session lock"
+        id: lock
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          AGENT="${{ inputs.agent_id }}"
+          OP="${{ inputs.operation }}"
+          WS="${{ inputs.workspace_id }}"
+          TTL="${{ inputs.lock_ttl_minutes }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LOCK_ID="${AGENT}-$(date -u +%s)-${RANDOM}"
+          LOCK_PATH="state/workspaces/${WS}/locks/session-lock.json"
+
+          echo "=== Session Guard ==="
+          echo "Agent: $AGENT"
+          echo "Operation: $OP"
+          echo "Workspace: $WS"
+
+          # Check if a session lock already exists
+          EXISTING=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "{}")
+          EXISTING_AGENT=$(echo "$EXISTING" | jq -r '.agentId // ""')
+          EXISTING_EXPIRES=$(echo "$EXISTING" | jq -r '.expiresAt // ""')
+          EXISTING_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING_AGENT" ] && [ "$EXISTING_AGENT" != "" ]; then
+            # Check if lock has expired
+            if [ -n "$EXISTING_EXPIRES" ]; then
+              EXPIRES_EPOCH=$(date -d "$EXISTING_EXPIRES" +%s 2>/dev/null || echo "0")
+              NOW_EPOCH=$(date -u +%s)
+              if [ "$NOW_EPOCH" -lt "$EXPIRES_EPOCH" ]; then
+                # Lock is still valid
+                if [ "$EXISTING_AGENT" = "$AGENT" ]; then
+                  echo "Lock held by same agent ($AGENT), refreshing..."
+                else
+                  echo "::error ::BLOCKED! Lock held by '$EXISTING_AGENT' until $EXISTING_EXPIRES"
+                  echo "acquired=false" >> "$GITHUB_OUTPUT"
+                  echo "blocked_by=$EXISTING_AGENT" >> "$GITHUB_OUTPUT"
+                  echo "lock_id=" >> "$GITHUB_OUTPUT"
+                  exit 0
+                fi
+              else
+                echo "Existing lock from '$EXISTING_AGENT' expired at $EXISTING_EXPIRES, overriding..."
+              fi
+            fi
+          fi
+
+          # Acquire lock
+          EXPIRES_AT=$(date -u -d "+${TTL} minutes" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
+            date -u -v+${TTL}M +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
+            echo "2099-01-01T00:00:00Z")
+
+          LOCK=$(jq -n \
+            --arg id "$LOCK_ID" \
+            --arg agent "$AGENT" \
+            --arg op "$OP" \
+            --arg ws "$WS" \
+            --arg ts "$NOW" \
+            --arg exp "$EXPIRES_AT" \
+            --arg run "${{ github.run_id }}" \
+            '{lockId:$id,agentId:$agent,operation:$op,workspaceId:$ws,acquiredAt:$ts,expiresAt:$exp,runId:$run}')
+
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=lock: session acquired by $AGENT [skip ci]" -f "content=$(echo "$LOCK"|base64 -w0)")
+          [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && [ "$EXISTING_SHA" != "" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+
+          gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT "${ARGS[@]}" > /dev/null 2>&1 || {
+            echo "::error ::Failed to acquire lock (race condition?)"
+            echo "acquired=false" >> "$GITHUB_OUTPUT"
+            echo "blocked_by=unknown" >> "$GITHUB_OUTPUT"
+            echo "lock_id=" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          echo "Lock acquired: $LOCK_ID (expires $EXPIRES_AT)"
+          echo "acquired=true" >> "$GITHUB_OUTPUT"
+          echo "lock_id=$LOCK_ID" >> "$GITHUB_OUTPUT"
+          echo "blocked_by=" >> "$GITHUB_OUTPUT"

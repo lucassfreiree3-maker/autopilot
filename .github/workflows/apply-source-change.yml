@@ -152,11 +152,87 @@ jobs:
           echo "| Target | \`$TARGET_PATH\` |" >> "$GITHUB_STEP_SUMMARY"
 
   # ═══════════════════════════════════════════════════════════════
+  #  STAGE 1.5 → Session Guard: prevent concurrent agent conflicts
+  # ═══════════════════════════════════════════════════════════════
+  session-guard:
+    name: "1.5 Session Guard"
+    needs: setup
+    runs-on: ubuntu-latest
+    outputs:
+      lock_acquired: ${{ steps.lock.outputs.acquired }}
+      lock_id: ${{ steps.lock.outputs.lock_id }}
+      blocked_by: ${{ steps.lock.outputs.blocked_by }}
+    steps:
+      - name: "Acquire session lock"
+        id: lock
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          AGENT="claude-code"
+          OP="source-change"
+          WS="${{ needs.setup.outputs.ws_id }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LOCK_ID="${AGENT}-$(date -u +%s)-${RANDOM}"
+          LOCK_PATH="state/workspaces/${WS}/locks/session-lock.json"
+
+          echo "=== Session Guard ==="
+          echo "Agent: $AGENT | Operation: $OP | Workspace: $WS"
+
+          # Check existing lock
+          EXISTING=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "{}")
+          EXISTING_AGENT=$(echo "$EXISTING" | jq -r '.agentId // ""')
+          EXISTING_EXPIRES=$(echo "$EXISTING" | jq -r '.expiresAt // ""')
+          EXISTING_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          BLOCKED=false
+          if [ -n "$EXISTING_AGENT" ] && [ "$EXISTING_AGENT" != "" ] && [ "$EXISTING_AGENT" != "null" ]; then
+            NOW_EPOCH=$(date -u +%s)
+            EXPIRES_EPOCH=$(date -d "$EXISTING_EXPIRES" +%s 2>/dev/null || echo "0")
+            if [ "$NOW_EPOCH" -lt "$EXPIRES_EPOCH" ] && [ "$EXISTING_AGENT" != "$AGENT" ]; then
+              echo "::error ::BLOCKED by $EXISTING_AGENT (expires $EXISTING_EXPIRES)"
+              echo "acquired=false" >> "$GITHUB_OUTPUT"
+              echo "blocked_by=$EXISTING_AGENT" >> "$GITHUB_OUTPUT"
+              echo "lock_id=" >> "$GITHUB_OUTPUT"
+              BLOCKED=true
+            elif [ "$NOW_EPOCH" -ge "$EXPIRES_EPOCH" ]; then
+              echo "Existing lock from $EXISTING_AGENT expired, overriding"
+            else
+              echo "Lock held by same agent, refreshing"
+            fi
+          fi
+
+          if [ "$BLOCKED" = "true" ]; then exit 0; fi
+
+          # Acquire
+          EXPIRES_AT=$(date -u -d "+30 minutes" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "2099-01-01T00:00:00Z")
+          LOCK=$(jq -n --arg id "$LOCK_ID" --arg a "$AGENT" --arg op "$OP" --arg ws "$WS" \
+            --arg ts "$NOW" --arg exp "$EXPIRES_AT" --arg run "${{ github.run_id }}" \
+            '{lockId:$id,agentId:$a,operation:$op,workspaceId:$ws,acquiredAt:$ts,expiresAt:$exp,runId:$run}')
+
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=lock: session $AGENT [skip ci]" -f "content=$(echo "$LOCK"|base64 -w0)")
+          [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && [ "$EXISTING_SHA" != "" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+          gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT "${ARGS[@]}" > /dev/null 2>&1
+
+          echo "Lock acquired: $LOCK_ID"
+          echo "acquired=true" >> "$GITHUB_OUTPUT"
+          echo "lock_id=$LOCK_ID" >> "$GITHUB_OUTPUT"
+          echo "blocked_by=" >> "$GITHUB_OUTPUT"
+
+      - name: "Block if locked"
+        if: steps.lock.outputs.acquired == 'false'
+        run: |
+          echo "::error ::Another agent (${{ steps.lock.outputs.blocked_by }}) is active. Aborting."
+          exit 1
+
+  # ═══════════════════════════════════════════════════════════════
   #  STAGE 2 → Apply & Push: clone, apply change, lint, push
   # ═══════════════════════════════════════════════════════════════
   apply-and-push:
     name: "2. Apply & Push (${{ matrix.component }})"
-    needs: setup
+    needs: [setup, session-guard]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -665,11 +741,30 @@ jobs:
   #  STAGE 6 → Audit: record audit trail
   # ═══════════════════════════════════════════════════════════════
   audit:
-    name: "6. Audit"
-    needs: [setup, apply-and-push, ci-gate, promote, save-state]
+    name: "6. Audit & Release Lock"
+    needs: [setup, session-guard, apply-and-push, ci-gate, promote, save-state]
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - name: "Release session lock"
+        if: needs.session-guard.outputs.lock_acquired == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS="${{ needs.setup.outputs.ws_id }}"
+          LOCK_PATH="state/workspaces/${WS}/locks/session-lock.json"
+          FSHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+          if [ -n "$FSHA" ] && [ "$FSHA" != "null" ]; then
+            NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            RELEASED=$(jq -n --arg ts "$NOW" '{lockId:"released",agentId:"none",operation:"none",acquiredAt:$ts,expiresAt:$ts}')
+            gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
+              -f "branch=$STATE_BRANCH" \
+              -f "message=lock: session released [skip ci]" \
+              -f "content=$(echo "$RELEASED"|base64 -w0)" \
+              -f "sha=$FSHA" > /dev/null 2>&1 || true
+            echo "Session lock released"
+          fi
+
       - name: "Record audit"
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}

@@ -2,12 +2,12 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "controller",
-  "lastReleasedSha": "",
-  "lastTag": "",
-  "lastVersion": "",
-  "updatedAt": "2026-03-21T21:41:00Z",
-  "runId": "",
-  "runUrl": "",
-  "promotions": [],
-  "status": "idle"
+  "lastReleasedSha": "2bcc3301fda8318156f9619136ddc5be4de15c04",
+  "lastTag": "3.4.4-2bcc330",
+  "lastVersion": "3.4.4",
+  "updatedAt": "2026-03-22T02:21:36Z",
+  "runId": "23393762598",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23393762598",
+  "ciResult": "failure",
+  "status": "tested"
 }

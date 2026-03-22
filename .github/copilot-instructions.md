@@ -31,7 +31,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (41 files)
+  audit/ (42 files)
   improvements/ (1 files)
   metrics/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   handoffs/ (1 files)
@@ -49,6 +49,7 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | Trigger File | Workflow | Config Fields |
 |---|---|---|
 | `trigger/agent-sync.json` | agent-sync.yml | context, task, workspace_id |
+| `trigger/ci-diagnose.json` | ci-diagnose.yml | commit_sha, component, note, workspace_id |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | dry_run, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | workspace_id |
 | `trigger/fix-ci.json` | sync-copilot-prompt.yml | component, note, workspace_id |
@@ -134,7 +135,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | apply-source-change.yml | Apply Source Code Change | trigger file, manual |
 | backup-state.yml | Backup State | scheduled, manual |
 | bootstrap.yml | Bootstrap: Full Setup | manual |
-| ci-diagnose.yml | CI Diagnose: Fetch Error Logs | manual |
+| ci-diagnose.yml | CI Diagnose: Fetch Error Logs | trigger file, manual |
 | ci-failure-analysis.yml | CI Failure Analysis | manual |
 | cleanup-branches.yml | Cleanup: Stale Branches | scheduled, manual, PR |
 | continuous-improvement.yml | Continuous Improvement | scheduled, trigger file, manual |
@@ -232,4 +233,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-22T18:08:43Z | Run: 23409222189*
+*Last synced: 2026-03-22T18:09:49Z | Run: 23409240619*

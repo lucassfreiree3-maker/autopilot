@@ -27,6 +27,7 @@
   "$defs": {
     "checkResult": {
       "type": "object",
+      "required": ["status"],
       "properties": {
         "status": { "type": "string", "enum": ["pass", "warn", "fail", "skip"] },
         "message": { "type": "string" },

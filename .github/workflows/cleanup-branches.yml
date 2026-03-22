@@ -52,7 +52,16 @@ jobs:
             for P in $PROTECTED; do [ "$B" = "$P" ] && SKIP=true; done
             [ "$SKIP" = "true" ] && continue
 
-            STATUS=$(gh api "repos/$REPO/compare/main...$B" --jq '.status' 2>/dev/null || echo "unknown")
+            COMPARE_RESPONSE=$(gh api "repos/$REPO/compare/main...$B" 2>/dev/null || echo "")
+            if [ -z "$COMPARE_RESPONSE" ] || ! echo "$COMPARE_RESPONSE" | jq empty 2>/dev/null; then
+              echo "| $B | skipped (compare API returned invalid response) |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            STATUS=$(echo "$COMPARE_RESPONSE" | jq -r '.status // "unknown"')
+            if [ "$STATUS" = "unknown" ] || [ "$STATUS" = "null" ] || [ -z "$STATUS" ]; then
+              echo "| $B | skipped (compare API returned no status) |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
             if [ "$STATUS" = "behind" ] || [ "$STATUS" = "identical" ]; then
               gh api "repos/$REPO/git/refs/heads/$B" --method DELETE 2>/dev/null && \
                 echo "Deleted: $B (merged)" || echo "Failed: $B"

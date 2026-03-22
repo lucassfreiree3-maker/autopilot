@@ -154,8 +154,10 @@ jobs:
           WS_LIST=$(gh api "repos/$REPO/contents/${SNAP_BASE}?ref=$BACKUP_BRANCH" \
             --jq '[.[].name] | join(" ")' 2>/dev/null || echo "")
 
+          RESTORED_WS_LIST=""
           for WS in $WS_LIST; do
             if [ -n "$WS_FILTER" ] && [ "$WS" != "$WS_FILTER" ]; then continue; fi
+            RESTORED_WS_LIST="${RESTORED_WS_LIST} ${WS}"
             echo "=== Restoring workspace: $WS ==="
             restore_dir "${SNAP_BASE}/${WS}" "${STATE_BASE}/${WS}"
           done
@@ -170,7 +172,12 @@ jobs:
           AUDIT=$(jq -n --arg ts "$NOW" --arg snap "$SNAP_ID" --arg run "${{ github.run_id }}" \
             --arg ws "${WS_FILTER:-all}" --argjson count "$RESTORED" \
             '{operation:"restore-state",timestamp:$ts,snapshot:$snap,workspace:$ws,filesRestored:$count,runId:$run}')
-          gh api "repos/$REPO/contents/state/workspaces/${WS_FILTER:-ws-default}/audit/restore-${SN}.json" \
-            --method PUT -f "branch=$STATE_BRANCH" \
-            -f "message=audit: restore from $SNAP_ID [skip ci]" \
-            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true
+          # Write audit entry to each restored workspace
+          AUDIT_TARGETS="${RESTORED_WS_LIST:-${WS_FILTER}}"
+          [ -z "$AUDIT_TARGETS" ] && AUDIT_TARGETS="ws-default"
+          for AUDIT_WS in $AUDIT_TARGETS; do
+            gh api "repos/$REPO/contents/state/workspaces/${AUDIT_WS}/audit/restore-${SN}.json" \
+              --method PUT -f "branch=$STATE_BRANCH" \
+              -f "message=audit: restore from $SNAP_ID [skip ci]" \
+              -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true
+          done

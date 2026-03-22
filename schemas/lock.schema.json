@@ -13,6 +13,8 @@
     "runId": { "type": "string" },
     "expiresAt": { "type": "string", "format": "date-time" },
     "released": { "type": "boolean", "default": false },
-    "releasedAt": { "type": "string", "format": "date-time" }
+    "releasedAt": { "type": "string", "format": "date-time" },
+    "agentId": { "type": "string" },
+    "sessionId": { "type": "string" }
   }
 }

@@ -30,6 +30,12 @@
         }
       }
     },
-    "status": { "type": "string", "enum": ["idle", "releasing", "promoted", "failed"], "default": "idle" }
+    "status": { "type": "string", "enum": ["idle", "releasing", "promoted", "failed"], "default": "idle" },
+    "ciResult": { "type": "string", "enum": ["success", "failure", "unknown", "no-ci", "timeout"] },
+    "changeType": { "type": "string" },
+    "commitMessage": { "type": "string" },
+    "preExistingFailure": { "type": "boolean" },
+    "gateDecision": { "type": "string" },
+    "promoted": { "type": "boolean" }
   }
 }

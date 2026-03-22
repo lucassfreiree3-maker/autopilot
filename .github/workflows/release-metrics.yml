@@ -58,11 +58,12 @@ jobs:
             AGENT_CI=$(echo "$AGENT_STATE" | jq -r '.ciResult // "unknown"')
 
             # Count recent workflow runs (last 24h)
-            RUNS_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&created=>$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            SINCE_DATE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+            RUNS_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&created=%3A%3E${SINCE_DATE}" \
               --jq '.total_count' 2>/dev/null || echo "0")
 
             # Count failures in last 24h
-            FAILURES_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&status=failure&created=>$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            FAILURES_24H=$(gh api "repos/$REPO/actions/runs?per_page=100&status=failure&created=%3A%3E${SINCE_DATE}" \
               --jq '.total_count' 2>/dev/null || echo "0")
 
             # Check freeze

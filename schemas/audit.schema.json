@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/audit.schema.json",
+  "title": "Audit Entry",
+  "type": "object",
+  "required": ["operation", "workspaceId", "timestamp", "runId"],
+  "properties": {
+    "operation": { "type": "string" },
+    "workspaceId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "runId": { "type": "string" },
+    "runUrl": { "type": "string" },
+    "component": { "type": "string", "enum": ["agent", "controller"] },
+    "version": { "type": "string" },
+    "sha": { "type": "string" },
+    "tag": { "type": "string" },
+    "status": { "type": "string", "enum": ["success", "failure", "skipped"] },
+    "steps": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "ciResult": { "type": "string", "enum": ["success", "failure", "unknown", "no-ci", "timeout"] },
+    "promoted": { "type": "boolean" },
+    "stages": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "changeType": { "type": "string" },
+    "commitMessage": { "type": "string" },
+    "preExistingFailure": { "type": "boolean" },
+    "gateDecision": { "type": "string" },
+    "error": { "type": "string" },
+    "detail": { "type": "string" }
+  }
+}

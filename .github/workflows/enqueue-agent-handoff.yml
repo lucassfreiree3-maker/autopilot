@@ -83,6 +83,20 @@ jobs:
             -f "branch=$STATE_BRANCH" \
             -f "message=handoff: ${{ github.event.inputs.from_agent }} -> ${{ github.event.inputs.to_agent }} ($WS_ID) [skip ci]" \
             -f "content=$ENCODED"
+          # ── Audit entry ──
+          AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg from "${{ github.event.inputs.from_agent }}" \
+            --arg to "${{ github.event.inputs.to_agent }}" \
+            --arg comp "${{ github.event.inputs.component }}" \
+            --arg hid "$HANDOFF_ID" \
+            '{operation:"enqueue-handoff",workspaceId:$ws,timestamp:$ts,runId:$run,handoffId:$hid,fromAgent:$from,toAgent:$to,component:$comp,status:"created"}')
+          gh api "repos/$REPO/contents/state/workspaces/${WS_ID}/audit/handoff-${SAFE_NOW}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: handoff $HANDOFF_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write audit"
+
           echo "## Handoff Created" >> "$GITHUB_STEP_SUMMARY"
           echo "- **ID:** $HANDOFF_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "- **From:** ${{ github.event.inputs.from_agent }}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,16 +1,19 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "contractId": "claude-agent-contract",
   "extends": "shared-agent-contract",
   "agent": "claude",
+  "agentIdentifier": "claude-code",
   "capabilities": [
     "architecture-analysis",
     "code-review",
     "workflow-authoring",
     "release-orchestration",
     "ci-failure-analysis",
+    "source-code-changes",
     "handoff-creation",
-    "improvement-recording"
+    "improvement-recording",
+    "session-guard-management"
   ],
   "tools": {
     "primary": "claude-code-cli",
@@ -19,10 +22,23 @@
   },
   "instructions": {
     "stateAccess": "Use MCP GitHub tools or gh CLI to read/write state on autopilot-state branch",
-    "lockProtocol": "Acquire lock via state file creation, check for existing lock first",
-    "releaseProtocol": "Read workspace.json for repo config, never hardcode repos or paths",
+    "lockProtocol": "Acquire lock via state file creation, check for existing lock first. Always release in finally/cleanup stage.",
+    "sessionGuard": "Before any state-changing operation, acquire session lock. If another agent (codex) holds the lock, ABORT - never force override.",
+    "releaseProtocol": "Read workspace.json for repo config, never hardcode repos or paths. Use apply-source-change.yml for code modifications.",
     "handoffProtocol": "Create handoff JSON in workspace handoffs/ dir, set toAgent field",
-    "auditProtocol": "Append audit entry after every state-mutating operation"
+    "auditProtocol": "Append audit entry after every state-mutating operation. Include operation, timestamp, runId, component, and result.",
+    "errorHandling": "Always validate API responses. Use jq with fallbacks. Log errors before continuing.",
+    "sourceCodeChanges": "Use apply-source-change.yml pipeline. Content must be base64-encoded between jobs. Always fix pre-existing lint errors before pushing."
+  },
+  "triggerFiles": {
+    "description": "Workflows can be triggered by modifying trigger/*.json files",
+    "pattern": "Bump the 'run' field to trigger the associated workflow",
+    "files": {
+      "trigger/source-change.json": "apply-source-change.yml",
+      "trigger/full-test.json": "test-full-flow.yml",
+      "trigger/e2e-test.json": "test-corporate-flow.yml",
+      "trigger/agent-sync.json": "agent-sync.yml"
+    }
   },
   "contextFiles": [
     "CLAUDE.md",

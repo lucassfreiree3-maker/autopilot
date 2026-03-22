@@ -293,12 +293,17 @@ jobs:
           CURRENT_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
           CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
           UPDATED=$(echo "$CONTENT" | jq --arg now "$NOW" '.released = true | .releasedAt = $now')
-          [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" != "null" ] && \
-          gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
-            -f "branch=$STATE_BRANCH" \
-            -f "message=lock: release agent-release [skip ci]" \
-            -f "content=$(echo "$UPDATED" | base64 -w0)" \
-            -f "sha=$CURRENT_SHA" 2>/dev/null || true
+          if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" != "null" ]; then
+            if ! gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
+              -f "branch=$STATE_BRANCH" \
+              -f "message=lock: release agent-release [skip ci]" \
+              -f "content=$(echo "$UPDATED" | base64 -w0)" \
+              -f "sha=$CURRENT_SHA" 2>/dev/null; then
+              echo "::warning ::Failed to release agent-release lock at ${LOCK_PATH}. Manual cleanup may be required."
+            fi
+          else
+            echo "::warning ::Could not find lock SHA for agent-release lock. Lock may need manual cleanup."
+          fi
 
       - name: Summary
         if: always()

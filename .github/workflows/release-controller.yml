@@ -251,11 +251,13 @@ jobs:
           CURRENT_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "$LOCK_SHA")
           CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
           UPDATED=$(echo "$CONTENT" | jq --arg now "$NOW" '.released = true | .releasedAt = $now')
-          gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
+          if ! gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
             -f "branch=$STATE_BRANCH" \
             -f "message=lock: release controller-release [skip ci]" \
             -f "content=$(echo "$UPDATED" | base64 -w0)" \
-            -f "sha=$CURRENT_SHA" 2>/dev/null || true
+            -f "sha=$CURRENT_SHA" 2>/dev/null; then
+            echo "::warning ::Failed to release controller-release lock at ${LOCK_PATH}. Manual cleanup may be required."
+          fi
 
       - name: Summary
         if: always()

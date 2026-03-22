@@ -105,6 +105,19 @@ jobs:
             fi
           done
           echo "Workspace $WS_ID seeded."
+
+          # ── Audit entry ──
+          AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{operation:"seed-workspace",workspaceId:$ws,timestamp:$ts,runId:$run,runUrl:$url,status:"success"}')
+          SN=$(echo "$NOW" | tr ':' '-')
+          gh api "repos/$REPO/contents/${WS_PATH}/audit/seed-${SN}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: seed-workspace $WS_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write audit entry"
+
           echo "## Workspace Seeded" >> "$GITHUB_STEP_SUMMARY"
           echo "- **ID:** $WS_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Path:** $WS_PATH/" >> "$GITHUB_STEP_SUMMARY"

@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/release-freeze.schema.json",
   "title": "Release Freeze State",
   "type": "object",
   "required": ["frozen", "workspaceId"],

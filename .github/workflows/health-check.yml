@@ -63,6 +63,13 @@ jobs:
             if [ -z "$WS_JSON" ]; then
               CHECKS=$(echo "$CHECKS" | jq '.workspace = {status:"fail", message:"workspace.json not found"}')
               WS_STATUS="critical"
+            elif ! echo "$WS_JSON" | jq empty 2>/dev/null; then
+              CHECKS=$(echo "$CHECKS" | jq '.workspace = {status:"fail", message:"workspace.json is not valid JSON (base64 decode may have failed)"}')
+              WS_STATUS="critical"
+              WS_JSON=""
+            elif ! echo "$WS_JSON" | jq -e '.workspaceId' >/dev/null 2>&1; then
+              CHECKS=$(echo "$CHECKS" | jq '.workspace = {status:"warn", message:"workspace.json is valid JSON but missing workspaceId field"}')
+              [ "$WS_STATUS" = "healthy" ] && WS_STATUS="degraded"
             else
               CHECKS=$(echo "$CHECKS" | jq '.workspace = {status:"pass", message:"OK"}')
             fi

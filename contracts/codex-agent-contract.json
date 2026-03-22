@@ -1,8 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "contractId": "codex-agent-contract",
   "extends": "shared-agent-contract",
   "agent": "codex",
+  "agentIdentifier": "codex",
   "capabilities": [
     "code-implementation",
     "code-refactoring",
@@ -18,10 +19,12 @@
   },
   "instructions": {
     "stateAccess": "Use gh CLI to read/write state on autopilot-state branch",
-    "lockProtocol": "Check locks/ directory via gh api before starting operations",
+    "lockProtocol": "Check locks/ directory via gh api before starting operations. Always release locks on completion.",
+    "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by claude-code, ABORT and create a handoff instead. Never force override another agent's lock.",
     "releaseProtocol": "Follow workspace.json config, use gh CLI for API operations",
     "handoffProtocol": "Read pending handoffs via gh api, update status on completion",
-    "auditProtocol": "Record actions via gh api to audit directory"
+    "auditProtocol": "Record actions via gh api to audit directory after every state mutation",
+    "sourceCodeChanges": "Use apply-source-change.yml workflow or trigger file. Never push directly to corporate repos without session lock."
   },
   "contextFiles": [
     "contracts/shared-agent-contract.json",

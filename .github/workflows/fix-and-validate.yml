@@ -185,8 +185,12 @@ jobs:
             while [ "$ELAPSED" -lt 1200 ]; do
               DATA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$REPO/commits/$SHA/check-runs" \
                 --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
-              T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
-              S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
+              if ! echo "$DATA" | jq empty 2>/dev/null; then
+                echo "  Warning: invalid JSON from API, using safe defaults"
+                DATA='{"t":0,"c":0,"s":0,"f":0}'
+              fi
+              T=$(echo "$DATA"|jq -r '.t//0' 2>/dev/null || echo "0"); C=$(echo "$DATA"|jq -r '.c//0' 2>/dev/null || echo "0")
+              S=$(echo "$DATA"|jq -r '.s//0' 2>/dev/null || echo "0"); F=$(echo "$DATA"|jq -r '.f//0' 2>/dev/null || echo "0")
               echo "  [$NAME] CI: $C/$T (ok=$S fail=$F) [${ELAPSED}s]"
               if [ "$F" -gt 0 ]; then
                 echo "${NAME}_ci=failure" >> "$GITHUB_OUTPUT"

@@ -166,15 +166,24 @@ jobs:
               while [ "$ELAPSED" -lt 1200 ]; do
                 DATA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$NEW_SHA/check-runs" \
                   --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
-                T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
-                S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
+                if ! echo "$DATA" | jq empty 2>/dev/null; then
+                  echo "  Warning: invalid JSON from API, using safe defaults"
+                  DATA='{"t":0,"c":0,"s":0,"f":0}'
+                fi
+                T=$(echo "$DATA"|jq -r '.t//0' 2>/dev/null || echo "0"); C=$(echo "$DATA"|jq -r '.c//0' 2>/dev/null || echo "0")
+                S=$(echo "$DATA"|jq -r '.s//0' 2>/dev/null || echo "0"); F=$(echo "$DATA"|jq -r '.f//0' 2>/dev/null || echo "0")
                 echo "  CI: $C/$T done (ok=$S fail=$F) [${ELAPSED}s]"
                 if [ "$F" -gt 0 ]; then
                   echo "  Early exit: failure detected"
                   CI_RESULT="failure"; CI_DETAIL="${S}/${T}"; break
                 fi
                 if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-                  CI_RESULT="success"; CI_DETAIL="${S}/${T}"; break
+                  if [ "$S" -gt 0 ]; then
+                    CI_RESULT="success"; CI_DETAIL="${S}/${T}"; break
+                  else
+                    echo "  All checks completed but none succeeded (S=0, T=$T)"
+                    CI_RESULT="failure"; CI_DETAIL="0/${T}-no-success"; break
+                  fi
                 fi
                 sleep "$WAIT"
                 ELAPSED=$((ELAPSED + WAIT))
@@ -195,8 +204,14 @@ jobs:
             if [ "$CI_RESULT" = "failure" ]; then
               echo "::error ::CI failed. Pipeline blocked — no promotion."
               PROCEED="false"
-            else
+            elif [ "$CI_RESULT" = "no-ci" ] || [ "$CI_RESULT" = "timeout" ]; then
+              echo "::error ::CI did not complete successfully (result=$CI_RESULT). Cannot declare success with 0 passing checks."
+              PROCEED="false"
+            elif [ "$CI_RESULT" = "success" ]; then
               PROCEED="true"
+            else
+              echo "::warning ::Unexpected CI result: $CI_RESULT. Blocking promotion."
+              PROCEED="false"
             fi
           fi
           echo "=== Gate: proceed=$PROCEED (ci=$CI_RESULT, dry=$DRY_RUN) ==="

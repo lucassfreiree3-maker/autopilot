@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/approval.schema.json",
   "title": "Release Approval",
   "type": "object",
   "required": ["approvalId", "workspaceId", "component", "version", "approvedAt", "approvedBy", "status"],
@@ -11,6 +12,7 @@
     "approvedAt": { "type": "string", "format": "date-time" },
     "approvedBy": { "type": "string" },
     "runId": { "type": "string" },
-    "status": { "type": "string", "enum": ["approved", "rejected", "expired"] }
+    "status": { "type": "string", "enum": ["approved", "rejected", "expired"] },
+    "expiresAt": { "type": "string", "format": "date-time" }
   }
 }

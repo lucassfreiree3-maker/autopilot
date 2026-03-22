@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "contractId": "shared-agent-contract",
   "description": "Shared contract for all AI agents operating the Autopilot control plane",
   "stateLocation": {
@@ -17,32 +17,74 @@
     "lock": "schemas/lock.schema.json",
     "handoff": "schemas/handoff.schema.json",
     "improvement": "schemas/improvement.schema.json",
-    "healthState": "schemas/health-state.schema.json"
+    "healthState": "schemas/health-state.schema.json",
+    "audit": "schemas/audit.schema.json",
+    "approval": "schemas/approval.schema.json",
+    "releaseFreezeState": "schemas/release-freeze.schema.json",
+    "metrics": "schemas/metrics.schema.json"
   },
   "operations": {
     "readState": {
       "method": "GET",
       "endpoint": "repos/{repo}/contents/{path}?ref=autopilot-state",
-      "decode": "base64"
+      "decode": "base64",
+      "requireLock": false
     },
     "writeState": {
       "method": "PUT",
       "endpoint": "repos/{repo}/contents/{path}",
       "params": { "branch": "autopilot-state", "message": "chore: {description} [skip ci]" },
-      "requireLock": true
+      "requireLock": true,
+      "requireAudit": true
     },
     "acquireLock": {
       "method": "PUT",
       "endpoint": "repos/{repo}/contents/state/workspaces/{workspace_id}/locks/{operation}.json",
       "params": { "branch": "autopilot-state" },
-      "conflictBehavior": "fail-if-exists"
+      "conflictBehavior": "fail-if-exists",
+      "ttlMinutes": 30
     },
     "releaseLock": {
       "method": "PUT",
       "endpoint": "repos/{repo}/contents/state/workspaces/{workspace_id}/locks/{operation}.json",
       "params": { "branch": "autopilot-state" },
-      "action": "update-released-field"
+      "action": "update-released-field",
+      "onError": "log-warning-and-continue"
     }
+  },
+  "sessionGuard": {
+    "description": "Multi-agent concurrency control. Required when multiple agents share the same GitHub account.",
+    "lockFile": "state/workspaces/{workspace_id}/locks/session-lock.json",
+    "workflow": "session-guard.yml",
+    "protocol": [
+      "Check if session-lock.json exists and is not expired",
+      "If locked by DIFFERENT agent, ABORT with error",
+      "If locked by SAME agent, refresh the lock",
+      "If expired or no lock, acquire new lock",
+      "Always release lock in the audit/cleanup stage"
+    ],
+    "agentIdentifiers": ["claude-code", "codex", "chatgpt", "manual"],
+    "protectedOperations": [
+      "push-to-corporate-repo",
+      "modify-state-branch",
+      "promote-to-cap",
+      "seed-workspace",
+      "backup-restore",
+      "freeze-unfreeze"
+    ],
+    "unprotectedOperations": [
+      "read-workspace-config",
+      "run-health-check",
+      "read-audit-metrics",
+      "view-panel"
+    ]
+  },
+  "workspaceDiscovery": {
+    "description": "How agents discover available workspaces",
+    "method": "List directories under state/workspaces/ on autopilot-state branch",
+    "endpoint": "repos/{repo}/contents/state/workspaces?ref=autopilot-state",
+    "eachWorkspace": "Read workspace.json for repo/branch/path configuration",
+    "defaultWorkspace": "ws-default"
   },
   "rules": [
     "Never store corporate secrets in the autopilot repo",
@@ -53,16 +95,26 @@
     "Always write audit entry after any state mutation",
     "Never use regex to edit YAML - use structured tooling",
     "Never hardcode branch names - read from workspace.json",
-    "State is the source of truth, not agent memory"
+    "State is the source of truth, not agent memory",
+    "Always validate jq output with fallbacks (2>/dev/null || echo fallback)",
+    "Use base64 encoding when passing content between workflow jobs",
+    "Never silently swallow errors - always log before continuing"
   ],
+  "errorHandling": {
+    "jqCalls": "Always add 2>/dev/null || echo 'fallback' to jq commands",
+    "apiCalls": "Log error details before continuing or failing",
+    "lockRelease": "Log warning if lock release fails, never silent || true",
+    "auditWrite": "Retry once if audit write fails, then log error"
+  },
   "governance": {
     "personalRepo": {
-      "allowed": ["state", "audit", "schemas", "contracts", "templates", "docs", "workflows", "panel"],
+      "allowed": ["state", "audit", "schemas", "contracts", "templates", "docs", "workflows", "panel", "trigger", "compliance"],
       "forbidden": ["corporate-code", "secrets", "kubeconfig", "internal-urls", "customer-data"]
     },
     "corporateRepos": {
-      "allowed": ["release-workflows", "ci-workflows"],
-      "forbidden": ["personal-data", "autopilot-state", "audit-logs"]
+      "allowed": ["release-workflows", "ci-workflows", "source-code-changes"],
+      "forbidden": ["personal-data", "autopilot-state", "audit-logs"],
+      "requiresSessionGuard": true
     }
   }
 }

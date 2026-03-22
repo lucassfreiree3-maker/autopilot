@@ -1,9 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/metrics.schema.json",
   "title": "Release Metrics (Daily)",
   "type": "object",
-  "required": ["workspaceId", "date", "collectedAt"],
+  "required": ["schemaVersion", "workspaceId", "date", "collectedAt"],
   "properties": {
+    "schemaVersion": { "const": 1 },
     "workspaceId": { "type": "string" },
     "date": { "type": "string", "format": "date" },
     "collectedAt": { "type": "string", "format": "date-time" },
@@ -11,16 +13,22 @@
       "type": "object",
       "properties": {
         "version": { "type": "string" },
-        "status": { "type": "string" },
-        "ciResult": { "type": "string" }
+        "status": { "type": "string", "enum": ["idle", "releasing", "promoted", "failed"] },
+        "ciResult": { "type": "string", "enum": ["success", "failure", "unknown", "no-ci", "timeout"] },
+        "lastReleasedSha": { "type": "string" },
+        "lastTag": { "type": "string" },
+        "promoted": { "type": "boolean" }
       }
     },
     "agent": {
       "type": "object",
       "properties": {
         "version": { "type": "string" },
-        "status": { "type": "string" },
-        "ciResult": { "type": "string" }
+        "status": { "type": "string", "enum": ["idle", "releasing", "promoted", "failed"] },
+        "ciResult": { "type": "string", "enum": ["success", "failure", "unknown", "no-ci", "timeout"] },
+        "lastReleasedSha": { "type": "string" },
+        "lastTag": { "type": "string" },
+        "promoted": { "type": "boolean" }
       }
     },
     "totalAuditEntries": { "type": "integer" },

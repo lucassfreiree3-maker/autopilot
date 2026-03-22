@@ -1,5 +1,6 @@
 {
+  "schemaVersion": 1,
   "workspace_id": "ws-default",
-  "dry_run": "false",
+  "dry_run": false,
   "run": 9
 }

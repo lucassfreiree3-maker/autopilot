@@ -1,0 +1,666 @@
+name: "Continuous Improvement"
+
+# Self-improving pipeline that analyzes the project for issues,
+# applies auto-fixes, records learnings, and tracks improvement trends.
+# Runs weekly + on demand + after every release.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+  push:
+    branches: [main]
+    paths: ['trigger/improvement.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: false
+        default: "ws-default"
+      auto_fix:
+        description: "Auto-fix issues found"
+        type: boolean
+        default: true
+      scope:
+        description: "What to analyze"
+        type: choice
+        options:
+          - all
+          - workflows
+          - schemas
+          - contracts
+          - state-consistency
+        default: all
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: continuous-improvement
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+# ═══════════════════════════════════════════════════════════════
+#  STAGE 1 → Setup: resolve config and previous improvement data
+# ═══════════════════════════════════════════════════════════════
+jobs:
+  setup:
+    name: "1. Setup"
+    runs-on: ubuntu-latest
+    outputs:
+      ws_id: ${{ steps.cfg.outputs.ws_id }}
+      ws_path: ${{ steps.cfg.outputs.ws_path }}
+      auto_fix: ${{ steps.cfg.outputs.auto_fix }}
+      scope: ${{ steps.cfg.outputs.scope }}
+      prev_score: ${{ steps.cfg.outputs.prev_score }}
+      prev_issues: ${{ steps.cfg.outputs.prev_issues }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Read config + previous report"
+        id: cfg
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/improvement.json ]; then
+            TRIG=$(cat trigger/improvement.json)
+            WS_ID=$(echo "$TRIG" | jq -r '.workspace_id // "ws-default"')
+            AUTO_FIX=$(echo "$TRIG" | jq -r '.auto_fix // "true"')
+            SCOPE=$(echo "$TRIG" | jq -r '.scope // "all"')
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            WS_ID="ws-default"
+            AUTO_FIX="true"
+            SCOPE="all"
+          else
+            WS_ID="${{ github.event.inputs.workspace_id || 'ws-default' }}"
+            AUTO_FIX="${{ github.event.inputs.auto_fix || 'true' }}"
+            SCOPE="${{ github.event.inputs.scope || 'all' }}"
+          fi
+
+          WS_PATH="state/workspaces/${WS_ID}"
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+          echo "auto_fix=$AUTO_FIX" >> "$GITHUB_OUTPUT"
+          echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
+
+          # Read previous improvement report for trend tracking
+          PREV=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/improvements/latest-report.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          PREV_SCORE=$(echo "$PREV" | jq -r '.healthScore // 0' 2>/dev/null || echo "0")
+          PREV_ISSUES=$(echo "$PREV" | jq -r '.totalIssues // 0' 2>/dev/null || echo "0")
+          echo "prev_score=$PREV_SCORE" >> "$GITHUB_OUTPUT"
+          echo "prev_issues=$PREV_ISSUES" >> "$GITHUB_OUTPUT"
+          echo "Previous: score=$PREV_SCORE issues=$PREV_ISSUES"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 2 → Analyze: scan project for issues
+  # ═══════════════════════════════════════════════════════════════
+  analyze:
+    name: "2. Analyze"
+    needs: setup
+    runs-on: ubuntu-latest
+    outputs:
+      total_issues: ${{ steps.scan.outputs.total_issues }}
+      critical: ${{ steps.scan.outputs.critical }}
+      high: ${{ steps.scan.outputs.high }}
+      medium: ${{ steps.scan.outputs.medium }}
+      low: ${{ steps.scan.outputs.low }}
+      auto_fixable: ${{ steps.scan.outputs.auto_fixable }}
+      health_score: ${{ steps.scan.outputs.health_score }}
+      report_b64: ${{ steps.scan.outputs.report_b64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Scan project"
+        id: scan
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          SCOPE="${{ needs.setup.outputs.scope }}"
+          ISSUES='[]'
+          TOTAL=0; CRIT=0; HIGH=0; MED=0; LOW=0; FIXABLE=0
+
+          add_issue() {
+            local SEV="$1" FILE="$2" DESC="$3" FIX="$4"
+            ISSUES=$(echo "$ISSUES" | jq --arg s "$SEV" --arg f "$FILE" --arg d "$DESC" --arg fix "$FIX" \
+              '. + [{severity:$s, file:$f, description:$d, autoFixable:($fix == "true")}]')
+            TOTAL=$((TOTAL + 1))
+            case "$SEV" in
+              critical) CRIT=$((CRIT + 1)) ;;
+              high) HIGH=$((HIGH + 1)) ;;
+              medium) MED=$((MED + 1)) ;;
+              low) LOW=$((LOW + 1)) ;;
+            esac
+            [ "$FIX" = "true" ] && FIXABLE=$((FIXABLE + 1))
+          }
+
+          # ── 2.1 Workflow YAML validation ──
+          if [ "$SCOPE" = "all" ] || [ "$SCOPE" = "workflows" ]; then
+            echo "=== Scanning workflows ==="
+            for F in .github/workflows/*.yml; do
+              python3 -c "import yaml; yaml.safe_load(open('$F'))" 2>/dev/null || {
+                add_issue "critical" "$F" "Invalid YAML syntax" "false"
+              }
+              # Check for || true without logging
+              if grep -n '|| true' "$F" | grep -v 'echo\|warning\|error' | grep -v '#' | head -1 > /dev/null 2>&1; then
+                SILENT_COUNT=$(grep -c '|| true' "$F" 2>/dev/null || echo "0")
+                LOGGED_COUNT=$(grep '|| true' "$F" | grep -c 'echo\|warning' 2>/dev/null || echo "0")
+                if [ "$SILENT_COUNT" -gt "$LOGGED_COUNT" ]; then
+                  add_issue "medium" "$F" "Silent error suppression (|| true without logging): $((SILENT_COUNT - LOGGED_COUNT)) occurrences" "true"
+                fi
+              fi
+              # Check for missing set -euo pipefail
+              if grep -q 'run: |' "$F" && ! grep -q 'set -euo pipefail' "$F"; then
+                add_issue "low" "$F" "Missing 'set -euo pipefail' in shell scripts" "false"
+              fi
+              # Check for hardcoded workspace IDs
+              if grep -qE 'ws-[a-z]+-[0-9]+' "$F" 2>/dev/null; then
+                add_issue "medium" "$F" "Hardcoded workspace ID found" "false"
+              fi
+            done
+          fi
+
+          # ── 2.2 Schema validation ──
+          if [ "$SCOPE" = "all" ] || [ "$SCOPE" = "schemas" ]; then
+            echo "=== Scanning schemas ==="
+            for F in schemas/*.json; do
+              python3 -c "import json; json.load(open('$F'))" 2>/dev/null || {
+                add_issue "critical" "$F" "Invalid JSON schema" "false"
+              }
+              # Check for missing $id
+              if ! jq -e '."$id"' "$F" > /dev/null 2>&1; then
+                add_issue "low" "$F" "Missing \$id field in schema" "true"
+              fi
+              # Check for missing required array
+              if ! jq -e '.required' "$F" > /dev/null 2>&1; then
+                add_issue "low" "$F" "Missing required fields array" "false"
+              fi
+            done
+          fi
+
+          # ── 2.3 Contract validation ──
+          if [ "$SCOPE" = "all" ] || [ "$SCOPE" = "contracts" ]; then
+            echo "=== Scanning contracts ==="
+            for F in contracts/*.json; do
+              python3 -c "import json; json.load(open('$F'))" 2>/dev/null || {
+                add_issue "critical" "$F" "Invalid JSON contract" "false"
+              }
+              # Check schema version consistency
+              SV=$(jq -r '.schemaVersion // 0' "$F" 2>/dev/null || echo "0")
+              if [ "$SV" -lt 3 ]; then
+                add_issue "medium" "$F" "Outdated schemaVersion ($SV < 3)" "true"
+              fi
+              # Check for sessionGuard in agent contracts
+              if echo "$F" | grep -q "agent-contract" && ! jq -e '.instructions.sessionGuard' "$F" > /dev/null 2>&1; then
+                add_issue "high" "$F" "Missing sessionGuard instructions" "false"
+              fi
+            done
+          fi
+
+          # ── 2.4 State consistency ──
+          if [ "$SCOPE" = "all" ] || [ "$SCOPE" = "state-consistency" ]; then
+            echo "=== Scanning state consistency ==="
+            WS_PATH="${{ needs.setup.outputs.ws_path }}"
+
+            # Check if required state files exist
+            for FILE in workspace.json health.json agent-release-state.json controller-release-state.json; do
+              EXISTS=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/${FILE}?ref=$STATE_BRANCH" \
+                --jq '.name' 2>/dev/null || echo "")
+              if [ -z "$EXISTS" ]; then
+                add_issue "high" "${WS_PATH}/${FILE}" "Required state file missing" "false"
+              fi
+            done
+
+            # Check for expired locks
+            LOCKS=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/locks?ref=$STATE_BRANCH" \
+              --jq '.[].name' 2>/dev/null || echo "")
+            NOW_EPOCH=$(date -u +%s)
+            for LOCK_FILE in $LOCKS; do
+              LOCK_CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/locks/${LOCK_FILE}?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+              EXPIRES=$(echo "$LOCK_CONTENT" | jq -r '.expiresAt // ""' 2>/dev/null || echo "")
+              if [ -n "$EXPIRES" ] && [ "$EXPIRES" != "null" ]; then
+                EXP_EPOCH=$(date -d "$EXPIRES" +%s 2>/dev/null || echo "0")
+                if [ "$NOW_EPOCH" -gt "$EXP_EPOCH" ]; then
+                  AGENT=$(echo "$LOCK_CONTENT" | jq -r '.agentId // "unknown"' 2>/dev/null || echo "unknown")
+                  add_issue "medium" "${WS_PATH}/locks/${LOCK_FILE}" "Expired lock from agent: $AGENT" "true"
+                fi
+              fi
+            done
+
+            # Check release state schema version
+            for COMP in agent controller; do
+              STATE_CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/${COMP}-release-state.json?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+              SV=$(echo "$STATE_CONTENT" | jq -r '.schemaVersion // 0' 2>/dev/null || echo "0")
+              if [ "$SV" -lt 2 ]; then
+                add_issue "medium" "${WS_PATH}/${COMP}-release-state.json" "Outdated schemaVersion ($SV < 2)" "true"
+              fi
+            done
+          fi
+
+          # ── 2.5 Trigger file consistency ──
+          if [ "$SCOPE" = "all" ]; then
+            echo "=== Scanning trigger files ==="
+            for F in trigger/*.json; do
+              python3 -c "import json; json.load(open('$F'))" 2>/dev/null || {
+                add_issue "medium" "$F" "Invalid JSON trigger file" "false"
+              }
+              SV=$(jq -r '.schemaVersion // 0' "$F" 2>/dev/null || echo "0")
+              if [ "$SV" -lt 1 ]; then
+                add_issue "low" "$F" "Missing schemaVersion in trigger file" "true"
+              fi
+            done
+          fi
+
+          # ── Calculate health score (0-100) ──
+          # Start at 100, deduct points per severity
+          DEDUCTIONS=$((CRIT * 20 + HIGH * 10 + MED * 3 + LOW * 1))
+          SCORE=$((100 - DEDUCTIONS))
+          [ "$SCORE" -lt 0 ] && SCORE=0
+
+          echo "=== Results ==="
+          echo "Total: $TOTAL (C=$CRIT H=$HIGH M=$MED L=$LOW)"
+          echo "Auto-fixable: $FIXABLE"
+          echo "Health score: $SCORE/100"
+
+          # Build report
+          REPORT=$(jq -n \
+            --argjson issues "$ISSUES" \
+            --argjson total "$TOTAL" \
+            --argjson crit "$CRIT" \
+            --argjson high "$HIGH" \
+            --argjson med "$MED" \
+            --argjson low "$LOW" \
+            --argjson fixable "$FIXABLE" \
+            --argjson score "$SCORE" \
+            --arg scope "$SCOPE" \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run "${{ github.run_id }}" \
+            '{
+              schemaVersion: 1,
+              analyzedAt: $ts,
+              runId: $run,
+              scope: $scope,
+              healthScore: $score,
+              totalIssues: $total,
+              bySeverity: {critical: $crit, high: $high, medium: $med, low: $low},
+              autoFixable: $fixable,
+              issues: $issues
+            }')
+
+          echo "total_issues=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "critical=$CRIT" >> "$GITHUB_OUTPUT"
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "medium=$MED" >> "$GITHUB_OUTPUT"
+          echo "low=$LOW" >> "$GITHUB_OUTPUT"
+          echo "auto_fixable=$FIXABLE" >> "$GITHUB_OUTPUT"
+          echo "health_score=$SCORE" >> "$GITHUB_OUTPUT"
+          echo "report_b64=$(echo "$REPORT" | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+          echo "## 2. Analysis Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Health Score | **${SCORE}/100** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Issues | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Critical | $CRIT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| High | $HIGH |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Medium | $MED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Low | $LOW |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Auto-fixable | $FIXABLE |" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 3 → Auto-Fix: apply fixes for auto-fixable issues
+  # ═══════════════════════════════════════════════════════════════
+  auto-fix:
+    name: "3. Auto-Fix"
+    needs: [setup, analyze]
+    if: needs.setup.outputs.auto_fix == 'true' && needs.analyze.outputs.auto_fixable != '0'
+    runs-on: ubuntu-latest
+    outputs:
+      fixed_count: ${{ steps.fix.outputs.fixed_count }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Apply auto-fixes"
+        id: fix
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          REPORT_B64: ${{ needs.analyze.outputs.report_b64 }}
+        run: |
+          set -euo pipefail
+          REPORT=$(echo "$REPORT_B64" | base64 -d)
+          FIXED=0
+
+          # Process auto-fixable issues
+          echo "$REPORT" | jq -c '.issues[] | select(.autoFixable == true)' | while read -r ISSUE; do
+            FILE=$(echo "$ISSUE" | jq -r '.file')
+            DESC=$(echo "$ISSUE" | jq -r '.description')
+            SEV=$(echo "$ISSUE" | jq -r '.severity')
+            echo "=== Fixing [$SEV] $FILE: $DESC ==="
+
+            # Fix: expired locks
+            if echo "$DESC" | grep -q "Expired lock"; then
+              WS_PATH="${{ needs.setup.outputs.ws_path }}"
+              LOCK_FILE=$(basename "$FILE")
+              LOCK_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+              if [ -n "$LOCK_SHA" ] && [ "$LOCK_SHA" != "null" ]; then
+                NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                RELEASED=$(jq -n --arg ts "$NOW" '{lockId:"gc-released",agentId:"none",operation:"none",acquiredAt:$ts,expiresAt:$ts,releasedBy:"continuous-improvement"}')
+                gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT \
+                  -f "branch=$STATE_BRANCH" \
+                  -f "message=fix: release expired lock $LOCK_FILE [skip ci]" \
+                  -f "content=$(echo "$RELEASED"|base64 -w0)" \
+                  -f "sha=$LOCK_SHA" > /dev/null 2>&1 && FIXED=$((FIXED + 1))
+                echo "  Released expired lock"
+              fi
+              continue
+            fi
+
+            # Fix: missing schemaVersion in trigger files
+            if echo "$DESC" | grep -q "Missing schemaVersion"; then
+              if [ -f "$FILE" ]; then
+                jq '. + {schemaVersion: 1}' "$FILE" > /tmp/fixed.json && mv /tmp/fixed.json "$FILE"
+                FIXED=$((FIXED + 1))
+                echo "  Added schemaVersion"
+              fi
+              continue
+            fi
+
+            # Fix: missing $id in schemas
+            if echo "$DESC" | grep -q 'Missing \$id'; then
+              if [ -f "$FILE" ]; then
+                BASENAME=$(basename "$FILE")
+                jq --arg id "https://autopilot.schema/$BASENAME" '. + {"$id": $id}' "$FILE" > /tmp/fixed.json && mv /tmp/fixed.json "$FILE"
+                FIXED=$((FIXED + 1))
+                echo "  Added \$id"
+              fi
+              continue
+            fi
+
+            # Fix: outdated schemaVersion in contracts
+            if echo "$DESC" | grep -q "Outdated schemaVersion"; then
+              if [ -f "$FILE" ]; then
+                jq '.schemaVersion = 3' "$FILE" > /tmp/fixed.json && mv /tmp/fixed.json "$FILE"
+                FIXED=$((FIXED + 1))
+                echo "  Updated schemaVersion"
+              fi
+              continue
+            fi
+
+            echo "  No auto-fix handler for this issue type"
+          done
+
+          # Commit local fixes if any
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: auto-fix $FIXED issues via continuous improvement [skip ci]"
+            git push origin main
+            echo "Pushed $FIXED auto-fixes"
+          fi
+
+          echo "fixed_count=$FIXED" >> "$GITHUB_OUTPUT"
+
+      - name: "Summary"
+        if: always()
+        run: |
+          echo "## 3. Auto-Fix" >> "$GITHUB_STEP_SUMMARY"
+          echo "Fixed: ${{ steps.fix.outputs.fixed_count || 0 }} issues" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 4 → Learn: record improvement report + track trends
+  # ═══════════════════════════════════════════════════════════════
+  learn:
+    name: "4. Learn & Record"
+    needs: [setup, analyze, auto-fix]
+    if: always() && needs.analyze.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      trend: ${{ steps.record.outputs.trend }}
+    steps:
+      - name: "Record improvement report"
+        id: record
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          REPORT_B64: ${{ needs.analyze.outputs.report_b64 }}
+        run: |
+          set -euo pipefail
+          WS_PATH="${{ needs.setup.outputs.ws_path }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          SCORE="${{ needs.analyze.outputs.health_score }}"
+          PREV_SCORE="${{ needs.setup.outputs.prev_score }}"
+          PREV_ISSUES="${{ needs.setup.outputs.prev_issues }}"
+          TOTAL="${{ needs.analyze.outputs.total_issues }}"
+          FIXED="${{ needs.auto-fix.outputs.fixed_count || '0' }}"
+
+          # Calculate trend
+          if [ "$PREV_SCORE" = "0" ] && [ "$PREV_ISSUES" = "0" ]; then
+            TREND="baseline"
+            DELTA_SCORE=0
+            DELTA_ISSUES=0
+          else
+            DELTA_SCORE=$((SCORE - PREV_SCORE))
+            DELTA_ISSUES=$((TOTAL - PREV_ISSUES))
+            if [ "$DELTA_SCORE" -gt 0 ]; then
+              TREND="improving"
+            elif [ "$DELTA_SCORE" -lt 0 ]; then
+              TREND="degrading"
+            else
+              TREND="stable"
+            fi
+          fi
+          echo "Trend: $TREND (score delta: $DELTA_SCORE, issues delta: $DELTA_ISSUES)"
+          echo "trend=$TREND" >> "$GITHUB_OUTPUT"
+
+          # Build enriched report with trends
+          REPORT=$(echo "$REPORT_B64" | base64 -d)
+          ENRICHED=$(echo "$REPORT" | jq \
+            --argjson fixed "${FIXED:-0}" \
+            --arg trend "$TREND" \
+            --argjson dScore "$DELTA_SCORE" \
+            --argjson dIssues "$DELTA_ISSUES" \
+            --argjson prevScore "${PREV_SCORE:-0}" \
+            --argjson prevIssues "${PREV_ISSUES:-0}" \
+            '. + {
+              autoFixed: $fixed,
+              trend: {
+                direction: $trend,
+                scoreDelta: $dScore,
+                issuesDelta: $dIssues,
+                previousScore: $prevScore,
+                previousIssues: $prevIssues
+              }
+            }')
+
+          # Save as latest report (overwrite)
+          LATEST_PATH="${WS_PATH}/improvements/latest-report.json"
+          LATEST_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LATEST_PATH}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=improvement: report $SN [skip ci]" -f "content=$(echo "$ENRICHED"|base64 -w0)")
+          [ -n "$LATEST_SHA" ] && [ "$LATEST_SHA" != "null" ] && ARGS+=(-f "sha=$LATEST_SHA")
+          gh api "repos/$AUTOPILOT_REPO/contents/${LATEST_PATH}" --method PUT "${ARGS[@]}" > /dev/null 2>&1
+
+          # Save historical report (append)
+          HIST_PATH="${WS_PATH}/improvements/report-${SN}.json"
+          gh api "repos/$AUTOPILOT_REPO/contents/${HIST_PATH}" --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=improvement: historical report $SN [skip ci]" \
+            -f "content=$(echo "$ENRICHED"|base64 -w0)" > /dev/null 2>&1
+
+          echo "Reports saved: latest + historical ($SN)"
+
+      - name: "Summary"
+        if: always()
+        run: |
+          SCORE="${{ needs.analyze.outputs.health_score }}"
+          PREV="${{ needs.setup.outputs.prev_score }}"
+          TREND="${{ steps.record.outputs.trend }}"
+          ICON="📊"
+          [ "$TREND" = "improving" ] && ICON="📈"
+          [ "$TREND" = "degrading" ] && ICON="📉"
+          [ "$TREND" = "stable" ] && ICON="➡️"
+
+          echo "## 4. Learn & Record" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "$ICON **Trend: $TREND**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Current score: **$SCORE/100**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Previous score: $PREV/100" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Issues: ${{ needs.analyze.outputs.total_issues }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Auto-fixed: ${{ needs.auto-fix.outputs.fixed_count || 0 }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 5 → Alert: create GitHub Issue if score drops or critical
+  # ═══════════════════════════════════════════════════════════════
+  alert:
+    name: "5. Alert"
+    needs: [setup, analyze, learn]
+    if: |
+      always() &&
+      needs.analyze.result == 'success' &&
+      (needs.analyze.outputs.critical != '0' || needs.learn.outputs.trend == 'degrading')
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Create alert issue"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SCORE="${{ needs.analyze.outputs.health_score }}"
+          CRIT="${{ needs.analyze.outputs.critical }}"
+          HIGH="${{ needs.analyze.outputs.high }}"
+          TOTAL="${{ needs.analyze.outputs.total_issues }}"
+          TREND="${{ needs.learn.outputs.trend }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          TITLE="[Continuous Improvement] Health score: ${SCORE}/100"
+          [ "$CRIT" != "0" ] && TITLE="[CI Alert] ${CRIT} critical issues found (score: ${SCORE})"
+          [ "$TREND" = "degrading" ] && TITLE="[CI Alert] Project health degrading (score: ${SCORE})"
+
+          BODY=$(cat <<ISSUE_EOF
+          ## Continuous Improvement Alert
+
+          | Metric | Value |
+          |--------|-------|
+          | Health Score | **${SCORE}/100** |
+          | Trend | ${TREND} |
+          | Total Issues | ${TOTAL} |
+          | Critical | ${CRIT} |
+          | High | ${HIGH} |
+
+          **Run:** ${RUN_URL}
+
+          ### Action Required
+          - Review the workflow run for detailed issue list
+          - Fix critical issues immediately
+          - Schedule high-severity fixes for next sprint
+          ISSUE_EOF
+          )
+
+          # Check if similar issue already exists
+          EXISTING=$(gh api "repos/$AUTOPILOT_REPO/issues?state=open&labels=continuous-improvement&per_page=1" \
+            --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            # Update existing issue
+            gh api "repos/$AUTOPILOT_REPO/issues/$EXISTING/comments" \
+              --method POST \
+              -f "body=$BODY" > /dev/null 2>&1
+            echo "Updated existing issue #$EXISTING"
+          else
+            # Create new issue
+            gh api "repos/$AUTOPILOT_REPO/issues" \
+              --method POST \
+              -f "title=$TITLE" \
+              -f "body=$BODY" \
+              -f "labels=[\"continuous-improvement\",\"automated\"]" > /dev/null 2>&1 || {
+              # Labels might not exist, try without
+              gh api "repos/$AUTOPILOT_REPO/issues" \
+                --method POST \
+                -f "title=$TITLE" \
+                -f "body=$BODY" > /dev/null 2>&1
+            }
+            echo "Created new alert issue"
+          fi
+
+      - name: "Summary"
+        run: |
+          echo "## 5. Alert" >> "$GITHUB_STEP_SUMMARY"
+          echo "Alert issue created/updated due to:" >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ needs.analyze.outputs.critical }}" != "0" ] && echo "- Critical issues: ${{ needs.analyze.outputs.critical }}" >> "$GITHUB_STEP_SUMMARY"
+          [ "${{ needs.learn.outputs.trend }}" = "degrading" ] && echo "- Health score degrading" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 6 → Audit: record in audit trail
+  # ═══════════════════════════════════════════════════════════════
+  audit:
+    name: "6. Audit"
+    needs: [setup, analyze, auto-fix, learn, alert]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Record audit"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          WS_PATH="${{ needs.setup.outputs.ws_path }}"
+
+          AUDIT=$(jq -n \
+            --arg ws "${{ needs.setup.outputs.ws_id }}" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg scope "${{ needs.setup.outputs.scope }}" \
+            --argjson score "${{ needs.analyze.outputs.health_score || 0 }}" \
+            --argjson total "${{ needs.analyze.outputs.total_issues || 0 }}" \
+            --argjson fixed "${{ needs.auto-fix.outputs.fixed_count || 0 }}" \
+            --arg trend "${{ needs.learn.outputs.trend }}" \
+            --arg analyzeResult "${{ needs.analyze.result }}" \
+            --arg fixResult "${{ needs.auto-fix.result }}" \
+            --arg learnResult "${{ needs.learn.result }}" \
+            --arg alertResult "${{ needs.alert.result }}" \
+            '{
+              operation: "continuous-improvement",
+              workspaceId: $ws,
+              timestamp: $ts,
+              runId: $run,
+              runUrl: $url,
+              scope: $scope,
+              healthScore: $score,
+              totalIssues: $total,
+              autoFixed: $fixed,
+              trend: $trend,
+              stages: {
+                analyze: $analyzeResult,
+                autoFix: $fixResult,
+                learn: $learnResult,
+                alert: $alertResult
+              }
+            }')
+
+          gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/improvement-${SN}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: continuous-improvement $SN [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write audit"
+
+          echo "## 6. Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Final Pipeline Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 1. Setup | ${{ needs.setup.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 2. Analyze | ${{ needs.analyze.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 3. Auto-Fix | ${{ needs.auto-fix.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 4. Learn | ${{ needs.learn.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 5. Alert | ${{ needs.alert.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 6. Audit | running |" >> "$GITHUB_STEP_SUMMARY"

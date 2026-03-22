@@ -86,6 +86,11 @@ state/workspaces/<workspace_id>/
 | test-full-flow.yml | Full integration test (controller + agent + CAP) |
 | test-corporate-flow.yml | Corporate flow test |
 
+### Continuous Improvement
+| Workflow | Purpose |
+|----------|---------|
+| continuous-improvement.yml | Weekly self-analysis: scan → auto-fix → learn → alert (6-stage pipeline) |
+
 ### Infrastructure
 | Workflow | Purpose |
 |----------|---------|
@@ -106,6 +111,7 @@ state/workspaces/<workspace_id>/
 | `trigger/e2e-test.json` | test-corporate-flow.yml |
 | `trigger/agent-sync.json` | agent-sync.yml |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml |
+| `trigger/improvement.json` | continuous-improvement.yml |
 
 ## apply-source-change Pipeline (7 Stages)
 ```
@@ -117,6 +123,24 @@ state/workspaces/<workspace_id>/
 5.   Save State     → Record on autopilot-state
 6.   Audit          → Audit trail + Release lock
 ```
+
+## Continuous Improvement Pipeline (6 Stages)
+```
+1. Setup     → Read config + previous improvement report
+2. Analyze   → Scan workflows, schemas, contracts, state for issues
+3. Auto-Fix  → Apply fixes for auto-fixable issues (locks, schemas, triggers)
+4. Learn     → Record report, calculate trends (improving/degrading/stable)
+5. Alert     → Create GitHub Issue if critical issues or score drops
+6. Audit     → Record in audit trail
+```
+
+**Health Score**: 0-100, deducts points per severity (critical=-20, high=-10, medium=-3, low=-1)
+
+**Trend tracking**: Compares current score vs previous report. Stores both `latest-report.json` (overwritten) and `report-{timestamp}.json` (historical).
+
+**Auto-fixable issues**: Expired locks, missing schemaVersion, outdated contract versions.
+
+**Runs**: Weekly (Monday 06:00 UTC) + on demand + via trigger file.
 
 ## Multi-Agent Safety (CRITICAL)
 Multiple agents (Claude Code, Codex) may share the same GitHub account.

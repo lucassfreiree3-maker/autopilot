@@ -2,6 +2,6 @@
   "schemaVersion": 1,
   "workspace_id": "ws-default",
   "component": "controller",
-  "note": "Fix CI lint errors in controller repo",
-  "run": 2
+  "note": "Fix CI build+lint errors in controller (TS2688 skipLibCheck)",
+  "run": 3
 }

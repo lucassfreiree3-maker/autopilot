@@ -7,5 +7,5 @@
   "commit_message": "feat: add autopilot info utility (source change validation)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 1
+  "run": 2
 }

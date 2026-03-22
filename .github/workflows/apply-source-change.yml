@@ -56,14 +56,18 @@ env:
   AUTOPILOT_REPO: lucassfreiree/autopilot
   STATE_BRANCH: autopilot-state
 
+# ═══════════════════════════════════════════════════════════════
+#  STAGE 1 → Setup: read workspace config and resolve inputs
+# ═══════════════════════════════════════════════════════════════
 jobs:
   setup:
-    name: "Read config"
+    name: "1. Setup"
     runs-on: ubuntu-latest
     outputs:
       ws_id: ${{ steps.cfg.outputs.ws_id }}
       ws_path: ${{ steps.cfg.outputs.ws_path }}
       component: ${{ steps.cfg.outputs.component }}
+      components_json: ${{ steps.cfg.outputs.components_json }}
       change_type: ${{ steps.cfg.outputs.change_type }}
       target_path: ${{ steps.cfg.outputs.target_path }}
       file_content: ${{ steps.cfg.outputs.file_content }}
@@ -78,11 +82,14 @@ jobs:
       image_pattern: ${{ steps.cfg.outputs.image_pattern }}
     steps:
       - uses: actions/checkout@v4
-      - name: Config
+      - name: "Read workspace config"
         id: cfg
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
+          set -euo pipefail
+
+          # ── Resolve inputs ──
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/source-change.json ]; then
             TRIG=$(cat trigger/source-change.json)
             WS_ID=$(echo "$TRIG" | jq -r '.workspace_id // "ws-default"')
@@ -104,13 +111,23 @@ jobs:
             PROMOTE="${{ github.event.inputs.promote }}"
           fi
 
+          # ── Read workspace.json ──
           WS_PATH="state/workspaces/${WS_ID}"
           WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
             --jq '.content' | base64 -d)
 
+          # ── Build matrix ──
+          if [ "$COMPONENT" = "both" ]; then
+            COMPONENTS_JSON='["agent","controller"]'
+          else
+            COMPONENTS_JSON="[\"${COMPONENT}\"]"
+          fi
+
+          # ── Write outputs ──
           echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
           echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
           echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "components_json=$COMPONENTS_JSON" >> "$GITHUB_OUTPUT"
           echo "change_type=$CHANGE_TYPE" >> "$GITHUB_OUTPUT"
           echo "target_path=$TARGET_PATH" >> "$GITHUB_OUTPUT"
           echo "commit_message=$COMMIT_MSG" >> "$GITHUB_OUTPUT"
@@ -122,29 +139,39 @@ jobs:
           echo "cap_branch=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')" >> "$GITHUB_OUTPUT"
           echo "cap_values=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')" >> "$GITHUB_OUTPUT"
           echo "image_pattern=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')" >> "$GITHUB_OUTPUT"
-
-          # file_content can be multiline - use env file
           {
             echo "file_content<<CONTENT_EOF"
             echo "$FILE_CONTENT"
             echo "CONTENT_EOF"
           } >> "$GITHUB_OUTPUT"
 
-  apply-change:
-    name: "Apply change to ${{ needs.setup.outputs.component }}"
+          # ── Summary ──
+          echo "## 1. Setup" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Workspace | \`$WS_ID\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | $COMPONENT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Change | $CHANGE_TYPE |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | \`$TARGET_PATH\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 2 → Apply & Push: clone, apply change, lint, push
+  # ═══════════════════════════════════════════════════════════════
+  apply-and-push:
+    name: "2. Apply & Push (${{ matrix.component }})"
     needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        component: ${{ fromJson(
-          needs.setup.outputs.component == 'both'
-            && '["agent","controller"]'
-            || format('["{0}"]', needs.setup.outputs.component)
-          ) }}
+        component: ${{ fromJson(needs.setup.outputs.components_json) }}
+    outputs:
+      sha: ${{ steps.push.outputs.sha }}
+      pushed: ${{ steps.push.outputs.pushed }}
+      repo: ${{ steps.resolve.outputs.repo }}
     steps:
       - name: "Resolve repo"
-        id: repo
+        id: resolve
         run: |
           if [ "${{ matrix.component }}" = "agent" ]; then
             echo "repo=${{ needs.setup.outputs.agent_repo }}" >> "$GITHUB_OUTPUT"
@@ -152,19 +179,17 @@ jobs:
             echo "repo=${{ needs.setup.outputs.controller_repo }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "Clone ${{ matrix.component }}"
+      - name: "Clone"
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          REPO="${{ steps.repo.outputs.repo }}"
+          REPO="${{ steps.resolve.outputs.repo }}"
           echo "=== Cloning $REPO ==="
           git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" /tmp/source
           cd /tmp/source
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           echo "HEAD: $(git rev-parse --short HEAD)"
-
-          # Show current structure
           echo "=== Repo structure ==="
           find . -maxdepth 3 -type f \
             -not -path './.git/*' \
@@ -177,69 +202,49 @@ jobs:
           TARGET="${{ needs.setup.outputs.target_path }}"
           CHANGE="${{ needs.setup.outputs.change_type }}"
           CONTENT='${{ needs.setup.outputs.file_content }}'
-
           echo "=== Applying $CHANGE to $TARGET ==="
-
           case "$CHANGE" in
             add-file)
-              # Create directory if needed
               mkdir -p "$(dirname "$TARGET")"
-
-              # If content looks base64-encoded, decode it
               if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
                 echo "$CONTENT" | base64 -d > "$TARGET"
               else
                 echo "$CONTENT" > "$TARGET"
               fi
               echo "Created: $TARGET"
-              echo "=== Content ==="
               cat "$TARGET"
               ;;
-
             modify-file)
-              if [ ! -f "$TARGET" ]; then
-                echo "::error ::File not found: $TARGET"
-                exit 1
-              fi
-              echo "=== Before ==="
-              cat "$TARGET"
-
+              [ ! -f "$TARGET" ] && { echo "::error ::File not found: $TARGET"; exit 1; }
+              echo "=== Before ===" && cat "$TARGET"
               if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
                 echo "$CONTENT" | base64 -d > "$TARGET"
               else
                 echo "$CONTENT" > "$TARGET"
               fi
-              echo "=== After ==="
-              cat "$TARGET"
+              echo "=== After ===" && cat "$TARGET"
               ;;
-
             delete-lines)
-              if [ ! -f "$TARGET" ]; then
-                echo "::error ::File not found: $TARGET"
-                exit 1
-              fi
-              echo "Deleting $TARGET"
-              rm "$TARGET"
+              [ ! -f "$TARGET" ] && { echo "::error ::File not found: $TARGET"; exit 1; }
+              echo "Deleting $TARGET" && rm "$TARGET"
               ;;
           esac
 
-      - name: "Lint check (if JS/TS)"
+      - name: "Lint check"
         working-directory: /tmp/source
         run: |
           TARGET="${{ needs.setup.outputs.target_path }}"
           EXT="${TARGET##*.}"
-
           if [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]]; then
-            echo "=== Running lint on changed file ==="
+            echo "=== Running lint on $TARGET ==="
             npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
-            npx eslint "$TARGET" --fix 2>/dev/null || {
-              echo "::warning ::Lint issues found, auto-fixed what possible"
-            }
+            npx eslint "$TARGET" --fix 2>/dev/null || echo "::warning ::Lint issues found"
           else
             echo "Not a JS/TS file, skipping lint"
           fi
 
-      - name: "Commit and push"
+      - name: "Push"
+        id: push
         working-directory: /tmp/source
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -247,57 +252,129 @@ jobs:
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to commit"
-            echo "pushed=false" >> "$GITHUB_ENV"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
-          echo "=== Changes ==="
-          git diff --cached --stat
-
+          echo "=== Changes ===" && git diff --cached --stat
           git commit -m "${{ needs.setup.outputs.commit_message }}"
           git push origin main
-          echo "pushed=true" >> "$GITHUB_ENV"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          echo "Pushed: $(git rev-parse --short HEAD)"
+          SHA=$(git rev-parse HEAD)
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Pushed: ${SHA:0:7}"
 
+      - name: "Summary"
+        if: always()
+        run: |
+          echo "## 2. Apply & Push (${{ matrix.component }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Repo | \`${{ steps.resolve.outputs.repo }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Change | ${{ needs.setup.outputs.change_type }} → \`${{ needs.setup.outputs.target_path }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pushed | ${{ steps.push.outputs.pushed }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SHA | \`${{ steps.push.outputs.sha || 'n/a' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 3 → CI Gate: wait for CI to pass
+  # ═══════════════════════════════════════════════════════════════
+  ci-gate:
+    name: "3. CI Gate (${{ matrix.component }})"
+    needs: [setup, apply-and-push]
+    if: needs.apply-and-push.outputs.pushed == 'true' && needs.setup.outputs.skip_ci != 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.setup.outputs.components_json) }}
+    outputs:
+      ci_result: ${{ steps.wait.outputs.ci_result }}
+    steps:
       - name: "Wait for CI"
-        if: env.pushed == 'true' && needs.setup.outputs.skip_ci != 'true'
+        id: wait
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          SHA="${{ env.sha }}"
-          REPO="${{ steps.repo.outputs.repo }}"
-          echo "Waiting for CI on $SHA..."
+          SHA="${{ needs.apply-and-push.outputs.sha }}"
+          REPO="${{ needs.apply-and-push.outputs.repo }}"
+          echo "=== Waiting for CI on $REPO @ ${SHA:0:7} ==="
 
-          # Phase 1: Discovery
+          # Phase 1: Discovery (backoff: 3→6→12→24→30s)
           FOUND=false; WAIT=3; ELAPSED=0
           while [ "$ELAPSED" -lt 180 ]; do
             COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
             if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
-            echo "  Discovering... (${ELAPSED}s)"
+            echo "  Discovering checks... (${ELAPSED}s)"
             sleep "$WAIT"; ELAPSED=$((ELAPSED + WAIT))
             WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
           if [ "$FOUND" = "false" ]; then
-            echo "ci_result=no-ci" >> "$GITHUB_ENV"; exit 0
+            echo "::warning ::No CI checks found in 180s"
+            echo "ci_result=no-ci" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          # Phase 2: Completion
-          WAIT=5; ELAPSED=0
+          # Phase 2: Completion (backoff: 5→10→20→30s, early exit on failure)
+          CI_RESULT="timeout"; WAIT=5; ELAPSED=0
           while [ "$ELAPSED" -lt 1200 ]; do
             DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
               --jq '{t:.total_count,c:[.check_runs[]|select(.status=="completed")]|length,s:[.check_runs[]|select(.conclusion=="success")]|length,f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
             T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
             S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
-            echo "  CI: $C/$T (ok=$S fail=$F) [${ELAPSED}s]"
-            if [ "$F" -gt 0 ]; then echo "ci_result=failure" >> "$GITHUB_ENV"; break; fi
-            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then echo "ci_result=success" >> "$GITHUB_ENV"; break; fi
+            echo "  CI: $C/$T completed (ok=$S fail=$F) [${ELAPSED}s]"
+
+            if [ "$F" -gt 0 ]; then CI_RESULT="failure"; break; fi
+            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then CI_RESULT="success"; break; fi
+
             sleep "$WAIT"; ELAPSED=$((ELAPSED + WAIT))
             WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
 
-      - name: "Promote to CAP"
-        if: env.ci_result == 'success' && needs.setup.outputs.promote == 'true' && matrix.component == 'agent'
+          echo "ci_result=$CI_RESULT" >> "$GITHUB_OUTPUT"
+          echo "=== CI Result: $CI_RESULT ==="
+
+      - name: "Summary"
+        if: always()
+        run: |
+          CI="${{ steps.wait.outputs.ci_result }}"
+          ICON="⏳"
+          [ "$CI" = "success" ] && ICON="✅"
+          [ "$CI" = "failure" ] && ICON="❌"
+          [ "$CI" = "no-ci" ] && ICON="⚠️"
+          echo "## 3. CI Gate (${{ matrix.component }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "$ICON **$CI**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Repo: \`${{ needs.apply-and-push.outputs.repo }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: \`${{ needs.apply-and-push.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "Fail if CI failed"
+        if: steps.wait.outputs.ci_result == 'failure'
+        run: |
+          echo "::error ::CI failed for ${{ matrix.component }}"
+          exit 1
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 4 → Promote: update CAP values.yaml with new tag
+  # ═══════════════════════════════════════════════════════════════
+  promote:
+    name: "4. Promote to CAP (${{ matrix.component }})"
+    needs: [setup, apply-and-push, ci-gate]
+    if: |
+      always() &&
+      needs.setup.outputs.promote == 'true' &&
+      (needs.ci-gate.outputs.ci_result == 'success' || needs.ci-gate.result == 'skipped')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.setup.outputs.components_json) }}
+    outputs:
+      promoted: ${{ steps.cap.outputs.promoted }}
+      tag: ${{ steps.cap.outputs.tag }}
+    steps:
+      - name: "Promote"
+        id: cap
+        if: matrix.component == 'agent'
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
@@ -305,41 +382,71 @@ jobs:
           CAP_BRANCH="${{ needs.setup.outputs.cap_branch }}"
           CAP_VALUES="${{ needs.setup.outputs.cap_values }}"
           IMAGE_PATTERN="${{ needs.setup.outputs.image_pattern }}"
+          SOURCE_REPO="${{ needs.apply-and-push.outputs.repo }}"
 
           if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ]; then
-            echo "No CAP repo configured"; exit 0
+            echo "No CAP repo configured"
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          # Get version from repo
-          VERSION=$(gh api "repos/${{ steps.repo.outputs.repo }}/contents/package.json?ref=main" \
+          # Get version from source repo
+          VERSION=$(gh api "repos/$SOURCE_REPO/contents/package.json?ref=main" \
             --jq '.content' | base64 -d | jq -r '.version')
           TAG="$VERSION"
-          echo "Promoting tag: $TAG"
+          echo "=== Promoting $TAG to $CAP_REPO ==="
 
+          # Read current values.yaml
           VALUES=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
           VSHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+          echo "=== Current values.yaml ===" && echo "$VALUES"
 
+          # Update image tag
           UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
-          if [ "$VALUES" = "$UPDATED" ]; then
-            UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
-          fi
+          [ "$VALUES" = "$UPDATED" ] && UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
 
           if [ "$VALUES" != "$UPDATED" ]; then
+            echo "=== Updated values.yaml ===" && echo "$UPDATED"
             gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
               -f "branch=$CAP_BRANCH" \
-              -f "message=chore(release): ${{ matrix.component }} -> ${TAG} (source change)" \
+              -f "message=chore(release): agent -> ${TAG} (source change)" \
               -f "content=$(echo "$UPDATED" | base64 -w0)" \
               -f "sha=$VSHA"
-            echo "promoted=true" >> "$GITHUB_ENV"
-            echo "tag=$TAG" >> "$GITHUB_ENV"
-            echo "Promoted to CAP: $TAG"
+            echo "promoted=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "Promoted!"
           else
-            echo "::warning ::Pattern didn't match in values.yaml"
-            echo "promoted=false" >> "$GITHUB_ENV"
+            echo "::warning ::Image pattern didn't match in values.yaml"
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "Save state"
-        if: env.pushed == 'true'
+      - name: "Skip (controller)"
+        if: matrix.component == 'controller'
+        run: |
+          echo "Controller has no CAP promotion configured"
+          echo "promoted=skipped" >> "$GITHUB_OUTPUT"
+
+      - name: "Summary"
+        if: always()
+        run: |
+          echo "## 4. Promote (${{ matrix.component }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promoted: ${{ steps.cap.outputs.promoted || 'skipped' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${{ steps.cap.outputs.tag || 'n/a' }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 5 → Save State: record release state on autopilot-state
+  # ═══════════════════════════════════════════════════════════════
+  save-state:
+    name: "5. Save State (${{ matrix.component }})"
+    needs: [setup, apply-and-push, ci-gate, promote]
+    if: always() && needs.apply-and-push.outputs.pushed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.setup.outputs.components_json) }}
+    steps:
+      - name: "Write state"
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -347,38 +454,123 @@ jobs:
           COMP="${{ matrix.component }}"
           FILE="${WS_PATH}/${COMP}-release-state.json"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          CI_RES="${{ env.ci_result }}"; [ -z "$CI_RES" ] && CI_RES="unknown"
-          TAG="${{ env.tag }}"; [ -z "$TAG" ] && TAG="source-change"
-          if [ "$CI_RES" = "success" ]; then STATUS="promoted"; else STATUS="ci-pending"; fi
+          SHA="${{ needs.apply-and-push.outputs.sha }}"
+
+          CI_RES="${{ needs.ci-gate.outputs.ci_result }}"
+          [ -z "$CI_RES" ] && CI_RES="unknown"
+
+          TAG="${{ needs.promote.outputs.tag }}"
+          [ -z "$TAG" ] && TAG="source-change"
+
+          PROMOTED="${{ needs.promote.outputs.promoted }}"
+          if [ "$CI_RES" = "success" ] && [ "$PROMOTED" = "true" ]; then
+            STATUS="promoted"
+          elif [ "$CI_RES" = "success" ]; then
+            STATUS="ci-passed"
+          elif [ "$CI_RES" = "failure" ]; then
+            STATUS="ci-failed"
+          else
+            STATUS="pending"
+          fi
 
           FSHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
 
-          STATE=$(jq -n --arg ws "${{ needs.setup.outputs.ws_id }}" --arg sha "${{ env.sha }}" \
-            --arg tag "$TAG" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+          STATE=$(jq -n \
+            --arg ws "${{ needs.setup.outputs.ws_id }}" \
+            --arg sha "$SHA" \
+            --arg tag "$TAG" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
             --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --arg ci "$CI_RES" --arg st "$STATUS" --arg comp "$COMP" \
+            --arg ci "$CI_RES" \
+            --arg st "$STATUS" \
+            --arg comp "$COMP" \
             --arg msg "${{ needs.setup.outputs.commit_message }}" \
-            '{schemaVersion:2,workspaceId:$ws,component:$comp,lastReleasedSha:$sha,lastTag:$tag,updatedAt:$ts,runId:$run,runUrl:$url,ciResult:$ci,status:$st,changeType:"source-code",commitMessage:$msg}')
+            --arg promoted "$PROMOTED" \
+            '{schemaVersion:2,workspaceId:$ws,component:$comp,lastReleasedSha:$sha,lastTag:$tag,updatedAt:$ts,runId:$run,runUrl:$url,ciResult:$ci,status:$st,changeType:"source-code",commitMessage:$msg,promoted:($promoted == "true")}')
 
-          ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: $COMP source change [skip ci]" -f "content=$(echo "$STATE"|base64 -w0)")
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: $COMP source-change -> $TAG [skip ci]" -f "content=$(echo "$STATE"|base64 -w0)")
           [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
           gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
+          echo "State saved: $COMP -> $STATUS"
 
       - name: "Summary"
         if: always()
         run: |
-          echo "## ${{ matrix.component }} - Source Change" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Change | ${{ needs.setup.outputs.change_type }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Target | \`${{ needs.setup.outputs.target_path }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Pushed | ${{ env.pushed || 'false' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| CI | ${{ env.ci_result || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Promoted | ${{ env.promoted || 'false' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| SHA | \`${{ env.sha || 'n/a' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 5. Save State (${{ matrix.component }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA: \`${{ needs.apply-and-push.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CI: ${{ needs.ci-gate.outputs.ci_result || 'n/a' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promoted: ${{ needs.promote.outputs.promoted || 'n/a' }}" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: "CI Gate"
-        if: env.ci_result == 'failure'
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 6 → Audit: record audit trail
+  # ═══════════════════════════════════════════════════════════════
+  audit:
+    name: "6. Audit"
+    needs: [setup, apply-and-push, ci-gate, promote, save-state]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Record audit"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          echo "::error ::${{ matrix.component }} CI failed after source change"
-          exit 1
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          WS_PATH="${{ needs.setup.outputs.ws_path }}"
+
+          AUDIT=$(jq -n \
+            --arg ws "${{ needs.setup.outputs.ws_id }}" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg comp "${{ needs.setup.outputs.component }}" \
+            --arg change "${{ needs.setup.outputs.change_type }}" \
+            --arg target "${{ needs.setup.outputs.target_path }}" \
+            --arg msg "${{ needs.setup.outputs.commit_message }}" \
+            --arg sha "${{ needs.apply-and-push.outputs.sha }}" \
+            --arg ci "${{ needs.ci-gate.outputs.ci_result }}" \
+            --arg promoted "${{ needs.promote.outputs.promoted }}" \
+            --arg apply "${{ needs.apply-and-push.result }}" \
+            --arg ciJob "${{ needs.ci-gate.result }}" \
+            --arg promJob "${{ needs.promote.result }}" \
+            --arg stateJob "${{ needs.save-state.result }}" \
+            '{
+              operation: "source-code-change",
+              workspaceId: $ws,
+              timestamp: $ts,
+              runId: $run,
+              runUrl: $url,
+              component: $comp,
+              changeType: $change,
+              targetPath: $target,
+              commitMessage: $msg,
+              commitSha: $sha,
+              ciResult: $ci,
+              promoted: ($promoted == "true"),
+              stages: {
+                apply: $apply,
+                ci: $ciJob,
+                promote: $promJob,
+                state: $stateJob
+              }
+            }')
+
+          gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/source-change-${SN}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: source-change ${SN} [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true
+
+          echo "## 6. Audit" >> "$GITHUB_STEP_SUMMARY"
+          echo "Recorded at \`$NOW\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Pipeline Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 1. Setup | ${{ needs.setup.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 2. Apply & Push | ${{ needs.apply-and-push.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 3. CI Gate | ${{ needs.ci-gate.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 4. Promote | ${{ needs.promote.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 5. Save State | ${{ needs.save-state.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 6. Audit | running |" >> "$GITHUB_STEP_SUMMARY"

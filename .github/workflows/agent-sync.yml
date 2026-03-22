@@ -1,0 +1,267 @@
+name: "Agent Sync: Claude <-> ChatGPT"
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/agent-sync.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      task:
+        description: "Task type"
+        required: true
+        type: choice
+        options:
+          - ci-fix
+          - code-review
+          - refactor
+          - analyze
+      context:
+        description: "Additional context"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-sync
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  sync:
+    name: "Agent collaboration"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Agent Sync Pipeline"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # ── 0. Resolve inputs ───────────────────────────────
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/agent-sync.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/agent-sync.json)
+            TASK=$(jq -r '.task // "ci-fix"' trigger/agent-sync.json)
+            CONTEXT=$(jq -r '.context // ""' trigger/agent-sync.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            TASK="${{ github.event.inputs.task }}"
+            CONTEXT="${{ github.event.inputs.context }}"
+          fi
+          [ -z "$WS_ID" ] && WS_ID="ws-default"
+          echo "=== Task: $TASK | Workspace: $WS_ID ==="
+
+          # ── 1. Read workspace config ────────────────────────
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')
+          echo "Source: $SOURCE_REPO"
+
+          # ── 2. Clone source ─────────────────────────────────
+          git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source
+          cd /tmp/source
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          # ── 3. Build prompt based on task ───────────────────
+          PROMPT_FILE="/tmp/chatgpt-prompt.txt"
+
+          case "$TASK" in
+            ci-fix)
+              echo "=== Gathering CI errors ==="
+              npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
+              LINT_OUTPUT=$(npx eslint src/ --format json 2>/dev/null || true)
+              ERRORS=$(echo "$LINT_OUTPUT" | jq -c '[.[] | select(.errorCount > 0) | {file: (.filePath | sub("'$(pwd)'/"; "")), messages: [.messages[] | select(.severity == 2) | {rule: .ruleId, line: .line, message: .message}]}]' 2>/dev/null || echo "[]")
+              ERROR_COUNT=$(echo "$ERRORS" | jq 'length' 2>/dev/null || echo "0")
+
+              if [ "$ERROR_COUNT" = "0" ]; then
+                echo "No lint errors found"
+                echo "## Agent Sync" >> "$GITHUB_STEP_SUMMARY"
+                echo "- No errors to fix" >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+
+              # Read source of files with errors
+              ERROR_FILES=""
+              for FPATH in $(echo "$ERRORS" | jq -r '.[].file'); do
+                if [ -f "$FPATH" ]; then
+                  ERROR_FILES="${ERROR_FILES}--- FILE: ${FPATH} ---\n$(cat "$FPATH")\n\n"
+                fi
+              done
+
+              cat > "$PROMPT_FILE" << 'ENDPROMPT'
+          You are a senior TypeScript developer. Fix these ESLint errors.
+          For each file, return ONLY a JSON array of fixes:
+          [{"file": "path", "line": N, "original": "exact line", "fixed": "corrected line"}]
+          Rules:
+          - no-nested-ternary: convert to if/else
+          - unused-vars: remove or prefix with _
+          - no-explicit-any: add proper types
+          - Keep indentation
+          - Return ONLY valid JSON
+          ENDPROMPT
+              printf "\n\nERRORS:\n%s\n\nSOURCE FILES:\n%s" "$(echo "$ERRORS" | jq '.')" "$ERROR_FILES" >> "$PROMPT_FILE"
+              ;;
+
+            code-review)
+              echo "=== Gathering changes for review ==="
+              DIFF=$(git diff HEAD~1 2>/dev/null || echo "No changes")
+              cat > "$PROMPT_FILE" << ENDPROMPT
+          Review this diff. Return JSON: {"issues": [{"file":"","line":0,"severity":"error|warning","message":"","suggestion":""}], "summary":""}
+          Diff:
+          ${DIFF}
+          ${CONTEXT}
+          ENDPROMPT
+              ;;
+
+            analyze)
+              echo "=== Analyzing project ==="
+              STRUCTURE=$(find src/ -type f -name "*.ts" | head -50 2>/dev/null || echo "")
+              PKG=$(cat package.json 2>/dev/null || echo "{}")
+              cat > "$PROMPT_FILE" << ENDPROMPT
+          Analyze this project. Return JSON: {"architecture":"","dependencies":"","suggestions":[{"category":"","description":"","priority":"high|medium|low"}]}
+          Files: ${STRUCTURE}
+          package.json: ${PKG}
+          ${CONTEXT}
+          ENDPROMPT
+              ;;
+
+            *)
+              echo "Unknown task: $TASK"
+              exit 1
+              ;;
+          esac
+
+          # ── 4. Call ChatGPT API ─────────────────────────────
+          echo "=== Calling ChatGPT API (gpt-4o) ==="
+          PROMPT_CONTENT=$(cat "$PROMPT_FILE")
+
+          RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${OPENAI_API_KEY}" \
+            -d "$(jq -n \
+              --arg prompt "$PROMPT_CONTENT" \
+              '{
+                model: "gpt-4o",
+                messages: [
+                  {role: "system", content: "You are a precise code assistant. Return only valid JSON. Never mention tools, bots, or automation in code."},
+                  {role: "user", content: $prompt}
+                ],
+                temperature: 0.1,
+                max_tokens: 4096
+              }')")
+
+          ANSWER=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // "error"' 2>/dev/null || echo "error")
+          USAGE=$(echo "$RESPONSE" | jq -r '.usage | "in:\(.prompt_tokens) out:\(.completion_tokens) total:\(.total_tokens)"' 2>/dev/null || echo "unknown")
+          echo "Tokens: $USAGE"
+
+          if [ "$ANSWER" = "error" ] || [ -z "$ANSWER" ]; then
+            echo "::error ::ChatGPT API failed"
+            echo "$RESPONSE" | jq '.error' 2>/dev/null || echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "=== ChatGPT Response ==="
+          echo "$ANSWER"
+
+          # ── 5. Apply fixes (ci-fix only) ────────────────────
+          APPLIED_MSG="n/a"
+          REMAINING="n/a"
+
+          if [ "$TASK" = "ci-fix" ]; then
+            echo "=== Applying fixes ==="
+            CLEAN=$(echo "$ANSWER" | sed 's/^```json//;s/^```//;s/```$//' | tr -d '\r')
+
+            python3 << PYEOF
+          import json, sys
+
+          try:
+              fixes = json.loads('''${CLEAN}''')
+          except:
+              try:
+                  # Try extracting JSON from response
+                  import re
+                  m = re.search(r'\[.*\]', '''${CLEAN}''', re.DOTALL)
+                  fixes = json.loads(m.group()) if m else []
+              except:
+                  fixes = []
+
+          applied = 0
+          for fix in fixes:
+              fpath = fix.get('file', '')
+              original = fix.get('original', '').strip()
+              fixed = fix.get('fixed', '').strip()
+              if not fpath or not original or not fixed:
+                  continue
+              try:
+                  with open(fpath, 'r') as f:
+                      content = f.read()
+                  if original in content:
+                      content = content.replace(original, fixed, 1)
+                      with open(fpath, 'w') as f:
+                          f.write(content)
+                      applied += 1
+                      print(f'  Fixed: {fpath}')
+                  else:
+                      print(f'  Skipped: {fpath} (not found)')
+              except Exception as e:
+                  print(f'  Error: {fpath}: {e}')
+
+          print(f'Applied {applied} fixes')
+          PYEOF
+
+            # Verify
+            REMAINING=$(npx eslint src/ --format json 2>/dev/null | jq '[.[] | .errorCount] | add // 0' 2>/dev/null || echo "?")
+            echo "Remaining errors: $REMAINING"
+
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "fix: resolve lint errors"
+              git push origin main
+              APPLIED_MSG="pushed"
+              echo "Fix pushed to main"
+            else
+              APPLIED_MSG="no-changes"
+              echo "No changes to commit"
+            fi
+          fi
+
+          # ── 6. Audit ────────────────────────────────────────
+          cd "$GITHUB_WORKSPACE" 2>/dev/null || true
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          AUDIT=$(jq -n \
+            --arg ws "$WS_ID" --arg task "$TASK" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" --arg usage "$USAGE" \
+            --arg applied "$APPLIED_MSG" --arg remaining "$REMAINING" \
+            '{operation:"agent-sync",workspaceId:$ws,task:$task,timestamp:$ts,runId:$run,model:"gpt-4o",usage:$usage,applied:$applied,remainingErrors:$remaining}')
+          GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/agent-sync-${SN}.json" \
+            --method PUT -f "branch=$STATE_BRANCH" -f "message=audit: agent-sync $TASK [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true
+
+          # ── Summary ─────────────────────────────────────────
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Agent Sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Task | $TASK |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Model | gpt-4o |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tokens | $USAGE |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Applied | $APPLIED_MSG |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Remaining | $REMAINING |" >> "$GITHUB_STEP_SUMMARY"

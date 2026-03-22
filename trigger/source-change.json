@@ -1,11 +1,11 @@
 {
   "workspace_id": "ws-default",
-  "component": "agent",
+  "component": "controller",
   "change_type": "add-file",
-  "target_path": "src/utils/autopilotInfo.js",
-  "file_content": "'use strict';\n\nconst { version } = require('../../package.json');\n\nconst getAutopilotInfo = () => ({\n  version,\n  managedBy: 'autopilot',\n  lastChange: new Date().toISOString(),\n  component: 'agent',\n});\n\nmodule.exports = { getAutopilotInfo };\n",
-  "commit_message": "feat: add autopilot info utility (source change validation)",
+  "target_path": "src/utils/controllerVersion.js",
+  "file_content": "'use strict';\n\nconst controllerVersion = () => ({\n  component: 'controller',\n  managedBy: 'autopilot',\n  updatedAt: new Date().toISOString(),\n  pipeline: 'apply-source-change',\n  tools: ['github-actions', 'langchain', 'n8n', 'kubernetes'],\n});\n\nmodule.exports = { controllerVersion };\n",
+  "commit_message": "feat: add controller version utility (pipeline test)",
   "skip_ci_wait": false,
-  "promote": true,
-  "run": 7
+  "promote": false,
+  "run": 8
 }

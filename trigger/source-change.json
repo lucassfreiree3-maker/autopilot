@@ -2,10 +2,10 @@
   "workspace_id": "ws-default",
   "component": "agent",
   "change_type": "add-file",
-  "target_path": "src/utils/agentHealth.js",
-  "file_content": "'use strict';\n\nconst agentHealth = () => ({\n  component: 'agent',\n  status: 'healthy',\n  managedBy: 'autopilot',\n  checkedAt: new Date().toISOString(),\n  version: require('../../package.json').version,\n});\n\nmodule.exports = { agentHealth };\n",
-  "commit_message": "feat: add agent health utility (autopilot pipeline test)",
+  "target_path": "src/utils/agentHealth.ts",
+  "file_content": "export const agentHealth = (): Record<string, unknown> => ({\n  component: 'agent',\n  status: 'healthy',\n  managedBy: 'autopilot',\n  checkedAt: new Date().toISOString(),\n});\n",
+  "commit_message": "fix: rewrite agentHealth as TypeScript (resolve lint errors)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 12
+  "run": 13
 }

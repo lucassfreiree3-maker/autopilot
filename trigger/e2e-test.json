@@ -1,6 +1,5 @@
 {
   "workspace_id": "ws-default",
   "dry_run": "false",
-  "run": 8,
-  "note": "v8: fix version bump (patch 0-9 then minor), promote despite CI failure"
+  "run": 9
 }

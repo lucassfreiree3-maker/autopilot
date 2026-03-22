@@ -76,8 +76,8 @@ jobs:
           echo "=== Cloning $SOURCE_REPO ==="
           git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source
           cd /tmp/source
-          git config user.name "autopilot[bot]"
-          git config user.email "autopilot[bot]@users.noreply.github.com"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           HEAD_SHA=$(git rev-parse HEAD)
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "HEAD: $HEAD_SHA ($SHORT_SHA)"
@@ -93,7 +93,7 @@ jobs:
           fi
           jq --arg v "$NEW_VER" '.version = $v' package.json > /tmp/p.json && mv /tmp/p.json package.json
           git add package.json
-          git commit -m "chore: bump version $CURRENT -> $NEW_VER [autopilot]"
+          git commit -m "chore: bump version $CURRENT -> $NEW_VER"
           NEW_SHA=$(git rev-parse HEAD)
           NEW_SHORT=$(git rev-parse --short HEAD)
           echo "## Bump" >> "$GITHUB_STEP_SUMMARY"
@@ -182,7 +182,7 @@ jobs:
               echo "$UPDATED"
               GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
                 -f "branch=$CAP_BRANCH" \
-                -f "message=chore(release): agent -> ${TAG} [autopilot]" \
+                -f "message=chore(release): agent -> ${TAG}" \
                 -f "content=$(echo "$UPDATED" | base64 -w0)" \
                 -f "sha=$VSHA"
               PROMOTED="true"

@@ -183,38 +183,55 @@ jobs:
           REPO="${{ needs.setup.outputs.controller_repo }}"
           echo "Waiting for CI on $SHA..."
 
-          # Wait up to 3 min for checks to appear
+          # --- Smart polling with exponential backoff ---
+          # Phase 1: Wait for checks to appear (backoff: 3s -> 6s -> 12s -> 24s -> 30s max)
           FOUND=false
-          for i in $(seq 1 36); do
-            sleep 5
+          WAIT=3
+          ELAPSED=0
+          MAX_DISCOVERY=180  # 3 min max
+          while [ "$ELAPSED" -lt "$MAX_DISCOVERY" ]; do
             COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
             if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
-            echo "  Waiting for checks... ($i)"
+            echo "  Waiting for checks... (${ELAPSED}s, next poll in ${WAIT}s)"
+            sleep "$WAIT"
+            ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
 
           if [ "$FOUND" = "false" ]; then
-            echo "::warning ::No CI checks in 3 min."
+            echo "::warning ::No CI checks in ${MAX_DISCOVERY}s."
             echo "ci_result=no-ci" >> "$GITHUB_ENV"
             exit 0
           fi
 
-          # Wait up to 20 min for completion
-          for i in $(seq 1 120); do
-            sleep 10
+          # Phase 2: Wait for completion (backoff: 5s -> 10s -> 20s -> 30s max, early exit on failure)
+          WAIT=5
+          ELAPSED=0
+          MAX_WAIT=1200  # 20 min max
+          while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
             DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
               --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
             T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
             S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
-            echo "  CI: $C/$T (ok=$S fail=$F) [$i]"
-            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-              if [ "$F" -gt 0 ]; then
-                echo "ci_result=failure" >> "$GITHUB_ENV"
-              else
-                echo "ci_result=success" >> "$GITHUB_ENV"
-              fi
+            echo "  CI: $C/$T (ok=$S fail=$F) [${ELAPSED}s]"
+
+            # Early exit: if any check failed, no need to wait for others
+            if [ "$F" -gt 0 ]; then
+              echo "  Early exit: failure detected"
+              echo "ci_result=failure" >> "$GITHUB_ENV"
               break
             fi
+            # All completed successfully
+            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
+              echo "ci_result=success" >> "$GITHUB_ENV"
+              break
+            fi
+
+            sleep "$WAIT"
+            ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
+          [ "$ELAPSED" -ge "$MAX_WAIT" ] && echo "ci_result=timeout" >> "$GITHUB_ENV"
           echo "Controller CI: ${{ env.ci_result }}"
 
       - name: "Save controller state"
@@ -341,30 +358,51 @@ jobs:
           SHA="${{ env.sha }}"
           REPO="${{ needs.setup.outputs.agent_repo }}"
           echo "Waiting for CI on $SHA..."
+          # --- Smart polling with exponential backoff ---
+          # Phase 1: Wait for checks to appear (backoff: 3s -> 6s -> 12s -> 24s -> 30s max)
           FOUND=false
-          for i in $(seq 1 36); do
-            sleep 5
+          WAIT=3
+          ELAPSED=0
+          MAX_DISCOVERY=180
+          while [ "$ELAPSED" -lt "$MAX_DISCOVERY" ]; do
             COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
             if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
-            echo "  Waiting... ($i)"
+            echo "  Waiting for checks... (${ELAPSED}s, next in ${WAIT}s)"
+            sleep "$WAIT"
+            ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
           if [ "$FOUND" = "false" ]; then
-            echo "::warning ::No CI checks in 3 min."
+            echo "::warning ::No CI checks in ${MAX_DISCOVERY}s."
             echo "ci_result=no-ci" >> "$GITHUB_ENV"
             exit 0
           fi
+
+          # Phase 2: Wait for completion (backoff: 5s -> 10s -> 20s -> 30s max, early exit on failure)
           CI_RESULT="pending"
-          for i in $(seq 1 120); do
-            sleep 10
+          WAIT=5
+          ELAPSED=0
+          MAX_WAIT=1200
+          while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
             DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
               --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
             T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
             S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
-            echo "  CI: $C/$T (ok=$S fail=$F) [$i]"
-            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-              if [ "$F" -gt 0 ]; then CI_RESULT="failure"; else CI_RESULT="success"; fi
-              break
+            echo "  CI: $C/$T (ok=$S fail=$F) [${ELAPSED}s]"
+
+            # Early exit on failure
+            if [ "$F" -gt 0 ]; then
+              echo "  Early exit: failure detected"
+              CI_RESULT="failure"; break
             fi
+            # All done successfully
+            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
+              CI_RESULT="success"; break
+            fi
+
+            sleep "$WAIT"
+            ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
           done
           [ "$CI_RESULT" = "pending" ] && CI_RESULT="timeout"
           echo "ci_result=$CI_RESULT" >> "$GITHUB_ENV"

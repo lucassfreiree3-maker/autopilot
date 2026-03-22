@@ -38,6 +38,40 @@
     .dot-red { background: var(--red); }
     .dot-gray { background: var(--muted); }
     .empty { color: var(--muted); text-align: center; padding: 40px; }
+    /* Pipeline & Tools styles */
+    .pipeline-container { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .pipeline-stage { display: flex; align-items: stretch; gap: 0; position: relative; }
+    .stage-connector { width: 3px; background: var(--border); position: absolute; left: 24px; top: 0; bottom: 0; z-index: 0; }
+    .stage-dot { width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--border); background: var(--surface); z-index: 1; flex-shrink: 0; margin-top: 18px; margin-left: 17px; }
+    .stage-dot.active { border-color: var(--green); background: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.4); }
+    .stage-dot.warn { border-color: var(--yellow); background: var(--yellow); }
+    .stage-dot.error { border-color: var(--red); background: var(--red); }
+    .stage-content { flex: 1; margin-left: 16px; padding: 12px 0; }
+    .stage-header { font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .stage-desc { font-size: 13px; color: var(--muted); }
+    .stage-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tool-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); background: var(--surface); }
+    .tool-chip.gh { border-color: rgba(88,166,255,0.4); color: var(--blue); }
+    .tool-chip.lc { border-color: rgba(63,185,80,0.4); color: var(--green); }
+    .tool-chip.k8s { border-color: rgba(136,132,216,0.4); color: #8884d8; }
+    .tool-chip.n8n { border-color: rgba(255,106,0,0.4); color: #ff6a00; }
+    .tool-chip.ai { border-color: rgba(210,153,34,0.4); color: var(--yellow); }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 24px; }
+    .tool-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.gh-card::before { background: var(--blue); }
+    .tool-card.lc-card::before { background: var(--green); }
+    .tool-card.k8s-card::before { background: #8884d8; }
+    .tool-card.n8n-card::before { background: #ff6a00; }
+    .tool-card.ai-card::before { background: var(--yellow); }
+    .tool-card h4 { font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .tool-card p { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .tool-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .tool-status .status-dot { width: 6px; height: 6px; }
+    .tool-features { list-style: none; padding: 0; margin: 8px 0 0 0; }
+    .tool-features li { font-size: 12px; color: var(--muted); padding: 2px 0; padding-left: 14px; position: relative; }
+    .tool-features li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 12px 0; }
     .warning-box { background: rgba(210,153,34,0.1); border: 1px solid var(--yellow); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
     .action-target { font-size: 12px; color: var(--muted); margin-top: 4px; }
     #loading { text-align: center; padding: 60px; color: var(--muted); }
@@ -61,7 +95,8 @@
     </div>
 
     <div class="tabs">
-      <div class="tab active" onclick="showTab('product')">Product</div>
+      <div class="tab active" onclick="showTab('pipeline')">Pipeline & Tools</div>
+      <div class="tab" onclick="showTab('product')">Product</div>
       <div class="tab" onclick="showTab('corporate')">Corporate</div>
       <div class="tab" onclick="showTab('workspace')">Active Workspace</div>
       <div class="tab" onclick="showTab('operations')">Operations</div>
@@ -70,8 +105,299 @@
 
     <div id="loading" style="display:none">Loading state...</div>
 
+    <!-- PIPELINE & TOOLS TAB -->
+    <div class="panel active" id="panel-pipeline">
+
+      <!-- ═══ INTEGRATED TOOLS STATUS ═══ -->
+      <div class="card" style="grid-column: 1 / -1">
+        <h3>Integrated Tools</h3>
+        <div class="tools-grid">
+          <div class="tool-card gh-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub Actions</h4>
+            <p>CI/CD engine — workflows, triggers, state management</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span id="ghStatus">Core — always active</span></div>
+            <ul class="tool-features">
+              <li id="ghWorkflowCount">Loading workflows...</li>
+              <li>7 trigger files</li>
+              <li>State on autopilot-state branch</li>
+            </ul>
+          </div>
+          <div class="tool-card ai-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM6.5 8h3l-.5 5h-2l-.5-5z"/></svg> AI Agents</h4>
+            <p>Multi-agent orchestration — Claude, Codex, Copilot, ChatGPT</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span>4 agents registered</span></div>
+            <ul class="tool-features">
+              <li>Claude Code — architecture, workflows</li>
+              <li>Codex — implementation, refactoring</li>
+              <li>Copilot — dispatch, review, coordination</li>
+              <li>ChatGPT — docs, triage</li>
+            </ul>
+          </div>
+          <div class="tool-card lc-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1a1 1 0 00-1 1v2a1 1 0 001 1h1v2H4a1 1 0 00-1 1v2a1 1 0 001 1h1v2H4a1 1 0 00-1 1v1a1 1 0 001 1h8a1 1 0 001-1v-1a1 1 0 00-1-1h-1v-2h1a1 1 0 001-1V8a1 1 0 00-1-1h-1V5h1a1 1 0 001-1V2a1 1 0 00-1-1H4z"/></svg> LangChain</h4>
+            <p>Intelligent agent orchestration — context-aware decisions</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span>Ready — runs in GitHub Actions</span></div>
+            <ul class="tool-features">
+              <li>analyze-ci-failure — semantic triage</li>
+              <li>smart-release — safety-checked deploys</li>
+              <li>triage-handoff — intelligent delegation</li>
+              <li>health-response — auto-remediation</li>
+            </ul>
+          </div>
+          <div class="tool-card k8s-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0L1 4v8l7 4 7-4V4L8 0zm0 2.2L12.9 4.8 8 7.4 3.1 4.8 8 2.2zM2.5 5.8l5 2.8v5l-5-2.8v-5zm11 0v5l-5 2.8v-5l5-2.8z"/></svg> Kubernetes</h4>
+            <p>Self-hosted infra — runners, CronJobs, namespace isolation</p>
+            <div class="tool-status"><span class="status-dot dot-gray"></span> <span>Available — deploy when needed</span></div>
+            <ul class="tool-features">
+              <li>Self-hosted Actions runner</li>
+              <li>CronJobs: health, backup, lock GC</li>
+              <li>Namespace per workspace</li>
+              <li>Kustomize overlay ready</li>
+            </ul>
+          </div>
+          <div class="tool-card n8n-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4a2 2 0 114 0 2 2 0 01-4 0zm6 0h6M8 8a2 2 0 114 0 2 2 0 01-4 0zm-6 0h6m0 4a2 2 0 114 0 2 2 0 01-4 0zm-6 0h6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg> n8n</h4>
+            <p>Visual automation — Slack alerts, approval gates, monitoring</p>
+            <div class="tool-status"><span class="status-dot dot-gray"></span> <span>Available — self-hosted, free</span></div>
+            <ul class="tool-features">
+              <li>CI failure → Slack + auto-fix</li>
+              <li>Release notification → Slack</li>
+              <li>Health monitor → periodic alert</li>
+              <li>Approval gate → interactive Slack</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ RELEASE PIPELINE ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Release Pipeline (apply-source-change) — 7 Stages</h3>
+        <div class="pipeline-container" style="padding: 16px 0; position: relative;">
+          <div class="stage-connector" style="top: 30px; bottom: 30px;"></div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1. Setup</div>
+              <div class="stage-desc">Read workspace config, resolve inputs, decode base64 content</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">GitHub Actions</span>
+                <span class="tool-chip gh">workspace.json</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1.5 Session Guard</div>
+              <div class="stage-desc">Acquire multi-agent lock — blocks if another agent is active</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">session-guard.yml</span>
+                <span class="tool-chip ai">Agent Lock</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">2. Apply & Push</div>
+              <div class="stage-desc">Clone corporate repo → Apply code change → Fix lint → Push</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">git clone/push</span>
+                <span class="tool-chip ai">Claude / Codex</span>
+                <span class="tool-chip lc">LangChain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">3. CI Gate</div>
+              <div class="stage-desc">Wait for CI completion + smart comparison (pre-existing failure detection)</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">CI Workflows</span>
+                <span class="tool-chip lc">analyze-ci-failure</span>
+                <span class="tool-chip n8n">CI failure alert</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">4. Promote</div>
+              <div class="stage-desc">Update CAP/deploy values.yaml with new image tag</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">CAP repo</span>
+                <span class="tool-chip n8n">Release notify</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">5. Save State</div>
+              <div class="stage-desc">Record release-state.json on autopilot-state branch</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">autopilot-state</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">6. Audit</div>
+              <div class="stage-desc">Immutable audit trail + release session lock</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">audit/*.json</span>
+                <span class="tool-chip ai">Agent ID</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CONTINUOUS IMPROVEMENT PIPELINE ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Continuous Improvement Pipeline — 6 Stages</h3>
+        <div class="pipeline-container" style="padding: 16px 0; position: relative;">
+          <div class="stage-connector" style="top: 30px; bottom: 30px;"></div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1. Setup</div>
+              <div class="stage-desc">Read config + load previous improvement report for trend tracking</div>
+              <div class="stage-tools"><span class="tool-chip gh">GitHub Actions</span></div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">2. Analyze</div>
+              <div class="stage-desc">Scan workflows, schemas, contracts, state for issues</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">Scan engine</span>
+                <span class="tool-chip lc">LangChain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">3. Auto-Fix</div>
+              <div class="stage-desc">Fix expired locks, missing schemaVersion, outdated contracts</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">Auto-remediation</span>
+                <span class="tool-chip ai">Claude / Codex</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">4. Learn</div>
+              <div class="stage-desc">Health score (0-100), trends (improving/degrading/stable)</div>
+              <div class="stage-tools"><span class="tool-chip gh">Report engine</span></div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">5. Alert</div>
+              <div class="stage-desc">Create GitHub Issue if critical issues or score drops</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">GitHub Issues</span>
+                <span class="tool-chip n8n">Health monitor</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">6. Audit</div>
+              <div class="stage-desc">Record improvement report (latest + historical)</div>
+              <div class="stage-tools"><span class="tool-chip gh">autopilot-state</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ALL WORKFLOWS ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>All Workflows</h3>
+        <table>
+          <tr><th>Category</th><th>Workflow</th><th>Purpose</th><th>Triggers</th><th>Tools</th></tr>
+          <tr><td rowspan="3" style="vertical-align:top;font-weight:600;color:var(--green)">Core</td>
+            <td>bootstrap.yml</td><td>Full setup (state, backup, workspace)</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>seed-workspace.yml</td><td>Create/update workspace</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>health-check.yml</td><td>Health validation</td><td>Scheduled / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span> <span class="tool-chip n8n">n8n</span></td></tr>
+
+          <tr><td rowspan="5" style="vertical-align:top;font-weight:600;color:var(--blue)">Release</td>
+            <td>release-controller.yml</td><td>Controller release (freeze-aware)</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>release-agent.yml</td><td>Agent release (freeze-aware)</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>release-freeze.yml</td><td>Freeze/unfreeze releases</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>release-approval.yml</td><td>Manual approval gate</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>release-metrics.yml</td><td>Daily metrics + SLO</td><td>Scheduled</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="4" style="vertical-align:top;font-weight:600;color:var(--yellow)">Source</td>
+            <td>apply-source-change.yml</td><td>7-stage code change pipeline</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span> <span class="tool-chip lc">LC</span></td></tr>
+          <tr><td>fix-corporate-ci.yml</td><td>Auto-fix lint errors</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>fix-and-validate.yml</td><td>Fix + full flow validation</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>drift-correction.yml</td><td>Detect/fix source-deploy drift</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="1" style="vertical-align:top;font-weight:600;color:#8884d8">Improvement</td>
+            <td>continuous-improvement.yml</td><td>6-stage self-analysis pipeline</td><td>Weekly / Trigger file</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip lc">LC</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+
+          <tr><td rowspan="2" style="vertical-align:top;font-weight:600;color:var(--muted)">Testing</td>
+            <td>test-full-flow.yml</td><td>Full integration test</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>test-corporate-flow.yml</td><td>Corporate flow test</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="6" style="vertical-align:top;font-weight:600;color:var(--muted)">Infra</td>
+            <td>sync-copilot-prompt.yml</td><td>Auto-regenerate Copilot prompt</td><td>Push (auto)</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">Copilot</span></td></tr>
+          <tr><td>langchain-orchestrator.yml</td><td>Intelligent agent orchestration</td><td>Manual / Reusable</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip lc">LC</span> <span class="tool-chip ai">Claude</span></td></tr>
+          <tr><td>session-guard.yml</td><td>Multi-agent lock</td><td>Reusable</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span></td></tr>
+          <tr><td>agent-sync.yml</td><td>Sync state between agents</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span></td></tr>
+          <tr><td>backup-state.yml</td><td>Snapshot state</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+          <tr><td>workspace-lock-gc.yml</td><td>Clean expired locks</td><td>Scheduled</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+        </table>
+      </div>
+
+      <!-- ═══ TRIGGER FILES ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Trigger Files</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Edit on <code>main</code> branch, bump the <code>run</code> field to trigger the associated workflow.</p>
+        <table>
+          <tr><th>File</th><th>Workflow</th><th>Key Fields</th></tr>
+          <tr><td><code>trigger/source-change.json</code></td><td>apply-source-change.yml</td><td>component, change_type, target_path, file_content, promote</td></tr>
+          <tr><td><code>trigger/full-test.json</code></td><td>test-full-flow.yml</td><td>test_type, include_lint_error</td></tr>
+          <tr><td><code>trigger/e2e-test.json</code></td><td>test-corporate-flow.yml</td><td>dry_run</td></tr>
+          <tr><td><code>trigger/fix-and-validate.json</code></td><td>fix-and-validate.yml</td><td>workspace_id</td></tr>
+          <tr><td><code>trigger/fix-ci.json</code></td><td>fix-corporate-ci.yml</td><td>workspace_id</td></tr>
+          <tr><td><code>trigger/improvement.json</code></td><td>continuous-improvement.yml</td><td>auto_fix, scope</td></tr>
+          <tr><td><code>trigger/agent-sync.json</code></td><td>agent-sync.yml</td><td>task, context</td></tr>
+        </table>
+      </div>
+
+      <!-- ═══ LIVE STATUS (requires connection) ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Live Pipeline Status</h3>
+        <div id="pipelineStatus" class="empty">Connect with GitHub PAT to see live workflow runs</div>
+      </div>
+    </div>
+
     <!-- PRODUCT TAB -->
-    <div class="panel active" id="panel-product">
+    <div class="panel" id="panel-product">
       <div class="grid">
         <div class="card">
           <h3>Product Info</h3>
@@ -235,6 +561,7 @@
       document.getElementById('disconnectBtn').style.display = '';
       await loadWorkspaces();
       await populateSelectors();
+      await loadPipelineStatus();
     }
 
     function disconnect() {
@@ -487,11 +814,89 @@
       });
     }
 
+    // Pipeline live status
+    async function loadPipelineStatus() {
+      const token = getToken();
+      if (!token) return;
+
+      const statusEl = document.getElementById('pipelineStatus');
+      statusEl.innerHTML = '<div style="color:var(--muted)">Loading recent runs...</div>';
+
+      // Get recent workflow runs
+      const runs = await ghGet(`repos/${REPO}/actions/runs?per_page=15&status=completed`);
+      const activeRuns = await ghGet(`repos/${REPO}/actions/runs?per_page=5&status=in_progress`);
+
+      let html = '';
+
+      // Active runs first
+      if (activeRuns && activeRuns.workflow_runs && activeRuns.workflow_runs.length > 0) {
+        html += '<div class="section-title" style="margin-top:0">Running Now</div>';
+        html += '<table><tr><th>Workflow</th><th>Status</th><th>Started</th><th>Branch</th><th>Link</th></tr>';
+        activeRuns.workflow_runs.forEach(r => {
+          html += `<tr>
+            <td>${r.name}</td>
+            <td><span class="badge badge-warn">in progress</span></td>
+            <td>${r.created_at?.substring(0,19).replace('T',' ')}</td>
+            <td>${r.head_branch}</td>
+            <td><a href="${r.html_url}" style="color:var(--blue)" target="_blank">View</a></td>
+          </tr>`;
+        });
+        html += '</table>';
+      }
+
+      // Recent completed runs
+      if (runs && runs.workflow_runs && runs.workflow_runs.length > 0) {
+        html += '<div class="section-title">Recent Runs</div>';
+        html += '<table><tr><th>Workflow</th><th>Result</th><th>Completed</th><th>Duration</th><th>Tools</th><th>Link</th></tr>';
+        runs.workflow_runs.forEach(r => {
+          const conclusion = r.conclusion || 'unknown';
+          const badgeClass = conclusion === 'success' ? 'pass' : conclusion === 'failure' ? 'fail' : 'unknown';
+          const startTime = new Date(r.created_at);
+          const endTime = new Date(r.updated_at);
+          const durationMs = endTime - startTime;
+          const durationMin = Math.floor(durationMs / 60000);
+          const durationSec = Math.floor((durationMs % 60000) / 1000);
+          const duration = durationMin > 0 ? `${durationMin}m ${durationSec}s` : `${durationSec}s`;
+
+          // Map workflow to tools
+          const name = r.name.toLowerCase();
+          let tools = '<span class="tool-chip gh">GH</span>';
+          if (name.includes('langchain')) tools += ' <span class="tool-chip lc">LC</span>';
+          if (name.includes('source-change') || name.includes('fix')) tools += ' <span class="tool-chip ai">AI</span>';
+          if (name.includes('copilot') || name.includes('sync-copilot')) tools += ' <span class="tool-chip ai">Copilot</span>';
+          if (name.includes('improvement')) tools += ' <span class="tool-chip lc">LC</span>';
+
+          html += `<tr>
+            <td>${r.name}</td>
+            <td><span class="badge badge-${badgeClass}">${conclusion}</span></td>
+            <td>${r.updated_at?.substring(0,19).replace('T',' ')}</td>
+            <td>${duration}</td>
+            <td>${tools}</td>
+            <td><a href="${r.html_url}" style="color:var(--blue)" target="_blank">View</a></td>
+          </tr>`;
+        });
+        html += '</table>';
+      }
+
+      if (!html) {
+        html = '<div class="empty">No workflow runs found</div>';
+      }
+
+      statusEl.innerHTML = html;
+
+      // Update workflow count
+      const workflows = await ghGet(`repos/${REPO}/actions/workflows?per_page=50`);
+      if (workflows && workflows.total_count) {
+        document.getElementById('ghWorkflowCount').textContent = `${workflows.total_count} workflows registered`;
+      }
+    }
+
     // Auto-connect if token exists in session
     if (getToken()) {
       document.getElementById('disconnectBtn').style.display = '';
       loadWorkspaces();
       populateSelectors();
+      loadPipelineStatus();
     }
   </script>
 </body>

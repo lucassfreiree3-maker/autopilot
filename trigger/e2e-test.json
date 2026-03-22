@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "dry_run": "false",
-  "run": 3,
-  "note": "v3: push to main, wait CI, promote CAP"
+  "run": 4,
+  "note": "v4: debug CI output, simplified conditions, push to main flow"
 }

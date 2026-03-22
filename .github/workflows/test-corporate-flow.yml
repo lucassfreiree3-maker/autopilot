@@ -43,9 +43,11 @@ jobs:
             WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/e2e-test.json)
             DRY_RUN=$(jq -r '.dry_run // "false"' trigger/e2e-test.json)
           else
-            WS_ID="${{ github.event.inputs.workspace_id || 'ws-default' }}"
-            DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            DRY_RUN="${{ github.event.inputs.dry_run }}"
           fi
+          [ -z "$WS_ID" ] && WS_ID="ws-default"
+          [ -z "$DRY_RUN" ] && DRY_RUN="false"
           echo "workspace_id=$WS_ID" >> "$GITHUB_OUTPUT"
           echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
           echo "Workspace=$WS_ID DryRun=$DRY_RUN"
@@ -118,7 +120,6 @@ jobs:
           SHA="${{ steps.bump.outputs.sha }}"
           REPO="${{ steps.ws.outputs.source_repo }}"
           echo "Waiting for CI on $SHA..."
-          # Wait for checks to appear (max 3 min)
           FOUND=false
           for i in $(seq 1 36); do
             sleep 5
@@ -127,12 +128,11 @@ jobs:
             echo "  Waiting for checks... ($i)"
           done
           if [ "$FOUND" = "false" ]; then
-            echo "::warning ::No CI checks appeared in 3 min. Proceeding."
+            echo "::warning ::No CI checks appeared in 3 min. Proceeding anyway."
             echo "conclusion=success" >> "$GITHUB_OUTPUT"
-            echo "detail=no-ci-configured" >> "$GITHUB_OUTPUT"
+            echo "detail=no-ci-found" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Wait for checks to complete (max 20 min)
           for i in $(seq 1 120); do
             sleep 10
             DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
@@ -141,21 +141,31 @@ jobs:
             S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
             echo "  CI: $C/$T done (ok=$S fail=$F) [$i]"
             if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-              [ "$F" -gt 0 ] && echo "conclusion=failure" >> "$GITHUB_OUTPUT" || echo "conclusion=success" >> "$GITHUB_OUTPUT"
+              if [ "$F" -gt 0 ]; then
+                echo "conclusion=failure" >> "$GITHUB_OUTPUT"
+              else
+                echo "conclusion=success" >> "$GITHUB_OUTPUT"
+              fi
               echo "detail=${S}/${T}" >> "$GITHUB_OUTPUT"
-              break
+              exit 0
             fi
           done
-          # If still not done after 20 min
-          if [ -z "$(grep conclusion "$GITHUB_OUTPUT" 2>/dev/null)" ]; then
-            echo "conclusion=timeout" >> "$GITHUB_OUTPUT"
-            echo "detail=timeout-20m" >> "$GITHUB_OUTPUT"
-          fi
-          echo "## CI" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Result: $(grep conclusion "$GITHUB_OUTPUT" | cut -d= -f2)" >> "$GITHUB_STEP_SUMMARY"
+          echo "conclusion=timeout" >> "$GITHUB_OUTPUT"
+          echo "detail=timeout-20m" >> "$GITHUB_OUTPUT"
+
+      - name: "5b - Debug CI output"
+        if: steps.inputs.outputs.dry_run != 'true'
+        run: |
+          echo "CI conclusion: '${{ steps.ci.outputs.conclusion }}'"
+          echo "CI detail: '${{ steps.ci.outputs.detail }}'"
+          echo "Dry run: '${{ steps.inputs.outputs.dry_run }}'"
+          echo "## CI Gate" >> "$GITHUB_STEP_SUMMARY"
+          echo "- conclusion=${{ steps.ci.outputs.conclusion }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- detail=${{ steps.ci.outputs.detail }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- dry_run=${{ steps.inputs.outputs.dry_run }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: "6 - Promote tag in CAP"
-        if: steps.inputs.outputs.dry_run != 'true' && (steps.ci.outputs.conclusion == 'success')
+        if: steps.ci.outputs.conclusion == 'success'
         id: promote
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -165,17 +175,36 @@ jobs:
           CAP_VALUES="${{ steps.ws.outputs.cap_values }}"
           IMAGE_PATTERN="${{ steps.ws.outputs.image_pattern }}"
           TAG="${{ steps.bump.outputs.new }}-${{ steps.bump.outputs.short }}"
+          echo "CAP_REPO=$CAP_REPO CAP_VALUES=$CAP_VALUES TAG=$TAG"
           if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ]; then
+            echo "::warning ::CAP repo not configured"
             echo "pushed=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          echo "Reading $CAP_VALUES from $CAP_REPO ($CAP_BRANCH)..."
           VALUES=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
           VSHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+          echo "=== values.yaml content ==="
+          echo "$VALUES"
+          echo "=== imagePattern: $IMAGE_PATTERN ==="
+          echo "=== tag: $TAG ==="
+          # Try imagePattern match
           UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
-          [ "$VALUES" = "$UPDATED" ] && UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+          if [ "$VALUES" != "$UPDATED" ]; then
+            echo "Matched with imagePattern"
+          else
+            echo "imagePattern didn't match. Trying tag: field..."
+            UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+          fi
           if [ "$VALUES" = "$UPDATED" ]; then
-            echo "::error ::Could not match image pattern in values.yaml"
+            echo "::error ::No pattern matched in values.yaml"
+            echo "## DEBUG values.yaml" >> "$GITHUB_STEP_SUMMARY"
+            echo '```yaml' >> "$GITHUB_STEP_SUMMARY"
+            echo "$VALUES" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo "pushed=false" >> "$GITHUB_OUTPUT"; exit 1
           fi
+          echo "=== UPDATED ==="
+          echo "$UPDATED"
           gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
             -f "branch=$CAP_BRANCH" \
             -f "message=chore(release): agent -> ${TAG} [autopilot]" \
@@ -183,11 +212,11 @@ jobs:
             -f "sha=$VSHA"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
-          echo "## CAP Promotion" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tag: $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "## CAP" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promoted: $TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: "7 - Save state"
-        if: steps.inputs.outputs.dry_run != 'true' && (steps.ci.outputs.conclusion == 'success')
+        if: steps.ci.outputs.conclusion == 'success'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -221,8 +250,6 @@ jobs:
             echo "Deleting $R..."
             gh api "repos/$REPO/git/$R" --method DELETE 2>/dev/null || true
           done
-          echo "## Cleanup" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Cleaned leftover autopilot/ branches" >> "$GITHUB_STEP_SUMMARY"
 
       - name: "9 - Audit"
         if: always()
@@ -246,7 +273,7 @@ jobs:
           echo "| Step | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Version | ${{ steps.bump.outputs.old }} → ${{ steps.bump.outputs.new }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Push main | ${{ steps.push.outputs.pushed || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Push | ${{ steps.push.outputs.pushed }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| CI | $CI (${{ steps.ci.outputs.detail }}) |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| CAP promote | $PR |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Promote | $PR |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | ${{ steps.promote.outputs.tag }} |" >> "$GITHUB_STEP_SUMMARY"

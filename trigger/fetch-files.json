@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
-  "component": "controller",
-  "files": "src/controllers/execute.controller.ts, src/__tests__/unit/execute.controller.test.ts, src/__tests__/unit/agents-execute-logs.controller.test.ts, src/controllers/agents-execute-logs.controller.ts",
-  "run": 1
+  "component": "agent",
+  "files": "src/services/automation-http.service.ts",
+  "run": 2
 }

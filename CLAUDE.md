@@ -94,6 +94,7 @@ state/workspaces/<workspace_id>/
 ### Infrastructure
 | Workflow | Purpose |
 |----------|---------|
+| sync-copilot-prompt.yml | Auto-regenerates Copilot prompt when project changes |
 | session-guard.yml | Multi-agent lock acquisition and release |
 | ci-failure-analysis.yml | Analyze CI failures with diagnostics |
 | alert-notify.yml | Auto-create GitHub Issues on failures |

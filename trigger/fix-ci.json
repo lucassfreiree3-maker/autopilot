@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "workspace_id": "ws-default",
-  "component": "controller",
-  "note": "Fix CI build+lint errors in controller (TS2688 skipLibCheck)",
-  "run": 4
+  "component": "agent",
+  "note": "Fix agent lint errors: require imports + nested ternary",
+  "run": 5
 }

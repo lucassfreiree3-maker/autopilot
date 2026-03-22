@@ -1,7 +1,7 @@
 {
   "workspace_id": "ws-default",
   "component": "agent",
-  "commit_sha": "191ad36bfeede12dfb83324574aa02510747a433",
-  "note": "Diagnose CI failures in agent repo (Esteira NPM #148)",
-  "run": 5
+  "commit_sha": "",
+  "note": "Diagnose agent CI after autopilotInfo.ts commit",
+  "run": 6
 }

@@ -70,7 +70,7 @@ jobs:
       components_json: ${{ steps.cfg.outputs.components_json }}
       change_type: ${{ steps.cfg.outputs.change_type }}
       target_path: ${{ steps.cfg.outputs.target_path }}
-      file_content: ${{ steps.cfg.outputs.file_content }}
+      file_content_b64: ${{ steps.cfg.outputs.file_content_b64 }}
       commit_message: ${{ steps.cfg.outputs.commit_message }}
       skip_ci: ${{ steps.cfg.outputs.skip_ci }}
       promote: ${{ steps.cfg.outputs.promote }}
@@ -139,11 +139,8 @@ jobs:
           echo "cap_branch=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')" >> "$GITHUB_OUTPUT"
           echo "cap_values=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')" >> "$GITHUB_OUTPUT"
           echo "image_pattern=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')" >> "$GITHUB_OUTPUT"
-          {
-            echo "file_content<<CONTENT_EOF"
-            echo "$FILE_CONTENT"
-            echo "CONTENT_EOF"
-          } >> "$GITHUB_OUTPUT"
+          # Base64 encode file_content to avoid shell quoting issues
+          echo "file_content_b64=$(echo "$FILE_CONTENT" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
           # ── Summary ──
           echo "## 1. Setup" >> "$GITHUB_STEP_SUMMARY"
@@ -198,30 +195,27 @@ jobs:
 
       - name: "Apply change"
         working-directory: /tmp/source
+        env:
+          FILE_CONTENT_B64: ${{ needs.setup.outputs.file_content_b64 }}
         run: |
           TARGET="${{ needs.setup.outputs.target_path }}"
           CHANGE="${{ needs.setup.outputs.change_type }}"
-          CONTENT='${{ needs.setup.outputs.file_content }}'
+
+          # Decode content from base64 (avoids shell quoting issues)
+          CONTENT=$(echo "$FILE_CONTENT_B64" | base64 -d)
+
           echo "=== Applying $CHANGE to $TARGET ==="
           case "$CHANGE" in
             add-file)
               mkdir -p "$(dirname "$TARGET")"
-              if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
-                echo "$CONTENT" | base64 -d > "$TARGET"
-              else
-                echo "$CONTENT" > "$TARGET"
-              fi
+              echo "$CONTENT" > "$TARGET"
               echo "Created: $TARGET"
               cat "$TARGET"
               ;;
             modify-file)
               [ ! -f "$TARGET" ] && { echo "::error ::File not found: $TARGET"; exit 1; }
               echo "=== Before ===" && cat "$TARGET"
-              if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
-                echo "$CONTENT" | base64 -d > "$TARGET"
-              else
-                echo "$CONTENT" > "$TARGET"
-              fi
+              echo "$CONTENT" > "$TARGET"
               echo "=== After ===" && cat "$TARGET"
               ;;
             delete-lines)

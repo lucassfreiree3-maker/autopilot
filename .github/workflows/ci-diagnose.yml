@@ -1,0 +1,226 @@
+name: "CI Diagnose: Fetch Error Logs"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      component:
+        description: "Component to diagnose"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+      commit_sha:
+        description: "Specific commit SHA (leave empty for latest)"
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  diagnose:
+    name: "Diagnose CI Failure"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Fetch CI logs and save to state"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          COMPONENT="${{ github.event.inputs.component }}"
+          INPUT_SHA="${{ github.event.inputs.commit_sha }}"
+
+          # ── 1. Read workspace config ──
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r ".${COMPONENT}.sourceRepo")
+          echo "=== Diagnosing CI for $SOURCE_REPO ($COMPONENT) ==="
+
+          # ── 2. Get commit SHA ──
+          if [ -n "$INPUT_SHA" ]; then
+            SHA="$INPUT_SHA"
+          else
+            SHA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits?per_page=1" \
+              --jq '.[0].sha')
+          fi
+          echo "Commit: ${SHA:0:12}"
+
+          # ── 3. Get commit info ──
+          COMMIT_MSG=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA" \
+            --jq '.commit.message' 2>/dev/null | head -1 || echo "unknown")
+          COMMIT_AUTHOR=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA" \
+            --jq '.commit.author.name' 2>/dev/null || echo "unknown")
+          COMMIT_DATE=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA" \
+            --jq '.commit.author.date' 2>/dev/null || echo "unknown")
+          echo "Message: $COMMIT_MSG"
+          echo "Author: $COMMIT_AUTHOR"
+          echo "Date: $COMMIT_DATE"
+
+          # ── 4. List check-runs ──
+          echo ""
+          echo "=== Check Runs ==="
+          CHECKS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" \
+            --jq '.check_runs' 2>/dev/null || echo "[]")
+
+          TOTAL=$(echo "$CHECKS" | jq 'length')
+          echo "Total checks: $TOTAL"
+
+          DIAGNOSIS=""
+          FAILED_CHECKS=""
+          ALL_CHECKS=""
+
+          echo "$CHECKS" | jq -c '.[]' | while read -r CHECK; do
+            NAME=$(echo "$CHECK" | jq -r '.name')
+            STATUS=$(echo "$CHECK" | jq -r '.status')
+            CONCLUSION=$(echo "$CHECK" | jq -r '.conclusion // "pending"')
+            DETAILS_URL=$(echo "$CHECK" | jq -r '.details_url // ""')
+            OUTPUT_TITLE=$(echo "$CHECK" | jq -r '.output.title // ""')
+            OUTPUT_SUMMARY=$(echo "$CHECK" | jq -r '.output.summary // ""' | head -50)
+            OUTPUT_TEXT=$(echo "$CHECK" | jq -r '.output.text // ""' | head -100)
+
+            echo ""
+            echo "--- Check: $NAME ---"
+            echo "  Status: $STATUS | Conclusion: $CONCLUSION"
+            echo "  Title: $OUTPUT_TITLE"
+            [ -n "$OUTPUT_SUMMARY" ] && [ "$OUTPUT_SUMMARY" != "" ] && echo "  Summary: $OUTPUT_SUMMARY"
+            [ -n "$OUTPUT_TEXT" ] && [ "$OUTPUT_TEXT" != "" ] && echo "  Text: $OUTPUT_TEXT"
+            [ -n "$DETAILS_URL" ] && [ "$DETAILS_URL" != "" ] && echo "  Details: $DETAILS_URL"
+          done
+
+          # ── 5. Get annotations (error/warning messages) ──
+          echo ""
+          echo "=== Annotations (Errors & Warnings) ==="
+          echo "$CHECKS" | jq -c '.[]' | while read -r CHECK; do
+            CHECK_ID=$(echo "$CHECK" | jq -r '.id')
+            CHECK_NAME=$(echo "$CHECK" | jq -r '.name')
+            CONCLUSION=$(echo "$CHECK" | jq -r '.conclusion // "pending"')
+
+            if [ "$CONCLUSION" = "failure" ]; then
+              echo ""
+              echo "--- Failed: $CHECK_NAME (id=$CHECK_ID) ---"
+              ANNOTATIONS=$(GH_TOKEN="$BBVINET_TOKEN" gh api \
+                "repos/$SOURCE_REPO/check-runs/$CHECK_ID/annotations" \
+                --jq '.[] | "[\(.annotation_level)] \(.path):\(.start_line) - \(.message)"' 2>/dev/null || echo "No annotations available")
+              echo "$ANNOTATIONS"
+            fi
+          done
+
+          # ── 6. Try to get workflow run logs ──
+          echo ""
+          echo "=== Workflow Runs for this SHA ==="
+          RUNS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/runs?head_sha=$SHA&per_page=5" \
+            --jq '.workflow_runs[] | "\(.id) | \(.name) | \(.status) | \(.conclusion // "running")"' 2>/dev/null || echo "No workflow runs found")
+          echo "$RUNS"
+
+          # Get failed run logs
+          FAILED_RUN_ID=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/runs?head_sha=$SHA&per_page=5" \
+            --jq '[.workflow_runs[] | select(.conclusion == "failure")] | .[0].id // empty' 2>/dev/null || echo "")
+
+          if [ -n "$FAILED_RUN_ID" ]; then
+            echo ""
+            echo "=== Failed Run Jobs (ID: $FAILED_RUN_ID) ==="
+            GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/runs/$FAILED_RUN_ID/jobs" \
+              --jq '.jobs[] | "[\(.conclusion // .status)] \(.name)\n  Steps: \([.steps[] | "[\(.conclusion // .status)] \(.name)"] | join(" → "))"' 2>/dev/null || echo "Could not fetch jobs"
+
+            echo ""
+            echo "=== Failed Run Logs (last 200 lines) ==="
+            FAILED_JOB_ID=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/runs/$FAILED_RUN_ID/jobs" \
+              --jq '[.jobs[] | select(.conclusion == "failure")] | .[0].id // empty' 2>/dev/null || echo "")
+
+            if [ -n "$FAILED_JOB_ID" ]; then
+              GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/jobs/$FAILED_JOB_ID/logs" 2>/dev/null | tail -200 || echo "Could not fetch logs (may require admin access)"
+            fi
+          fi
+
+          # ── 7. Clone and try to reproduce locally ──
+          echo ""
+          echo "=== Local Reproduction Attempt ==="
+          git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source 2>/dev/null
+          cd /tmp/source
+          git checkout "$SHA" 2>/dev/null || true
+
+          echo "--- package.json scripts ---"
+          jq -r '.scripts | to_entries[] | "  \(.key): \(.value)"' package.json 2>/dev/null || echo "No package.json"
+
+          echo ""
+          echo "--- Installing deps ---"
+          npm ci --ignore-scripts 2>&1 | tail -20 || npm install --ignore-scripts 2>&1 | tail -20 || echo "Install failed"
+
+          echo ""
+          echo "--- Running lint ---"
+          npx eslint src/ --format json 2>/dev/null | jq '[.[] | select(.errorCount > 0) | {file: .filePath | split("/") | .[-2:] | join("/"), errors: .errorCount, rules: [.messages[] | select(.severity==2) | .ruleId] | unique}]' 2>/dev/null || echo "Lint check failed or not available"
+
+          echo ""
+          echo "--- Running build ---"
+          npm run build 2>&1 | tail -50 || echo "Build failed or not available"
+
+          echo ""
+          echo "--- Running test ---"
+          npm test 2>&1 | tail -50 || echo "Tests failed or not available"
+
+          # ── 8. Save diagnosis to state ──
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          DIAG_FILE="${WS_PATH}/ci-diagnosis-${COMPONENT}.json"
+
+          DIAG_JSON=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg comp "$COMPONENT" \
+            --arg repo "$SOURCE_REPO" \
+            --arg sha "$SHA" \
+            --arg msg "$COMMIT_MSG" \
+            --arg author "$COMMIT_AUTHOR" \
+            --arg ts "$NOW" \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              workspaceId: $ws,
+              component: $comp,
+              sourceRepo: $repo,
+              commitSha: $sha,
+              commitMessage: $msg,
+              commitAuthor: $author,
+              diagnosedAt: $ts,
+              runId: $run_id,
+              runUrl: $run_url,
+              note: "Check workflow run logs for full diagnosis output"
+            }')
+
+          EXISTING_SHA=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/${DIAG_FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          ARGS=(-f "branch=$STATE_BRANCH" \
+            -f "message=diag: CI diagnosis for $COMPONENT [skip ci]" \
+            -f "content=$(echo "$DIAG_JSON" | base64 -w0)")
+          [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+
+          GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${DIAG_FILE}" \
+            --method PUT "${ARGS[@]}" > /dev/null 2>&1 || echo "::warning ::Failed to save diagnosis"
+
+          echo ""
+          echo "=== Diagnosis saved to $DIAG_FILE ==="
+
+          # ── Summary ──
+          echo "## CI Diagnosis: $COMPONENT" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Repo | \`$SOURCE_REPO\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${SHA:0:12}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Message | $COMMIT_MSG |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Author | $COMMIT_AUTHOR |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Diagnosed | $NOW |" >> "$GITHUB_STEP_SUMMARY"

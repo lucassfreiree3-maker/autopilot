@@ -139,7 +139,7 @@ jobs:
           VERSION=$(gh api "repos/${{ github.repository }}/contents/package.json?ref=$SHA" \
             --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // ""' || echo "")
           [ -z "$VERSION" ] || [ "$VERSION" = "null" ] && VERSION="0.0.0"
-          TAG="${VERSION}-${{ steps.state.outputs.short_sha }}"
+          TAG="${VERSION}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 

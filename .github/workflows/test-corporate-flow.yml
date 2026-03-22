@@ -148,7 +148,7 @@ jobs:
           echo "- Result: $CI_RESULT ($CI_DETAIL)" >> "$GITHUB_STEP_SUMMARY"
 
           # ── 6. Promote tag in CAP ───────────────────────────
-          TAG="${NEW_VER}-${NEW_SHORT}"
+          TAG="${NEW_VER}"
           PROMOTED="false"
           PROCEED="false"
           if [ "$PUSHED" = "true" ]; then

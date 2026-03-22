@@ -146,7 +146,7 @@ jobs:
           if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
             VERSION="0.0.0"
           fi
-          TAG="${VERSION}-${{ steps.state.outputs.short_sha }}"
+          TAG="${VERSION}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 

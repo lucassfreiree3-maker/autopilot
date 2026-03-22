@@ -197,7 +197,7 @@ jobs:
           SHA="${{ env.sha }}"
           SHORT="${SHA:0:7}"
           VER="${{ env.version }}"
-          TAG="${VER}-${SHORT}"
+          TAG="${VER}"
           FSHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
           STATE=$(jq -n --arg ws "${{ needs.setup.outputs.ws_id }}" --arg sha "$SHA" --arg tag "$TAG" \
             --arg ver "$VER" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
@@ -309,7 +309,7 @@ jobs:
           CAP_BRANCH="${{ needs.setup.outputs.cap_branch }}"
           CAP_VALUES="${{ needs.setup.outputs.cap_values }}"
           IMAGE_PATTERN="${{ needs.setup.outputs.image_pattern }}"
-          TAG="${{ env.version }}-${{ env.short_sha }}"
+          TAG="${{ env.version }}"
           echo "Promoting $TAG to $CAP_REPO"
 
           if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ]; then

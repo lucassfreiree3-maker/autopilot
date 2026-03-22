@@ -2,5 +2,5 @@
   "workspace_id": "ws-default",
   "test_type": "both",
   "include_lint_error": false,
-  "run": 2
+  "run": 3
 }

@@ -1,0 +1,384 @@
+name: "Apply Source Code Change"
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/source-change.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: false
+        default: "ws-default"
+      component:
+        description: "Component to change"
+        required: true
+        type: choice
+        options:
+          - agent
+          - controller
+          - both
+      change_type:
+        description: "Type of change"
+        required: true
+        type: choice
+        options:
+          - add-file
+          - modify-file
+          - delete-lines
+      target_path:
+        description: "File path in repo (e.g. src/utils/buildInfo.js)"
+        required: true
+      file_content:
+        description: "Content for add-file, or new content for modify-file (base64 if complex)"
+        required: false
+      commit_message:
+        description: "Commit message"
+        required: false
+        default: "feat: apply source code change via autopilot"
+      skip_ci_wait:
+        description: "Skip waiting for CI"
+        type: boolean
+        default: false
+      promote:
+        description: "Promote to CAP after CI passes"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: source-change
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  setup:
+    name: "Read config"
+    runs-on: ubuntu-latest
+    outputs:
+      ws_id: ${{ steps.cfg.outputs.ws_id }}
+      ws_path: ${{ steps.cfg.outputs.ws_path }}
+      component: ${{ steps.cfg.outputs.component }}
+      change_type: ${{ steps.cfg.outputs.change_type }}
+      target_path: ${{ steps.cfg.outputs.target_path }}
+      file_content: ${{ steps.cfg.outputs.file_content }}
+      commit_message: ${{ steps.cfg.outputs.commit_message }}
+      skip_ci: ${{ steps.cfg.outputs.skip_ci }}
+      promote: ${{ steps.cfg.outputs.promote }}
+      agent_repo: ${{ steps.cfg.outputs.agent_repo }}
+      controller_repo: ${{ steps.cfg.outputs.controller_repo }}
+      cap_repo: ${{ steps.cfg.outputs.cap_repo }}
+      cap_branch: ${{ steps.cfg.outputs.cap_branch }}
+      cap_values: ${{ steps.cfg.outputs.cap_values }}
+      image_pattern: ${{ steps.cfg.outputs.image_pattern }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Config
+        id: cfg
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/source-change.json ]; then
+            TRIG=$(cat trigger/source-change.json)
+            WS_ID=$(echo "$TRIG" | jq -r '.workspace_id // "ws-default"')
+            COMPONENT=$(echo "$TRIG" | jq -r '.component // "agent"')
+            CHANGE_TYPE=$(echo "$TRIG" | jq -r '.change_type // "add-file"')
+            TARGET_PATH=$(echo "$TRIG" | jq -r '.target_path // ""')
+            FILE_CONTENT=$(echo "$TRIG" | jq -r '.file_content // ""')
+            COMMIT_MSG=$(echo "$TRIG" | jq -r '.commit_message // "feat: apply source code change via autopilot"')
+            SKIP_CI=$(echo "$TRIG" | jq -r '.skip_ci_wait // "false"')
+            PROMOTE=$(echo "$TRIG" | jq -r '.promote // "true"')
+          else
+            WS_ID="${{ github.event.inputs.workspace_id || 'ws-default' }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            CHANGE_TYPE="${{ github.event.inputs.change_type }}"
+            TARGET_PATH="${{ github.event.inputs.target_path }}"
+            FILE_CONTENT="${{ github.event.inputs.file_content }}"
+            COMMIT_MSG="${{ github.event.inputs.commit_message }}"
+            SKIP_CI="${{ github.event.inputs.skip_ci_wait }}"
+            PROMOTE="${{ github.event.inputs.promote }}"
+          fi
+
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "change_type=$CHANGE_TYPE" >> "$GITHUB_OUTPUT"
+          echo "target_path=$TARGET_PATH" >> "$GITHUB_OUTPUT"
+          echo "commit_message=$COMMIT_MSG" >> "$GITHUB_OUTPUT"
+          echo "skip_ci=$SKIP_CI" >> "$GITHUB_OUTPUT"
+          echo "promote=$PROMOTE" >> "$GITHUB_OUTPUT"
+          echo "agent_repo=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')" >> "$GITHUB_OUTPUT"
+          echo "controller_repo=$(echo "$WS_JSON" | jq -r '.controller.sourceRepo')" >> "$GITHUB_OUTPUT"
+          echo "cap_repo=$(echo "$WS_JSON" | jq -r '.agent.capRepo')" >> "$GITHUB_OUTPUT"
+          echo "cap_branch=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')" >> "$GITHUB_OUTPUT"
+          echo "cap_values=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')" >> "$GITHUB_OUTPUT"
+          echo "image_pattern=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')" >> "$GITHUB_OUTPUT"
+
+          # file_content can be multiline - use env file
+          {
+            echo "file_content<<CONTENT_EOF"
+            echo "$FILE_CONTENT"
+            echo "CONTENT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  apply-change:
+    name: "Apply change to ${{ needs.setup.outputs.component }}"
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(
+          needs.setup.outputs.component == 'both'
+            && '["agent","controller"]'
+            || format('["{0}"]', needs.setup.outputs.component)
+          ) }}
+    steps:
+      - name: "Resolve repo"
+        id: repo
+        run: |
+          if [ "${{ matrix.component }}" = "agent" ]; then
+            echo "repo=${{ needs.setup.outputs.agent_repo }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "repo=${{ needs.setup.outputs.controller_repo }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Clone ${{ matrix.component }}"
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          REPO="${{ steps.repo.outputs.repo }}"
+          echo "=== Cloning $REPO ==="
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" /tmp/source
+          cd /tmp/source
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          echo "HEAD: $(git rev-parse --short HEAD)"
+
+          # Show current structure
+          echo "=== Repo structure ==="
+          find . -maxdepth 3 -type f \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' \
+            -not -path './dist/*' | sort | head -50
+
+      - name: "Apply change"
+        working-directory: /tmp/source
+        run: |
+          TARGET="${{ needs.setup.outputs.target_path }}"
+          CHANGE="${{ needs.setup.outputs.change_type }}"
+          CONTENT='${{ needs.setup.outputs.file_content }}'
+
+          echo "=== Applying $CHANGE to $TARGET ==="
+
+          case "$CHANGE" in
+            add-file)
+              # Create directory if needed
+              mkdir -p "$(dirname "$TARGET")"
+
+              # If content looks base64-encoded, decode it
+              if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
+                echo "$CONTENT" | base64 -d > "$TARGET"
+              else
+                echo "$CONTENT" > "$TARGET"
+              fi
+              echo "Created: $TARGET"
+              echo "=== Content ==="
+              cat "$TARGET"
+              ;;
+
+            modify-file)
+              if [ ! -f "$TARGET" ]; then
+                echo "::error ::File not found: $TARGET"
+                exit 1
+              fi
+              echo "=== Before ==="
+              cat "$TARGET"
+
+              if echo "$CONTENT" | base64 -d > /dev/null 2>&1 && [ ${#CONTENT} -gt 50 ]; then
+                echo "$CONTENT" | base64 -d > "$TARGET"
+              else
+                echo "$CONTENT" > "$TARGET"
+              fi
+              echo "=== After ==="
+              cat "$TARGET"
+              ;;
+
+            delete-lines)
+              if [ ! -f "$TARGET" ]; then
+                echo "::error ::File not found: $TARGET"
+                exit 1
+              fi
+              echo "Deleting $TARGET"
+              rm "$TARGET"
+              ;;
+          esac
+
+      - name: "Lint check (if JS/TS)"
+        working-directory: /tmp/source
+        run: |
+          TARGET="${{ needs.setup.outputs.target_path }}"
+          EXT="${TARGET##*.}"
+
+          if [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]]; then
+            echo "=== Running lint on changed file ==="
+            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
+            npx eslint "$TARGET" --fix 2>/dev/null || {
+              echo "::warning ::Lint issues found, auto-fixed what possible"
+            }
+          else
+            echo "Not a JS/TS file, skipping lint"
+          fi
+
+      - name: "Commit and push"
+        working-directory: /tmp/source
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            echo "pushed=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "=== Changes ==="
+          git diff --cached --stat
+
+          git commit -m "${{ needs.setup.outputs.commit_message }}"
+          git push origin main
+          echo "pushed=true" >> "$GITHUB_ENV"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "Pushed: $(git rev-parse --short HEAD)"
+
+      - name: "Wait for CI"
+        if: env.pushed == 'true' && needs.setup.outputs.skip_ci != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          SHA="${{ env.sha }}"
+          REPO="${{ steps.repo.outputs.repo }}"
+          echo "Waiting for CI on $SHA..."
+
+          # Phase 1: Discovery
+          FOUND=false; WAIT=3; ELAPSED=0
+          while [ "$ELAPSED" -lt 180 ]; do
+            COUNT=$(gh api "repos/$REPO/commits/$SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
+            if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
+            echo "  Discovering... (${ELAPSED}s)"
+            sleep "$WAIT"; ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
+          done
+          if [ "$FOUND" = "false" ]; then
+            echo "ci_result=no-ci" >> "$GITHUB_ENV"; exit 0
+          fi
+
+          # Phase 2: Completion
+          WAIT=5; ELAPSED=0
+          while [ "$ELAPSED" -lt 1200 ]; do
+            DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+              --jq '{t:.total_count,c:[.check_runs[]|select(.status=="completed")]|length,s:[.check_runs[]|select(.conclusion=="success")]|length,f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
+            T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
+            S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
+            echo "  CI: $C/$T (ok=$S fail=$F) [${ELAPSED}s]"
+            if [ "$F" -gt 0 ]; then echo "ci_result=failure" >> "$GITHUB_ENV"; break; fi
+            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then echo "ci_result=success" >> "$GITHUB_ENV"; break; fi
+            sleep "$WAIT"; ELAPSED=$((ELAPSED + WAIT))
+            WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
+          done
+
+      - name: "Promote to CAP"
+        if: env.ci_result == 'success' && needs.setup.outputs.promote == 'true' && matrix.component == 'agent'
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          CAP_REPO="${{ needs.setup.outputs.cap_repo }}"
+          CAP_BRANCH="${{ needs.setup.outputs.cap_branch }}"
+          CAP_VALUES="${{ needs.setup.outputs.cap_values }}"
+          IMAGE_PATTERN="${{ needs.setup.outputs.image_pattern }}"
+
+          if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ]; then
+            echo "No CAP repo configured"; exit 0
+          fi
+
+          # Get version from repo
+          VERSION=$(gh api "repos/${{ steps.repo.outputs.repo }}/contents/package.json?ref=main" \
+            --jq '.content' | base64 -d | jq -r '.version')
+          TAG="$VERSION"
+          echo "Promoting tag: $TAG"
+
+          VALUES=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
+          VSHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+
+          UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
+          if [ "$VALUES" = "$UPDATED" ]; then
+            UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+          fi
+
+          if [ "$VALUES" != "$UPDATED" ]; then
+            gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
+              -f "branch=$CAP_BRANCH" \
+              -f "message=chore(release): ${{ matrix.component }} -> ${TAG} (source change)" \
+              -f "content=$(echo "$UPDATED" | base64 -w0)" \
+              -f "sha=$VSHA"
+            echo "promoted=true" >> "$GITHUB_ENV"
+            echo "tag=$TAG" >> "$GITHUB_ENV"
+            echo "Promoted to CAP: $TAG"
+          else
+            echo "::warning ::Pattern didn't match in values.yaml"
+            echo "promoted=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: "Save state"
+        if: env.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ needs.setup.outputs.ws_path }}"
+          COMP="${{ matrix.component }}"
+          FILE="${WS_PATH}/${COMP}-release-state.json"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          CI_RES="${{ env.ci_result }}"; [ -z "$CI_RES" ] && CI_RES="unknown"
+          TAG="${{ env.tag }}"; [ -z "$TAG" ] && TAG="source-change"
+          if [ "$CI_RES" = "success" ]; then STATUS="promoted"; else STATUS="ci-pending"; fi
+
+          FSHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+
+          STATE=$(jq -n --arg ws "${{ needs.setup.outputs.ws_id }}" --arg sha "${{ env.sha }}" \
+            --arg tag "$TAG" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg ci "$CI_RES" --arg st "$STATUS" --arg comp "$COMP" \
+            --arg msg "${{ needs.setup.outputs.commit_message }}" \
+            '{schemaVersion:2,workspaceId:$ws,component:$comp,lastReleasedSha:$sha,lastTag:$tag,updatedAt:$ts,runId:$run,runUrl:$url,ciResult:$ci,status:$st,changeType:"source-code",commitMessage:$msg}')
+
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: $COMP source change [skip ci]" -f "content=$(echo "$STATE"|base64 -w0)")
+          [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
+          gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
+
+      - name: "Summary"
+        if: always()
+        run: |
+          echo "## ${{ matrix.component }} - Source Change" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Change | ${{ needs.setup.outputs.change_type }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | \`${{ needs.setup.outputs.target_path }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Pushed | ${{ env.pushed || 'false' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI | ${{ env.ci_result || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Promoted | ${{ env.promoted || 'false' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SHA | \`${{ env.sha || 'n/a' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "CI Gate"
+        if: env.ci_result == 'failure'
+        run: |
+          echo "::error ::${{ matrix.component }} CI failed after source change"
+          exit 1

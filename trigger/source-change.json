@@ -1,0 +1,11 @@
+{
+  "workspace_id": "ws-default",
+  "component": "agent",
+  "change_type": "add-file",
+  "target_path": "src/utils/autopilotInfo.js",
+  "file_content": "'use strict';\n\nconst { version } = require('../../package.json');\n\nconst getAutopilotInfo = () => ({\n  version,\n  managedBy: 'autopilot',\n  lastChange: new Date().toISOString(),\n  component: 'agent',\n});\n\nmodule.exports = { getAutopilotInfo };\n",
+  "commit_message": "feat: add autopilot info utility (source change validation)",
+  "skip_ci_wait": false,
+  "promote": true,
+  "run": 1
+}

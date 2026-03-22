@@ -83,9 +83,14 @@ jobs:
           echo "HEAD: $HEAD_SHA ($SHORT_SHA)"
 
           # ── 3. Bump version ─────────────────────────────────
+          # Patch goes 0-9, then rolls to next minor (2.0.9 → 2.1.0)
           CURRENT=$(jq -r '.version' package.json)
           IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
-          NEW_VER="${MAJ}.${MIN}.$((PAT+1))"
+          if [ "$PAT" -ge 9 ]; then
+            NEW_VER="${MAJ}.$((MIN+1)).0"
+          else
+            NEW_VER="${MAJ}.${MIN}.$((PAT+1))"
+          fi
           jq --arg v "$NEW_VER" '.version = $v' package.json > /tmp/p.json && mv /tmp/p.json package.json
           git add package.json
           git commit -m "chore: bump version $CURRENT -> $NEW_VER [autopilot]"

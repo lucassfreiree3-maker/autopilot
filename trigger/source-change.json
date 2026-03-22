@@ -2,10 +2,10 @@
   "workspace_id": "ws-default",
   "component": "agent",
   "change_type": "delete-lines",
-  "target_path": "src/utils/agentHealth.js",
+  "target_path": "src/utils/autopilotInfo.js",
   "file_content": "",
-  "commit_message": "fix: delete agentHealth.js (replaced by agentHealth.ts)",
+  "commit_message": "fix: delete autopilotInfo.js (require style forbidden by eslint)",
   "skip_ci_wait": true,
   "promote": false,
-  "run": 14
+  "run": 15
 }

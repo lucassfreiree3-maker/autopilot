@@ -31,7 +31,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (45 files)
+  audit/ (46 files)
   improvements/ (1 files)
   metrics/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   handoffs/ (1 files)
@@ -51,6 +51,7 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/agent-sync.json` | agent-sync.yml | context, task, workspace_id |
 | `trigger/ci-diagnose.json` | ci-diagnose.yml | commit_sha, component, note, workspace_id |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | dry_run, workspace_id |
+| `trigger/fetch-files.json` | fetch-files.yml | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | workspace_id |
 | `trigger/fix-ci.json` | sync-copilot-prompt.yml | component, note, workspace_id |
 | `trigger/full-test.json` | test-full-flow.yml | include_lint_error, test_type, workspace_id |
@@ -142,6 +143,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | deploy-panel.yml | Deploy Panel | push, manual |
 | drift-correction.yml | Drift Correction | scheduled, manual |
 | enqueue-agent-handoff.yml | Enqueue Agent Handoff | manual |
+| fetch-files.yml | Fetch: Corporate Source Files | trigger file, manual |
 | fix-and-validate.yml | Fix CI + Validate Full Flow | trigger file, manual |
 | fix-corporate-ci.yml | Fix: Corporate CI Errors | trigger file, manual |
 | health-check.yml | Health Check | scheduled, manual |
@@ -173,6 +175,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | continuous-improvement.yml | workspace_id, auto_fix, scope |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
+| fetch-files.yml | workspace_id, component, files |
 | fix-and-validate.yml | workspace_id |
 | fix-corporate-ci.yml | workspace_id, component |
 | health-check.yml | workspace_id |
@@ -233,4 +236,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-22T18:24:55Z | Run: 23409522764*
+*Last synced: 2026-03-22T18:30:06Z | Run: 23409617483*

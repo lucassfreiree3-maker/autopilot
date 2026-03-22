@@ -1,6 +1,9 @@
 name: "CI Diagnose: Fetch Error Logs"
 
 on:
+  push:
+    branches: [main]
+    paths: ['trigger/ci-diagnose.json']
   workflow_dispatch:
     inputs:
       workspace_id:
@@ -39,9 +42,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          WS_ID="${{ github.event.inputs.workspace_id }}"
-          COMPONENT="${{ github.event.inputs.component }}"
-          INPUT_SHA="${{ github.event.inputs.commit_sha }}"
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/ci-diagnose.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/ci-diagnose.json)
+            COMPONENT=$(jq -r '.component // "controller"' trigger/ci-diagnose.json)
+            INPUT_SHA=$(jq -r '.commit_sha // ""' trigger/ci-diagnose.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            INPUT_SHA="${{ github.event.inputs.commit_sha }}"
+          fi
 
           # ── 1. Read workspace config ──
           WS_PATH="state/workspaces/${WS_ID}"

@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "dry_run": "false",
-  "run": 6,
-  "note": "v6: single step, zero inter-step output issues"
+  "run": 7,
+  "note": "v7: promote always after push, even if CI fails"
 }

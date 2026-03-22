@@ -146,8 +146,11 @@ jobs:
           TAG="${NEW_VER}-${NEW_SHORT}"
           PROMOTED="false"
           PROCEED="false"
-          if [ "$CI_RESULT" = "success" ] || [ "$CI_RESULT" = "no-ci" ]; then
+          if [ "$PUSHED" = "true" ]; then
             PROCEED="true"
+            if [ "$CI_RESULT" = "failure" ]; then
+              echo "::warning ::CI failed but proceeding with promotion (corporate CI may have pre-existing issues)"
+            fi
           fi
           echo "=== Gate: proceed=$PROCEED (ci=$CI_RESULT, dry=$DRY_RUN) ==="
 

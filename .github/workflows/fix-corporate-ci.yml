@@ -52,8 +52,8 @@ jobs:
           # ── 2. Clone ────────────────────────────────────────
           git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source
           cd /tmp/source
-          git config user.name "autopilot[bot]"
-          git config user.email "autopilot[bot]@users.noreply.github.com"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
           # ── 3. Install deps + run lint to find errors ───────
           echo "=== Installing dependencies ==="
@@ -192,7 +192,7 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "fix: resolve lint errors [autopilot]"
+          git commit -m "fix: resolve lint errors"
           git push origin main
           echo "Fix pushed to main"
 

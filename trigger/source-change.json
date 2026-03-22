@@ -1,11 +1,11 @@
 {
   "workspace_id": "ws-default",
   "component": "agent",
-  "change_type": "delete-lines",
-  "target_path": "src/utils/autopilotInfo.js",
-  "file_content": "",
-  "commit_message": "fix: delete autopilotInfo.js (require style forbidden by eslint)",
-  "skip_ci_wait": true,
-  "promote": false,
-  "run": 15
+  "change_type": "modify-file",
+  "target_path": "src/services/automation-http.service.ts",
+  "file_content": "import { HttpAutomation } from \"../config/automations.config\";\n\nexport interface HttpAutomationResult {\n  success: boolean;\n  data?: unknown;\n  error?: string;\n}\n\nconst DEFAULT_AUTOMATION_HTTP_TIMEOUT_MS = 30_000;\n\nfunction readAutomationHttpTimeoutMs(): number {\n  const raw = Number(process.env.AUTOMATION_HTTP_TIMEOUT_MS || \"\");\n  if (!Number.isFinite(raw) || raw < 1) {\n    return DEFAULT_AUTOMATION_HTTP_TIMEOUT_MS;\n  }\n\n  return Math.floor(raw);\n}\n\nexport class AutomationHttpService {\n  async executeAutomation(\n    _execId: string,\n    namespace: string,\n    functionName: string,\n    _cluster: string,\n    automation: HttpAutomation,\n  ): Promise<HttpAutomationResult> {\n    const payload = {\n      namespace,\n      function: functionName,\n    };\n\n    console.log(\n      `[AutomationHTTP] Executando ${functionName} em ${automation.url}`,\n    );\n\n    try {\n      const timeoutMs = readAutomationHttpTimeoutMs();\n      const abort = new AbortController();\n      const timeoutId = setTimeout(() => abort.abort(), timeoutMs);\n\n      let response: Response;\n      try {\n        response = await fetch(automation.url, {\n          method: \"POST\",\n          headers: {\n            \"Content-Type\": \"application/json\",\n          },\n          body: JSON.stringify(payload),\n          signal: abort.signal,\n        });\n      } finally {\n        clearTimeout(timeoutId);\n      }\n\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n      }\n\n      const result = await response.text();\n      console.log(`[AutomationHTTP] ${functionName} executado com sucesso`);\n\n      // Tenta parsear como JSON\n      try {\n        const jsonResult = JSON.parse(result);\n        return {\n          success: true,\n          data: jsonResult,\n        };\n      } catch {\n        // Se não for JSON válido, retorna como texto\n        return {\n          success: true,\n          data: { output: result },\n        };\n      }\n    } catch (error: unknown) {\n      const timeoutMs = readAutomationHttpTimeoutMs();\n      let detail: string;\n      if (error instanceof Error && error.name === \"AbortError\") {\n        detail = `Request timed out after ${timeoutMs}ms`;\n      } else if (error instanceof Error) {\n        detail = error.message;\n      } else {\n        detail = String(error);\n      }\n      console.error(\n        `[AutomationHTTP] Erro ao executar ${functionName}:`,\n        detail,\n      );\n      return {\n        success: false,\n        error: detail,\n      };\n    }\n  }\n}\n",
+  "commit_message": "fix: replace nested ternary with if/else in automation-http.service.ts",
+  "skip_ci_wait": false,
+  "promote": true,
+  "run": 16
 }

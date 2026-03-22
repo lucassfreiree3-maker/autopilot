@@ -113,12 +113,14 @@ jobs:
 
       - name: "5 - Wait for CI"
         if: steps.inputs.outputs.dry_run != 'true'
-        id: ci
+        id: ci_raw
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
           SHA="${{ steps.bump.outputs.sha }}"
           REPO="${{ steps.ws.outputs.source_repo }}"
+          RESULT="pending"
+          DETAIL=""
           echo "Waiting for CI on $SHA..."
           FOUND=false
           for i in $(seq 1 36); do
@@ -128,44 +130,54 @@ jobs:
             echo "  Waiting for checks... ($i)"
           done
           if [ "$FOUND" = "false" ]; then
-            echo "::warning ::No CI checks appeared in 3 min. Proceeding anyway."
-            echo "conclusion=success" >> "$GITHUB_OUTPUT"
-            echo "detail=no-ci-found" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          for i in $(seq 1 120); do
-            sleep 10
-            DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
-              --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
-            T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
-            S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
-            echo "  CI: $C/$T done (ok=$S fail=$F) [$i]"
-            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-              if [ "$F" -gt 0 ]; then
-                echo "conclusion=failure" >> "$GITHUB_OUTPUT"
-              else
-                echo "conclusion=success" >> "$GITHUB_OUTPUT"
+            echo "::warning ::No CI checks appeared in 3 min."
+            RESULT="no-ci"
+            DETAIL="no-checks-found"
+          else
+            for i in $(seq 1 120); do
+              sleep 10
+              DATA=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+                --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
+              T=$(echo "$DATA"|jq -r '.t//0'); C=$(echo "$DATA"|jq -r '.c//0')
+              S=$(echo "$DATA"|jq -r '.s//0'); F=$(echo "$DATA"|jq -r '.f//0')
+              echo "  CI: $C/$T done (ok=$S fail=$F) [$i]"
+              if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
+                if [ "$F" -gt 0 ]; then RESULT="failure"; else RESULT="success"; fi
+                DETAIL="${S}/${T}"
+                break
               fi
-              echo "detail=${S}/${T}" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-          echo "conclusion=timeout" >> "$GITHUB_OUTPUT"
-          echo "detail=timeout-20m" >> "$GITHUB_OUTPUT"
+            done
+            [ "$RESULT" = "pending" ] && RESULT="timeout" && DETAIL="timeout-20m"
+          fi
+          echo "ci_result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "ci_detail=$DETAIL" >> "$GITHUB_OUTPUT"
+          echo "CI result: $RESULT ($DETAIL)"
 
-      - name: "5b - Debug CI output"
-        if: steps.inputs.outputs.dry_run != 'true'
+      - name: "5b - CI Gate"
+        id: gate
         run: |
-          echo "CI conclusion: '${{ steps.ci.outputs.conclusion }}'"
-          echo "CI detail: '${{ steps.ci.outputs.detail }}'"
-          echo "Dry run: '${{ steps.inputs.outputs.dry_run }}'"
+          RAW="${{ steps.ci_raw.outputs.ci_result }}"
+          DRY="${{ steps.inputs.outputs.dry_run }}"
+          echo "Raw CI result: '$RAW'"
+          echo "Dry run: '$DRY'"
+          # Allow promotion if CI passed or no CI configured
+          if [ "$DRY" = "true" ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "Gate: dry run, skip promote"
+          elif [ "$RAW" = "success" ] || [ "$RAW" = "no-ci" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "Gate: PROCEED with promotion (ci=$RAW)"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "Gate: SKIP promotion (ci=$RAW)"
+          fi
           echo "## CI Gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "- conclusion=${{ steps.ci.outputs.conclusion }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- detail=${{ steps.ci.outputs.detail }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- dry_run=${{ steps.inputs.outputs.dry_run }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ci_result=$RAW" >> "$GITHUB_STEP_SUMMARY"
+          echo "- dry_run=$DRY" >> "$GITHUB_STEP_SUMMARY"
+          echo "- proceed=$(cat "$GITHUB_OUTPUT" | grep proceed | cut -d= -f2)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: "6 - Promote tag in CAP"
-        if: steps.ci.outputs.conclusion == 'success'
+        if: steps.gate.outputs.proceed == 'true'
         id: promote
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
@@ -216,7 +228,7 @@ jobs:
           echo "- Promoted: $TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: "7 - Save state"
-        if: steps.ci.outputs.conclusion == 'success'
+        if: steps.gate.outputs.proceed == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -259,7 +271,7 @@ jobs:
           WS_ID="${{ steps.inputs.outputs.workspace_id }}"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SN=$(echo "$NOW"|tr ':' '-')
-          CI="${{ steps.ci.outputs.conclusion }}"; [ -z "$CI" ] && CI="skipped"
+          CI="${{ steps.ci_raw.outputs.ci_result }}"; [ -z "$CI" ] && CI="skipped"
           PR="${{ steps.promote.outputs.pushed }}"; [ -z "$PR" ] && PR="false"
           AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
             --arg ci "$CI" --arg pr "$PR" --arg ver "${{ steps.bump.outputs.new }}" \
@@ -274,6 +286,6 @@ jobs:
           echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Version | ${{ steps.bump.outputs.old }} → ${{ steps.bump.outputs.new }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Push | ${{ steps.push.outputs.pushed }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| CI | $CI (${{ steps.ci.outputs.detail }}) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI | $CI (${{ steps.ci_raw.outputs.ci_detail }}) |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Promote | $PR |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | ${{ steps.promote.outputs.tag }} |" >> "$GITHUB_STEP_SUMMARY"

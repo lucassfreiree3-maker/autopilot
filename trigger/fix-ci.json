@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "workspace_id": "ws-default",
-  "note": "Fix lint error no-nested-ternary in automation-http.service.ts",
-  "run": 1
+  "component": "controller",
+  "note": "Fix CI lint errors in controller repo",
+  "run": 2
 }

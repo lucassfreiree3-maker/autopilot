@@ -10,6 +10,14 @@ on:
         description: "Workspace ID"
         required: true
         default: "ws-default"
+      component:
+        description: "Component to fix (agent or controller)"
+        required: true
+        type: choice
+        options:
+          - agent
+          - controller
+        default: "agent"
 
 permissions:
   contents: write
@@ -37,16 +45,19 @@ jobs:
           # ── 0. Resolve inputs ───────────────────────────────
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/fix-ci.json ]; then
             WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/fix-ci.json)
+            COMPONENT=$(jq -r '.component // "agent"' trigger/fix-ci.json)
           else
             WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component || 'agent' }}"
           fi
           [ -z "$WS_ID" ] && WS_ID="ws-default"
+          [ -z "$COMPONENT" ] && COMPONENT="agent"
 
           # ── 1. Read workspace config ────────────────────────
           WS_PATH="state/workspaces/${WS_ID}"
           WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
             --jq '.content' | base64 -d)
-          SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r ".${COMPONENT}.sourceRepo")
           echo "Source: $SOURCE_REPO"
 
           # ── 2. Clone ────────────────────────────────────────

@@ -216,13 +216,9 @@ jobs:
             fi
           done
           echo "Controller CI: ${{ env.ci_result }}"
-          if [ "${{ env.ci_result }}" = "failure" ]; then
-            echo "::error ::Controller CI failed. Blocking pipeline."
-            exit 1
-          fi
 
       - name: "Save controller state"
-        if: always() && env.pushed == 'true'
+        if: env.pushed == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -254,6 +250,12 @@ jobs:
           echo "| Push | ${{ env.pushed }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| CI | ${{ env.ci_result || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| SHA | ${{ env.sha || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "CI Gate"
+        if: env.ci_result == 'failure'
+        run: |
+          echo "::error ::Controller CI failed. Pipeline blocked."
+          exit 1
 
   agent:
     name: "Agent flow"
@@ -364,13 +366,9 @@ jobs:
           [ "$CI_RESULT" = "pending" ] && CI_RESULT="timeout"
           echo "ci_result=$CI_RESULT" >> "$GITHUB_ENV"
           echo "Agent CI: $CI_RESULT"
-          if [ "$CI_RESULT" = "failure" ]; then
-            echo "::error ::Agent CI failed. Blocking pipeline."
-            exit 1
-          fi
 
       - name: "Promote to CAP"
-        if: env.ci_result == 'success' || env.ci_result == 'no-ci'
+        if: env.ci_result == 'success'
         env:
           GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
@@ -414,7 +412,6 @@ jobs:
           fi
 
       - name: "Save state"
-        if: always()
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -449,6 +446,12 @@ jobs:
           echo "| CI | ${{ env.ci_result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Promoted | ${{ env.promoted || 'false' }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | ${{ env.tag || 'n/a' }} |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "CI Gate"
+        if: env.ci_result == 'failure'
+        run: |
+          echo "::error ::Agent CI failed. Pipeline blocked."
+          exit 1
 
   audit:
     name: "Record audit"

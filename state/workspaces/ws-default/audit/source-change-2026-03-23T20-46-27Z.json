@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T20:46:27Z",
+  "runId": "23458668202",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23458668202",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: OAS auth from env, execId in errors, fix test timers (3.5.4)",
+  "commitSha": "b779401971a8e3c09943d4b06bb917d27989f400",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "cancelled",
+    "promote": "success",
+    "state": "success"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "commit_sha": "f6f2de2b3853ae02fda4442d4fabfbcae341a7c7",
-  "note": "Diagnose latest controller CI - verify test fix was applied correctly",
-  "run": 8
+  "commit_sha": "d52fa731bbb74f0cdd2a721715ba9933aeb4f095",
+  "note": "Diagnose CI after version bump 3.5.3",
+  "run": 9
 }

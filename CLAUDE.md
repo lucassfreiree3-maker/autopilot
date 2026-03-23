@@ -196,6 +196,88 @@ Note: Some directories (`locks/`, `approvals/`, `metrics/`, `release-freeze.json
 | `trigger/fetch-files.json` | fetch-files.yml |
 | `trigger/fix-ci.json` | fix-corporate-ci.yml |
 
+## Deploy Flow — Complete Guide (for Claude, Codex, and Copilot)
+
+This is the **official, tested, end-to-end deploy flow** for pushing code changes to corporate repos.
+All agents MUST follow this flow exactly. Last successful run: **#34 (version 3.5.5)**.
+
+### Phase 1: Prepare
+```
+1. git fetch origin main && git checkout -B claude/<descriptive-name> origin/main
+2. Check versioningRules.currentVersion in session memory → decide new version (patch+1)
+3. Create/update patch files in patches/ (source code to apply to corporate repo)
+4. For each change: decide action type:
+   - search-replace: for simple text substitutions (sed-based)
+   - replace-file: for full file replacement (copies from patches/)
+```
+
+### Phase 2: Configure Trigger
+Edit `trigger/source-change.json`:
+```json
+{
+  "workspace_id": "ws-default",
+  "component": "controller",
+  "change_type": "multi-file",
+  "version": "<NEW_VERSION>",
+  "changes": [
+    { "action": "search-replace", "target_path": "package.json", "search": "old", "replace": "new" },
+    { "action": "replace-file", "target_path": "src/swagger/swagger.json", "content_ref": "patches/swagger.json" }
+  ],
+  "commit_message": "feat: description of changes",
+  "skip_ci_wait": false,
+  "promote": true,
+  "run": <LAST_RUN + 1>
+}
+```
+**CRITICAL**: `run` field MUST be incremented — without increment, workflow does NOT trigger.
+
+### Phase 3: Update References
+```
+1. Update references/controller-cap/values.yaml with new image tag
+2. Update CLAUDE.md "Controller CAP" section with new deployed tag
+3. Update contracts/claude-session-memory.json versioningRules.currentVersion
+```
+
+### Phase 4: Commit + PR + Merge
+```
+1. git add patches/ trigger/source-change.json references/ CLAUDE.md contracts/
+2. git commit -m "feat: <description> + deploy <version>"
+3. git push -u origin claude/<branch-name>
+4. Create PR via MCP GitHub (mcp__github__create_pull_request)
+5. If mergeable_state=dirty: git pull origin main, resolve conflicts, push
+6. Merge PR (squash) via MCP GitHub (mcp__github__merge_pull_request)
+7. The merge to main with trigger/source-change.json change AUTO-TRIGGERS apply-source-change.yml
+```
+
+### Phase 5: Monitor Workflow (MANDATORY)
+```
+1. After merge: WebFetch https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=3
+2. Verify new run appeared (status: queued/in_progress)
+3. Poll every 2-3 minutes
+4. If completed+success: DEPLOY DONE — notify user immediately
+5. If completed+failure: check job details, diagnose, fix, re-trigger
+6. ALWAYS notify user on completion (success or failure)
+```
+
+### Phase 6: Post-Deploy
+```
+1. Update session memory: lastTriggerRun, lastSuccessfulRun, pipelineStatus
+2. Add new run to workflowMonitoring.successfulRuns
+3. Register session in executionHistory
+4. Commit updated memory
+```
+
+### Golden Rules
+| Rule | Why |
+|------|-----|
+| NEVER push directly to main | Returns 403. Always branch `claude/*` + PR + squash merge |
+| NEVER assume workflow succeeded | ALWAYS monitor and verify via API |
+| NEVER forget to increment `run` | Without increment, workflow does NOT trigger |
+| ALWAYS notify user on completion | User expects immediate feedback |
+| ALWAYS check version before bump | CI rejects duplicate tags |
+| ALWAYS fetch origin/main first | Prevents merge conflicts |
+| ALWAYS do everything in 1 commit | Patches + trigger + references + memory together |
+
 ## apply-source-change Pipeline (7 Stages)
 ```
 1.   Setup          → Read workspace config

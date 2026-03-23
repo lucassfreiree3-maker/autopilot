@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-23T23:30:00-03:00",
-  "lastSessionId": "session_current_save_flow",
+  "lastUpdated": "2026-03-24T00:15:00-03:00",
+  "lastSessionId": "session_01WNCzT7nhQbajAjtvmqDgvK_deploy355",
 
   "executionHistory": {
     "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
@@ -105,6 +105,40 @@
             "error": "Runs ficavam queued indefinidamente, bloqueando uns aos outros",
             "fix": "Adicionou cancel-in-progress: true",
             "prevention": "SEMPRE ter cancel-in-progress: true em workflows com concurrency group"
+          }
+        ]
+      },
+      {
+        "id": "session_01WNCzT7nhQbajAjtvmqDgvK_deploy355",
+        "date": "2026-03-23",
+        "summary": "Deploy 3.5.5 com swagger completo (18 rotas) + documentacao completa do fluxo de deploy para todos os agentes",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Monitorou workflow run #34 — completou com SUCESSO",
+            "how": "WebFetch na API do GitHub Actions",
+            "result": "Run #34 completed/success. Versao 3.5.5 deployada com swagger completo.",
+            "lesson": "Polling ativo e necessario — nao confiar em sleep passivo. Verificar a cada 2-3 min."
+          },
+          {
+            "step": 2,
+            "action": "Documentou fluxo completo de deploy em session memory e CLAUDE.md",
+            "how": "Adicionou deployFlowGuide completo na session memory + secao 'Deploy Flow — Complete Guide' no CLAUDE.md",
+            "filesChanged": ["contracts/claude-session-memory.json", "CLAUDE.md"],
+            "lesson": "Documentar fluxo COMPLETO para que qualquer agente (Claude, Codex, Copilot) execute sem supervisao."
+          },
+          {
+            "step": 3,
+            "action": "Atualizou versioning para 3.5.5 e registrou run #34 como sucesso",
+            "how": "Editou versioningRules, deployFlow, workflowMonitoring na session memory"
+          }
+        ],
+        "mistakesMade": [
+          {
+            "mistake": "Demorou para notificar usuario que workflow #34 tinha finalizado (~10 min de atraso)",
+            "error": "Ficou em sleep passivo em vez de fazer polling ativo",
+            "fix": "Polling ativo a cada 2-3 minutos apos merge do PR",
+            "prevention": "Apos disparar workflow: verificar API a cada 2-3 min. NAO confiar em sleep longo."
           }
         ]
       },
@@ -219,8 +253,8 @@
   },
 
   "versioningRules": {
-    "currentVersion": "3.5.4",
-    "previousVersion": "3.5.3",
+    "currentVersion": "3.5.5",
+    "previousVersion": "3.5.4",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versionFiles": [
       { "file": "package.json", "line": 3, "field": "version" },
@@ -259,10 +293,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 33,
-    "lastSuccessfulRun": 33,
-    "lastDeployPR": 92,
-    "pipelineStatus": "SUCCESS — run #33 completou todos os stages. Imagem 3.5.4 em build na Esteira NPM #198.",
+    "lastTriggerRun": 34,
+    "lastSuccessfulRun": 34,
+    "lastDeployPR": 93,
+    "pipelineStatus": "SUCCESS — run #34 completou todos os stages. Versao 3.5.5 com swagger completo (18 rotas).",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -281,7 +315,9 @@
       "SEMPRE monitorar workflow run apos trigger: WebFetch da API /actions/workflows/<name>/runs e /actions/runs/<id>/jobs",
       "multi-file DEVE pular lint per-file — lint global no final e suficiente",
       "Workflow com concurrency group DEVE ter cancel-in-progress: true",
-      "Pipeline FUNCIONA ponta-a-ponta: trigger → apply-source-change → push corporativo → CI gate → state save → audit"
+      "Pipeline FUNCIONA ponta-a-ponta: trigger → apply-source-change → push corporativo → CI gate → state save → audit",
+      "Apos merge do PR: fazer polling ATIVO a cada 2-3 min. NAO confiar em sleep passivo. AVISAR usuario imediatamente ao finalizar.",
+      "Run #34 (3.5.5) confirmou pipeline estavel — 2 deploys consecutivos com sucesso (33 + 34)"
     ]
   },
 
@@ -334,6 +370,13 @@
         "version": "3.5.4",
         "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Save State", "Audit"],
         "result": "SUCCESS — codigo pushado para controller corporativo. Esteira NPM #198 iniciada."
+      },
+      {
+        "run": 34,
+        "date": "2026-03-23",
+        "version": "3.5.5",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Save State", "Audit"],
+        "result": "SUCCESS — swagger completo com 18 rotas + version bump 3.5.5 deployado."
       }
     ],
     "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar."
@@ -499,6 +542,155 @@
       "branch_exists": "Usar git checkout -B (force create)",
       "reset_lost_changes": "SEMPRE stash/commit antes de reset"
     }
+  },
+
+  "deployFlowGuide": {
+    "description": "GUIA COMPLETO PASSO-A-PASSO para qualquer agente (Claude, Codex, Copilot) executar um deploy do controller. Este e o fluxo OFICIAL e TESTADO.",
+    "prerequisites": [
+      "Ler contracts/claude-session-memory.json para estado atual",
+      "Ler workspace.json para config dos repos corporativos",
+      "Verificar versioningRules.currentVersion para saber ultima versao",
+      "Verificar deployFlow.lastTriggerRun para saber ultimo run number"
+    ],
+    "phases": {
+      "phase1_prepare": {
+        "name": "Preparacao",
+        "steps": [
+          "1. git fetch origin main && git checkout -B claude/<nome-descritivo> origin/main",
+          "2. Decidir nova versao: versioningRules.currentVersion + 1 no patch (ex: 3.5.5 → 3.5.6)",
+          "3. Criar/atualizar arquivos de patch em patches/ (codigo fonte a ser aplicado no repo corporativo)",
+          "4. Para cada change: decidir action (search-replace para mudancas simples, replace-file para arquivo inteiro)"
+        ],
+        "output": "Patches prontos em patches/"
+      },
+      "phase2_trigger": {
+        "name": "Configurar Trigger",
+        "steps": [
+          "1. Editar trigger/source-change.json:",
+          "   - workspace_id: 'ws-default'",
+          "   - component: 'controller' (ou 'agent')",
+          "   - change_type: 'multi-file' (para multiplos arquivos) ou 'modify-file'/'add-file' (para arquivo unico)",
+          "   - version: nova versao (ex: '3.5.6')",
+          "   - changes: array com cada mudanca [{action, target_path, search?, replace?, content_ref?}]",
+          "   - commit_message: mensagem descritiva do commit no repo corporativo",
+          "   - skip_ci_wait: false (SEMPRE esperar CI)",
+          "   - promote: true (para atualizar CAP values.yaml automaticamente)",
+          "   - run: deployFlow.lastTriggerRun + 1 (OBRIGATORIO incrementar para disparar)"
+        ],
+        "triggerPayloadExamples": {
+          "searchReplace": {
+            "action": "search-replace",
+            "target_path": "package.json",
+            "search": "\"version\": \"3.5.5\"",
+            "replace": "\"version\": \"3.5.6\""
+          },
+          "replaceFile": {
+            "action": "replace-file",
+            "target_path": "src/swagger/swagger.json",
+            "content_ref": "patches/swagger.json"
+          }
+        },
+        "output": "trigger/source-change.json atualizado com novo payload e run incrementado"
+      },
+      "phase3_references": {
+        "name": "Atualizar Referencias",
+        "steps": [
+          "1. Atualizar references/controller-cap/values.yaml com nova image tag (se promote=true)",
+          "2. Atualizar CLAUDE.md secao 'Controller CAP' com nova versao deployed",
+          "3. Atualizar contracts/claude-session-memory.json com nova versao em versioningRules"
+        ],
+        "output": "Todas as referencias apontam para nova versao"
+      },
+      "phase4_commit_pr_merge": {
+        "name": "Commit + PR + Merge",
+        "steps": [
+          "1. git add patches/ trigger/source-change.json references/ CLAUDE.md contracts/claude-session-memory.json",
+          "2. git commit -m 'feat: <descricao> + deploy <versao>'",
+          "3. git push -u origin claude/<nome-descritivo>",
+          "4. Criar PR via MCP GitHub (mcp__github__create_pull_request)",
+          "5. Verificar mergeable_state — se 'dirty': git pull origin main, resolver conflitos, push",
+          "6. Mergear PR (squash) via MCP GitHub (mcp__github__merge_pull_request)",
+          "7. IMPORTANTE: O merge em main com alteracao em trigger/source-change.json DISPARA automaticamente o workflow apply-source-change.yml"
+        ],
+        "output": "PR mergeado. Workflow apply-source-change disparado automaticamente."
+      },
+      "phase5_monitor": {
+        "name": "Monitorar Workflow (OBRIGATORIO)",
+        "steps": [
+          "1. Imediatamente apos merge: WebFetch em https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=3",
+          "2. Verificar se novo run apareceu (status: queued ou in_progress)",
+          "3. Aguardar 2-3 minutos e verificar novamente",
+          "4. Se status=completed e conclusion=success: DEPLOY CONCLUIDO",
+          "5. Se status=completed e conclusion=failure: verificar jobs para diagnosticar",
+          "6. AVISAR O USUARIO assim que o workflow finalizar (sucesso ou falha)"
+        ],
+        "monitoringUrls": {
+          "listRuns": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=5",
+          "jobDetails": "https://api.github.com/repos/lucassfreiree/autopilot/actions/runs/{run_id}/jobs"
+        },
+        "pollingStrategy": {
+          "afterMerge": "Verificar em 1 minuto se workflow disparou",
+          "duringExecution": "Verificar a cada 2-3 minutos",
+          "maxWait": "15 minutos (CI gate pode demorar dependendo da esteira corporativa)",
+          "onCompletion": "AVISAR IMEDIATAMENTE o usuario com resultado"
+        },
+        "output": "Workflow concluido. Usuario avisado."
+      },
+      "phase6_post_deploy": {
+        "name": "Pos-Deploy",
+        "steps": [
+          "1. Atualizar session memory: deployFlow.lastTriggerRun, lastSuccessfulRun, pipelineStatus",
+          "2. Adicionar novo run em workflowMonitoring.successfulRuns",
+          "3. Registrar sessao em executionHistory",
+          "4. Commitar memoria atualizada (pode ser no mesmo PR ou PR separado)"
+        ],
+        "output": "Memoria atualizada para proxima sessao"
+      }
+    },
+    "pipelineStages": {
+      "description": "O workflow apply-source-change.yml executa estes stages em ordem:",
+      "stages": [
+        {"stage": "1. Setup", "does": "Le workspace.json, extrai config dos repos corporativos, decodifica payload do trigger"},
+        {"stage": "1.5 Session Guard", "does": "Adquire lock no autopilot-state para evitar conflito entre agentes"},
+        {"stage": "2. Apply & Push", "does": "Clona repo corporativo (BBVINET_TOKEN), aplica patches (search-replace/replace-file), roda lint global, faz commit e push"},
+        {"stage": "3. CI Gate", "does": "Espera esteira de CI do repo corporativo (Esteira de Build NPM). Smart comparison detecta erros pre-existentes."},
+        {"stage": "4. Promote", "does": "Atualiza image tag no CAP values.yaml (se promote=true). NAO funciona automaticamente — controller esta no GitLab."},
+        {"stage": "5. Save State", "does": "Salva release state no autopilot-state branch"},
+        {"stage": "6. Audit", "does": "Registra audit trail + libera session lock"}
+      ]
+    },
+    "errorRecoveryGuide": {
+      "workflowFailed": [
+        "1. WebFetch nos jobs do run para ver qual step falhou",
+        "2. Analisar o erro (ver knownFailures na session memory)",
+        "3. Corrigir no workflow ou nos patches",
+        "4. Incrementar run no trigger/source-change.json",
+        "5. Novo commit + PR + merge + monitorar"
+      ],
+      "conflictoNoTrigger": [
+        "1. git fetch origin main",
+        "2. git merge origin/main",
+        "3. No trigger: run = max(HEAD, main) + 1",
+        "4. Manter o payload do nosso deploy",
+        "5. Push + PR fica mergeable"
+      ],
+      "ciRejeitouTag": [
+        "1. Versao ja existe no registry",
+        "2. Incrementar patch: 3.5.X → 3.5.(X+1)",
+        "3. Atualizar TODOS os 4 arquivos de versao",
+        "4. Novo trigger + PR + merge"
+      ]
+    },
+    "goldenRules": [
+      "NUNCA push direto para main — sempre branch claude/* com PR + squash merge",
+      "NUNCA assumir que workflow rodou — SEMPRE monitorar e verificar",
+      "NUNCA esquecer de incrementar run no trigger — sem incremento o workflow NAO dispara",
+      "SEMPRE avisar o usuario quando workflow finalizar (sucesso ou falha)",
+      "SEMPRE atualizar session memory apos deploy com sucesso",
+      "SEMPRE verificar ultima versao antes de version bump — CI rejeita duplicatas",
+      "SEMPRE fazer tudo em 1 commit quando possivel (patches + trigger + references + memory)",
+      "SEMPRE fetch origin/main antes de criar branch — evita conflitos"
+    ]
   },
 
   "sessionProtocol": {

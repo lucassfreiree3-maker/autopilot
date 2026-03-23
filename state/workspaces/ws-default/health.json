@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "workspaceId": "ws-default",
-  "checkedAt": "2026-03-22T23:58:43Z",
+  "checkedAt": "2026-03-23T05:50:16Z",
   "overall": "degraded",
   "checks": {
     "workspace": {
@@ -11,12 +11,12 @@
     "controllerRelease": {
       "status": "pass",
       "message": "Tag: source-change",
-      "detail": "Age: 5h"
+      "detail": "Age: 10h"
     },
     "agentRelease": {
       "status": "pass",
       "message": "Tag: 2.2.3",
-      "detail": "Age: 3h"
+      "detail": "Age: 9h"
     },
     "stuckRuns": {
       "status": "pass",
@@ -31,5 +31,5 @@
       "message": "? commits ahead"
     }
   },
-  "summary": "degraded at 2026-03-22T23:58:43Z"
+  "summary": "degraded at 2026-03-23T05:50:16Z"
 }

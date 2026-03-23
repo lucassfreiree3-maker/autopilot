@@ -20,10 +20,25 @@
       "target_path": "src/swagger/swagger.json",
       "action": "replace-file",
       "content_ref": "patches/swagger.json"
+    },
+    {
+      "target_path": "src/middleware/oas-origin-auth.ts",
+      "action": "replace-file",
+      "content_ref": "patches/oas-origin-auth.ts"
+    },
+    {
+      "target_path": "src/controllers/execute.controller.ts",
+      "action": "replace-file",
+      "content_ref": "patches/execute.controller.fixed.ts"
+    },
+    {
+      "target_path": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+      "action": "replace-file",
+      "content_ref": "patches/agents-execute-logs.controller.test.fixed.ts"
     }
   ],
-  "commit_message": "chore: bump to 3.5.4, fix swagger encoding (remove accents)",
+  "commit_message": "fix: OAS auth from env, execId in errors, fix test timers (3.5.4)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 27
+  "run": 28
 }

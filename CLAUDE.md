@@ -131,6 +131,8 @@ state/workspaces/<workspace_id>/
 | record-improvement.yml | Record improvements |
 | langchain-orchestrator.yml | Intelligent agent orchestration via LangChain + Claude |
 | check-repo-access.yml | Validate BBVINET_TOKEN access to corporate repos |
+| ci-diagnose.yml | Diagnose CI failures with detailed analysis |
+| fetch-files.yml | Fetch files from corporate repos using BBVINET_TOKEN |
 
 ### Trigger Files
 | File | Triggers Workflow |
@@ -141,6 +143,9 @@ state/workspaces/<workspace_id>/
 | `trigger/agent-sync.json` | agent-sync.yml |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml |
 | `trigger/improvement.json` | continuous-improvement.yml |
+| `trigger/ci-diagnose.json` | ci-diagnose.yml |
+| `trigger/fetch-files.json` | fetch-files.yml |
+| `trigger/fix-ci.json` | fix-corporate-ci.yml |
 
 ## apply-source-change Pipeline (7 Stages)
 ```
@@ -223,8 +228,23 @@ Every new Claude Code session MUST:
 | `RELEASE_TOKEN` | Token for release operations |
 | `OPENAI_API_KEY` | OpenAI API key for LangChain orchestrator |
 
-### Mapping New Items for Future Sessions
-Any new workflow, secret, integration, or operational procedure created during a session MUST be documented in this file (CLAUDE.md) before the session ends. This ensures all future sessions have full context.
+### Auto-Mapping for Future Sessions (MANDATORY — No user intervention required)
+Claude Code MUST automatically and proactively keep this file (CLAUDE.md) up to date. This is NOT optional and does NOT require the user to ask.
+
+**At session start:**
+1. Scan `.github/workflows/` for any workflow NOT listed in the Workflows tables above — if found, add it immediately.
+2. Scan `trigger/` for any trigger file NOT listed in the Trigger Files table — if found, add it immediately.
+3. Scan `integrations/` for any new integration NOT documented — if found, add it immediately.
+4. Check repository secrets/variables referenced in workflows against the "Repository Secrets Available" table — if missing, flag and add.
+
+**During the session:**
+- Whenever a new workflow, trigger file, secret, integration, schema, contract, or operational procedure is created or discovered, update CLAUDE.md **in the same commit or immediately after** — do NOT wait until session end.
+- Whenever existing documentation is found to be outdated or incomplete, fix it immediately.
+
+**Before session end:**
+- Do a final scan to confirm all new items created during the session are mapped. Commit any missing updates.
+
+**Rule**: If it exists in the repo but not in CLAUDE.md, it is a bug. Fix it automatically without asking.
 
 ## Agent Compatibility
 This architecture is operable by Claude, ChatGPT, Codex, and GitHub Copilot.

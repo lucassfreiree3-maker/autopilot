@@ -273,6 +273,13 @@ function getIncomingAuthorization(req: Request): string | undefined {
   return auth || undefined;
 }
 
+function parseExpiresIn(raw: string): jwt.SignOptions["expiresIn"] {
+  const value = raw.trim();
+  if (!value) return undefined;
+  if (/^\d+$/.test(value)) return Number(value);
+  return value as jwt.SignOptions["expiresIn"];
+}
+
 function mintInternalOriginJwt(execId: string): string | undefined {
   const secret = safeString(process.env.JWT_SECRET);
   if (!secret) return undefined;
@@ -281,7 +288,9 @@ function mintInternalOriginJwt(execId: string): string | undefined {
     safeString(process.env.JWT_ISSUER) || "psc-sre-automacao-controller";
   const audience =
     safeString(process.env.JWT_AUDIENCE) || "psc-sre-automacao-agent";
-  const expiresIn = safeString(process.env.JWT_EXPIRES_IN) || "5m";
+  const expiresIn = parseExpiresIn(
+    safeString(process.env.JWT_EXPIRES_IN) || "5m",
+  );
   const algorithm = (safeString(process.env.JWT_SIGN_ALG) ||
     "HS256") as jwt.Algorithm;
   const subject =

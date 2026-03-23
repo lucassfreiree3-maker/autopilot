@@ -5,30 +5,13 @@
   "version": "3.5.6",
   "changes": [
     {
-      "target_path": "package.json",
-      "action": "search-replace",
-      "search": "\"version\": \"3.5.5\"",
-      "replace": "\"version\": \"3.5.6\""
-    },
-    {
-      "target_path": "package-lock.json",
-      "action": "search-replace",
-      "search": "\"version\": \"3.5.5\"",
-      "replace": "\"version\": \"3.5.6\""
-    },
-    {
       "target_path": "src/controllers/oas-sre-controller.controller.ts",
       "action": "replace-file",
       "content_ref": "patches/oas-sre-controller.controller.ts"
-    },
-    {
-      "target_path": "src/swagger/swagger.json",
-      "action": "replace-file",
-      "content_ref": "patches/swagger.json"
     }
   ],
-  "commit_message": "fix: mint JWT for internal-origin requests to agent, version bump 3.5.6",
+  "commit_message": "fix: correct TypeScript types for jwt.sign expiresIn parameter",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 36
+  "run": 37
 }

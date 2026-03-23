@@ -293,10 +293,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 36,
+    "lastTriggerRun": 37,
     "lastSuccessfulRun": 36,
     "lastDeployPR": 104,
-    "pipelineStatus": "SUCCESS — run #36 completou todos os stages. Versao 3.5.6 com mintInternalOriginJwt para chamadas internal-origin.",
+    "pipelineStatus": "PENDING — run #37 (3.5.6) fix TS2769 expiresIn type. Run #36 apply-source-change OK mas esteira corporativa falhou com TS2769.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -369,6 +369,15 @@
         "fixedInPR": 104,
         "fixedInRun": 36,
         "lesson": "SEMPRE verificar nome exato dos claims JWT. Agent usa payload.scope (singular). Nunca scopes (plural)."
+      },
+      {
+        "step": "Esteira corporativa — TS2769 No overload matches jwt.sign (run 36)",
+        "cause": "expiresIn era string pura ('5m') mas @types/jsonwebtoken@9.0.6 espera number | StringValue. TypeScript rejeitou o tipo.",
+        "fix": "Adicionado parseExpiresIn() que converte string para jwt.SignOptions['expiresIn'] com cast correto. Copiado do auth.controller.ts existente no projeto.",
+        "fixedInPR": "pendente",
+        "fixedInRun": 37,
+        "lesson": "SEMPRE verificar tipagem de @types/jsonwebtoken. expiresIn DEVE ser castado via as jwt.SignOptions['expiresIn']. Usar parseExpiresIn() do auth.controller.ts como referencia.",
+        "diagnosticPattern": "error TS2769: No overload matches this call + Type 'string' is not assignable to type 'number | StringValue | undefined'"
       },
       {
         "step": "401 Missing Bearer token — agent rejeita chamadas internal-origin",
@@ -621,7 +630,9 @@
       "jwt_scope_claim_wrong": "Agent middleware le payload.scope (singular). NUNCA usar 'scopes' (plural) no jwt.sign()",
       "insomnia_header_colon": "Insomnia adiciona : automaticamente. NAO colocar : no nome do header. Ex: x-techbb-namespace (sem :)",
       "ci_gate_block": "Smart CI diz que falha NAO e pre-existente. Analisar build/test/lint logs do repo corporativo. Corrigir patch, bump run, novo PR+merge",
-      "fetch_files_not_triggering": "fetch-files.json so dispara quando mergeado em main. Push para branch NAO dispara. Alternativa: ler do autopilot-state branch (fetched-* files)"
+      "fetch_files_not_triggering": "fetch-files.json so dispara quando mergeado em main. Push para branch NAO dispara. Alternativa: ler do autopilot-state branch (fetched-* files)",
+      "ts2769_jwt_sign": "expiresIn string nao aceito por @types/jsonwebtoken@9.0.6. Usar parseExpiresIn() com cast as jwt.SignOptions['expiresIn']. Copiar pattern do auth.controller.ts",
+      "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-diagnosis-controller.json no autopilot-state. Campo buildLog tem o erro exato. Corrigir patch, bump run, re-deploy automaticamente"
     }
   },
 

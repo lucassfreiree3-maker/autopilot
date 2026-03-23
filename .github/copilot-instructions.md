@@ -31,7 +31,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (101 files)
+  audit/ (103 files)
   improvements/ (1 files)
   metrics/ (1 files)
   handoffs/ (1 files)
@@ -56,7 +56,7 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/fix-ci.json` | sync-copilot-prompt.yml | component, note, workspace_id |
 | `trigger/full-test.json` | test-full-flow.yml | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | auto_fix, scope, workspace_id |
-| `trigger/source-change.json` | sync-copilot-prompt.yml | change_type, commit_message, component, file_content, promote, skip_ci_wait, target_path, workspace_id |
+| `trigger/source-change.json` | sync-copilot-prompt.yml | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -237,4 +237,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-23T17:43:54Z | Run: 23451642808*
+*Last synced: 2026-03-23T19:30:15Z | Run: 23456183967*

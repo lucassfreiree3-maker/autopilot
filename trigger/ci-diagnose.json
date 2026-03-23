@@ -1,7 +1,7 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "commit_sha": "6403a21",
-  "note": "Diagnose Esteira de Build NPM run #193 - all 3 fixes failed",
-  "run": 7
+  "commit_sha": "f6f2de2b3853ae02fda4442d4fabfbcae341a7c7",
+  "note": "Diagnose latest controller CI - verify test fix was applied correctly",
+  "run": 8
 }

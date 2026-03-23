@@ -10,6 +10,14 @@ jest.mock("../../util/s3logger", () => ({
   uploadTraceFile: jest.fn(async () => undefined),
 }));
 
+jest.mock("../../services/automation-log.service", () => ({
+  getExecutionStatusByExecId: jest.fn(async () => ({
+    status: "UNKNOWN",
+    entries: [],
+    lastUpdateAt: "",
+  })),
+}));
+
 describe("pushAgentExecutionLogs execId validation (Token B)", () => {
   const makeRes = () => {
     const res = {} as Partial<Response>;
@@ -89,6 +97,12 @@ describe("waitForFinalExecution behavior", () => {
     return res as Response;
   };
 
+  async function flushAsyncTimers(ms: number): Promise<void> {
+    for (let i = 0; i < 10; i++) await new Promise(r => process.nextTick(r));
+    jest.advanceTimersByTime(ms);
+    for (let i = 0; i < 10; i++) await new Promise(r => process.nextTick(r));
+  }
+
   beforeEach(() => {
     jest.resetModules();
     jest.useFakeTimers();
@@ -165,7 +179,7 @@ describe("waitForFinalExecution behavior", () => {
     const res = makeRes();
     await mod.pushAgentExecutionLogs(reqOther, res);
 
-    jest.advanceTimersByTime(60);
+    await flushAsyncTimers(60);
     const result = await waiter;
     expect(result.timedOut).toBe(true);
     expect(result.snapshot.execId).toBe("exec-20");
@@ -180,7 +194,7 @@ describe("waitForFinalExecution behavior", () => {
     mod.initExecution("exec-30");
     const waiter = mod.waitForFinalExecution("exec-30", 100);
 
-    jest.advanceTimersByTime(120);
+    await flushAsyncTimers(120);
     const result = await waiter;
 
     expect(result.timedOut).toBe(true);

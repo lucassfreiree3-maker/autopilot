@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "package-lock.json",
-  "run": 7
+  "files": "src/swagger/swagger.json,src/swagger/makeSwagger.ts,src/swagger/swagger.ts,package-lock.json",
+  "run": 8
 }

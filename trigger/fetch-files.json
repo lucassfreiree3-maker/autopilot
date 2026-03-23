@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "package.json",
-  "run": 6
+  "files": "package-lock.json",
+  "run": 7
 }

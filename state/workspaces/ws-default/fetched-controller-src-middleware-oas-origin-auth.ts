@@ -22,24 +22,6 @@ type HeaderReadResult = {
   headerName: string;
 };
 
-const DEFAULT_TRUSTED_NAMESPACE = "sgh-oaas-playbook-jobs";
-const DEFAULT_TRUSTED_SERVICE_ACCOUNT = "default";
-
-const DEFAULT_NAMESPACE_HEADER_CANDIDATES = [
-  "x-techbb-namespace",
-  "x-k8s-namespace",
-  "x-origin-namespace",
-  "x-namespace",
-];
-
-const DEFAULT_SERVICE_ACCOUNT_HEADER_CANDIDATES = [
-  "x-techbb-service-account",
-  "x-k8s-service-account",
-  "x-origin-service-account",
-  "x-service-account",
-  "x-service-account-name",
-];
-
 function splitCandidates(raw: string): string[] {
   return raw
     .split(",")
@@ -56,12 +38,20 @@ function uniqueValues(values: string[]): string[] {
   return Array.from(seen.values());
 }
 
-function resolveHeaderCandidates(
-  envName: string,
-  defaults: string[],
-): string[] {
-  const fromEnv = splitCandidates(String(process.env[envName] || ""));
-  return uniqueValues([...fromEnv, ...defaults]);
+function requireEnv(name: string): string {
+  const value = String(process.env[name] || "").trim();
+  if (!value) {
+    throw new Error(
+      `[oas-auth] Missing required environment variable: ${name}. ` +
+        "This value must be provided via Kubernetes Secret.",
+    );
+  }
+  return value;
+}
+
+function resolveHeaderCandidates(envName: string): string[] {
+  const fromEnv = splitCandidates(requireEnv(envName));
+  return uniqueValues(fromEnv);
 }
 
 function firstHeaderValue(
@@ -85,28 +75,19 @@ function normalized(value: string): string {
 }
 
 function trustedNamespace(): string {
-  const fromEnv = String(
-    process.env.OAS_TRUSTED_NAMESPACE || process.env.TECHBB_TRUSTED_NAMESPACE,
-  ).trim();
-  return fromEnv || DEFAULT_TRUSTED_NAMESPACE;
+  return requireEnv("OAS_TRUSTED_NAMESPACE");
 }
 
 function trustedServiceAccount(): string {
-  const fromEnv = String(
-    process.env.OAS_TRUSTED_SERVICE_ACCOUNT ||
-      process.env.TECHBB_TRUSTED_SERVICE_ACCOUNT,
-  ).trim();
-  return fromEnv || DEFAULT_TRUSTED_SERVICE_ACCOUNT;
+  return requireEnv("OAS_TRUSTED_SERVICE_ACCOUNT");
 }
 
 export function evaluateOasOriginAuth(req: Request): OasOriginAuthDecision {
   const namespaceHeaders = resolveHeaderCandidates(
     "OAS_ORIGIN_NAMESPACE_HEADERS",
-    DEFAULT_NAMESPACE_HEADER_CANDIDATES,
   );
   const serviceAccountHeaders = resolveHeaderCandidates(
     "OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS",
-    DEFAULT_SERVICE_ACCOUNT_HEADER_CANDIDATES,
   );
 
   const namespaceRead = firstHeaderValue(req, namespaceHeaders);

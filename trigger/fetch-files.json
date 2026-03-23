@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "src/middleware/oas-origin-auth.ts,src/routes/index.ts,src/routes/oas.ts,src/auth/runtime-scope-source.ts,src/controllers/auth-required-scopes.controller.ts,src/controllers/oas-sre-controller.controller.ts",
-  "run": 4
+  "files": "src/__tests__/unit/oas-sre-controller.route.test.ts,src/__tests__/.envTest.js",
+  "run": 5
 }

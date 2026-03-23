@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de decisoes, padroes e aprendizados entre sessoes do Claude Code. Este arquivo DEVE ser lido no inicio de cada sessao e atualizado ao final.",
-  "lastUpdated": "2026-03-23T16:30:00-03:00",
+  "lastUpdated": "2026-03-23T17:00:00-03:00",
   "lastSessionId": "session_017Vu7y3pTKmpZxQoERQhKyN",
 
   "versioningRules": {
@@ -39,7 +39,11 @@
     ],
     "triggerFile": "trigger/source-change.json",
     "triggerMechanism": "Bump campo 'run' e merge para main",
-    "lesson": "Controller esta no GitLab. Auto-promote NAO funciona. CAP tambem no GitLab. Atualizacao manual da referencia local."
+    "lastTriggerRun": 27,
+    "lastDeployPR": 85,
+    "lesson": "Controller esta no GitLab. Auto-promote NAO funciona. CAP tambem no GitLab. Atualizacao manual da referencia local.",
+    "mergeConflictLesson": "trigger/source-change.json e frequentemente editado por outros workflows (fetch, fix-ci). Ao resolver conflito: SEMPRE pegar o maior 'run' + 1. Manter o payload do deploy atual.",
+    "automationLesson": "O deploy DEVE ser executado sem intervencao do usuario. Fluxo: criar patches → atualizar trigger (run+1) → criar PR → mergear PR → workflow dispara sozinho. NUNCA esperar o usuario pedir para mergear."
   },
 
   "authArchitecture": {
@@ -96,8 +100,24 @@
     "errorPatterns": [
       "Se CI falha com lint: verificar pre-existing errors, nao introduzir novos",
       "Se push falha com 403: verificar nome da branch (deve comecar com claude/)",
-      "Se swagger mostra caracteres estranhos: encoding UTF-8 com acentos. Substituir por ASCII"
-    ]
+      "Se swagger mostra caracteres estranhos: encoding UTF-8 com acentos. Substituir por ASCII",
+      "Se PR mostra mergeable_state=dirty: fetch origin/main, merge, resolver conflitos, push de novo",
+      "Se trigger/source-change.json tem conflito: pegar run = max(HEAD, main) + 1"
+    ],
+    "deployAutomation": {
+      "fullFlow": [
+        "1. Criar/atualizar patches em patches/",
+        "2. Atualizar trigger/source-change.json com payload e run+1",
+        "3. Atualizar references/controller-cap/values.yaml com nova tag",
+        "4. Criar PR com todas as mudancas",
+        "5. Resolver conflitos com main se necessario (fetch + merge)",
+        "6. Mergear PR (squash) — NAO esperar usuario",
+        "7. Workflow apply-source-change dispara automaticamente",
+        "8. Monitorar workflow run via GitHub API"
+      ],
+      "permissions": "Configurar .claude/settings.json com allow para git, gh, edit, write — usuario NAO deve precisar aprovar nada",
+      "lesson": "TUDO deve ser automatico. O usuario disse explicitamente que nao quer ficar lembrando nem dando permissao. Fazer o fluxo completo de ponta a ponta sem parar."
+    }
   },
 
   "sessionProtocol": {

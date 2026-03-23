@@ -1,4 +1,23 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(jq:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(echo:*)",
+      "Bash(curl:*)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Agent",
+      "mcp__b66412ee-6c10-4238-96e7-1091df88b3db__*"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "contractId": "claude-session-memory",
+  "description": "Memoria cumulativa de decisoes, padroes e aprendizados entre sessoes do Claude Code. Este arquivo DEVE ser lido no inicio de cada sessao e atualizado ao final.",
+  "lastUpdated": "2026-03-23T16:30:00-03:00",
+  "lastSessionId": "session_017Vu7y3pTKmpZxQoERQhKyN",
+
+  "versioningRules": {
+    "description": "Regras de versionamento do controller aprendidas por experiencia",
+    "currentVersion": "3.5.4",
+    "previousVersion": "3.5.3",
+    "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
+    "versionFiles": [
+      { "file": "package.json", "line": 3, "field": "version" },
+      { "file": "package-lock.json", "line": 3, "field": "version (top-level)" },
+      { "file": "package-lock.json", "line": 9, "field": "version (packages[\"\"])" },
+      { "file": "src/swagger/swagger.json", "field": "info.version" }
+    ],
+    "lesson": "TODOS os 4 pontos DEVEM estar alinhados. Se um ficar desatualizado, a esteira pode passar mas o swagger mostra versao errada."
+  },
+
+  "swaggerRules": {
+    "description": "Regras para o swagger.json do controller",
+    "encoding": "ASCII puro. NUNCA usar acentos ou caracteres especiais nas descricoes. O Swagger UI quebra com UTF-8 nao-ASCII.",
+    "location": "src/swagger/swagger.json",
+    "patchReference": "patches/swagger.json",
+    "lesson": "Descricoes em portugues SEM acentos. Usar 'execucao' nao 'execução', 'automacao' nao 'automação'."
+  },
+
+  "deployFlow": {
+    "description": "Fluxo de deploy do controller (GitLab, nao GitHub)",
+    "steps": [
+      "1. Bumpar versao nos 4 arquivos",
+      "2. Corrigir swagger.json se necessario",
+      "3. Push para repo corporativo via apply-source-change pipeline",
+      "4. CI gera imagem Docker com a nova tag",
+      "5. Promover no CAP: atualizar image tag em references/controller-cap/values.yaml",
+      "6. Atualizar CLAUDE.md com nova versao deployed"
+    ],
+    "triggerFile": "trigger/source-change.json",
+    "triggerMechanism": "Bump campo 'run' e merge para main",
+    "lesson": "Controller esta no GitLab. Auto-promote NAO funciona. CAP tambem no GitLab. Atualizacao manual da referencia local."
+  },
+
+  "authArchitecture": {
+    "description": "Arquitetura de autenticacao do controller",
+    "secrets": {
+      "sre-controller-auth": {
+        "keys": ["OAS_TRUSTED_NAMESPACE", "OAS_TRUSTED_SERVICE_ACCOUNT", "OAS_ORIGIN_NAMESPACE_HEADERS", "OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS"],
+        "purpose": "Auth OAS por origem interna (namespace + service account)"
+      },
+      "psc-sre-automacao-controller-runtime": {
+        "keys": ["JWT_SECRET", "AUTH_API_KEYS_SCOPES", "SCOPE_EXECUTE_AUTOMATION", "SCOPE_SEND_LOGS", "SCOPE_READ_STATUS", "SCOPE_REGISTER_AGENT", "AWS_REGION", "OSS_ACCESS_KEY_ID", "OSS_BUCKET", "OSS_ENDPOINT", "OSS_SECRET_ACCESS_KEY"],
+        "purpose": "JWT + scopes + S3/OSS storage"
+      }
+    },
+    "authFlow": "Se headers de namespace+SA conferem com trusted -> mode=internal-origin (sem JWT). Caso contrario -> requireJwt + requireScopes.",
+    "trustedCaller": {
+      "namespace": "sgh-oaas-playbook-jobs",
+      "serviceAccount": "default"
+    },
+    "lesson": "Variaveis OAS NUNCA devem ser hardcoded. Sempre via secretKeyRef. O middleware le de process.env."
+  },
+
+  "capValuesYaml": {
+    "description": "Estrutura do values.yaml do CAP controller",
+    "referenceFile": "references/controller-cap/values.yaml",
+    "imageLinePattern": "image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:<TAG>",
+    "envBlock": "Bloco env com 3 categorias: plain values, secretKeyRef de sre-controller-auth, secretKeyRef de runtime",
+    "lesson": "Ao adicionar nova env var: se for segredo -> secretKeyRef. Se for config -> value direto. Nunca misturar."
+  },
+
+  "historia868216": {
+    "description": "Historia da rota OAS SRE Controller",
+    "status": "completed",
+    "completedAt": "2026-03-23",
+    "items": {
+      "1_rota_post": "OK - postOasSreController em oas-sre-controller.controller.ts",
+      "2_auth_origem": "OK - evaluateOasOriginAuth em oas-origin-auth.ts",
+      "3_jwt_escopos": "OK - requireOasOriginOrJwt com fallback para requireJwt + requireScopes",
+      "4_contrato_payload": "OK - validateSreControllerPayload valida image, envs, CLUSTERS_NAMES",
+      "5_allowlist_imagens": "OK - allowedImages() com OAS_PREFLIGHT_IMAGE_KEY",
+      "6_validacao_preflight": "OK - delegada a imagem Docker (aceito pelo PO)",
+      "7_acionamento_agent": "OK - callAgent com Promise.all para multi-cluster",
+      "8_retorno_resultado": "OK - sync (200/502/504) e async (202)",
+      "9_get_status": "OK - getAgentExecutionLogs em agents-execute-logs.controller.ts",
+      "10_logs": "OK - console.info/error em cada etapa",
+      "11_documentacao": "OK - patches/swagger.json OpenAPI 3.0.3"
+    },
+    "lesson": "Validacao especifica de campos por imagem foi decidida como responsabilidade da imagem Docker, nao do controller."
+  },
+
+  "commonPatterns": {
+    "patchCreation": "Criar patches em patches/ com BEFORE/AFTER ou arquivo completo. Usar trigger/source-change.json para aplicar.",
+    "fetchFiles": "Buscar arquivos do repo corporativo: trigger/fetch-files.json ou workflow_dispatch fetch-files.yml. Resultado salvo em autopilot-state branch.",
+    "errorPatterns": [
+      "Se CI falha com lint: verificar pre-existing errors, nao introduzir novos",
+      "Se push falha com 403: verificar nome da branch (deve comecar com claude/)",
+      "Se swagger mostra caracteres estranhos: encoding UTF-8 com acentos. Substituir por ASCII"
+    ]
+  },
+
+  "sessionProtocol": {
+    "onStart": [
+      "1. Ler contracts/claude-session-memory.json (este arquivo)",
+      "2. Ler CLAUDE.md para contexto geral",
+      "3. Verificar versao atual do controller em versioningRules.currentVersion",
+      "4. Verificar se ha locks ativos antes de operacoes de estado"
+    ],
+    "onEnd": [
+      "1. Atualizar este arquivo com novos aprendizados",
+      "2. Atualizar CLAUDE.md se novos workflows/triggers/secrets foram criados",
+      "3. Commitar e push"
+    ],
+    "duringSession": [
+      "Ao criar novo patch: documentar em commonPatterns",
+      "Ao descobrir nova regra: adicionar em lesson do bloco relevante",
+      "Ao completar historia: registrar em bloco proprio com status e items"
+    ]
+  }
+}

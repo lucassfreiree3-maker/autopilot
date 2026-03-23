@@ -40,9 +40,15 @@
       "trigger/agent-sync.json": "agent-sync.yml"
     }
   },
+  "sessionMemory": {
+    "file": "contracts/claude-session-memory.json",
+    "protocol": "MUST read at session start, MUST update at session end",
+    "purpose": "Cumulative memory of decisions, patterns, lessons learned across sessions"
+  },
   "contextFiles": [
     "CLAUDE.md",
     "contracts/shared-agent-contract.json",
+    "contracts/claude-session-memory.json",
     "schemas/*.schema.json"
   ]
 }

@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"'\"$(cat contracts/claude-session-memory.json | jq -c '.' 2>/dev/null || echo '{}')\"'\"}}'",
+            "timeout": 10,
+            "statusMessage": "Loading session memory..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"REMEMBER: Before compacting, ensure contracts/claude-session-memory.json has been updated with any new decisions, patterns, or lessons learned during this session.\"}'",
+            "timeout": 5,
+            "statusMessage": "Memory checkpoint reminder..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"SESSION END REMINDER: Update contracts/claude-session-memory.json with new learnings, commit, and push before closing.\"}'",
+            "timeout": 5,
+            "statusMessage": "Session memory reminder..."
+          }
+        ]
+      }
+    ]
+  }
+}

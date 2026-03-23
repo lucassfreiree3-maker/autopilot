@@ -26,6 +26,9 @@ Zero local dependencies. 100% GitHub-native.
 - `pending/` — Pending workflows not yet installed (e.g., `release-autopilot.yml`)
 - `pending-workflows/` — Workflow drafts with installation guide (`INSTALL.md`, `agent-release.yml`, `init-state-branch.yml`)
 - `snapshots/` — Local state snapshots for rollback (e.g., `snapshots/20260321-214500/`)
+- `patches/` — Source code patches applied to corporate repos via apply-source-change pipeline
+- `references/` — Reference files from corporate repos not yet migrated to GitHub
+  - `references/controller-cap/values.yaml` — Controller CAP values.yaml (source: GitLab, image tag updated here)
 
 ### Schemas (full list)
 | Schema | Validates |
@@ -83,6 +86,15 @@ Visual automation and external integrations (100% self-hosted, open-source).
 8. Never expose secrets in commit messages or logs
 9. Always validate jq output with fallbacks: `jq -r '.field // ""' 2>/dev/null || echo ""`
 10. Use base64 encoding when passing content between workflow jobs (avoids shell quoting issues)
+
+## Controller CAP (GitLab — not yet migrated to GitHub)
+- **Reference file**: `references/controller-cap/values.yaml`
+- **Image**: `docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller`
+- **Current deployed tag**: `3.5.4`
+- **K8s Secret**: `psc-sre-automacao-controller-runtime` (11 keys: JWT_SECRET, AUTH_API_KEYS_SCOPES, SCOPE_*, AWS_REGION, OSS_*)
+- **K8s Secret**: `sre-controller-auth` (4 keys: OAS_TRUSTED_NAMESPACE, OAS_TRUSTED_SERVICE_ACCOUNT, OAS_ORIGIN_NAMESPACE_HEADERS, OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS)
+- **Trusted caller**: namespace=`sgh-oaas-playbook-jobs`, serviceAccount=`default`, header=`x-techbb-namespace`/`x-techbb-service-account`
+- **Note**: This CAP repo is on GitLab, not GitHub. The autopilot pipeline cannot auto-promote controller releases until migration.
 
 ## Workspaces
 
@@ -282,6 +294,40 @@ Claude Code MUST automatically and proactively keep this file (CLAUDE.md) up to 
 - Do a final scan to confirm all new items created during the session are mapped. Commit any missing updates.
 
 **Rule**: If it exists in the repo but not in CLAUDE.md, it is a bug. Fix it automatically without asking.
+
+## Session Memory (CRITICAL — Intelligent Learning System)
+
+Claude Code maintains a **cumulative memory file** at `contracts/claude-session-memory.json` that persists decisions, patterns, and lessons learned across all sessions.
+
+### How it works
+```
+Session Start → Read memory → Apply learned patterns → Avoid past mistakes
+During Session → Record new decisions, rules, lessons in real-time
+Session End → Update memory → Commit → Available for next session
+```
+
+### What gets recorded automatically
+| Category | Examples |
+|----------|---------|
+| **Versioning rules** | Current version, 4 version file locations, CI duplicate tag rejection |
+| **Deploy flow** | Step-by-step pipeline, trigger mechanism, GitLab limitations |
+| **Auth architecture** | Secrets, auth flow, trusted callers, middleware behavior |
+| **Swagger rules** | Encoding (ASCII only), no accents, patch reference |
+| **Historia completions** | Status of each item, PO decisions, scope exclusions |
+| **Error patterns** | Common failures and how to fix them |
+| **Common patterns** | How to create patches, fetch files, handle CI |
+
+### Memory file location
+- **File**: `contracts/claude-session-memory.json`
+- **Referenced by**: `contracts/claude-agent-contract.json` (contextFiles + sessionMemory)
+- **Protocol**: Read on start, update during session, commit on end
+
+### Rules
+1. **ALWAYS** read `claude-session-memory.json` at session start
+2. **NEVER** repeat a mistake that is documented in `lesson` fields
+3. **ALWAYS** update memory when a new decision or pattern is discovered
+4. **ALWAYS** record completed historias with item-by-item status
+5. Memory is append-only for lessons — never delete learned patterns
 
 ## Agent Compatibility
 This architecture is operable by Claude, ChatGPT, Codex, and GitHub Copilot.

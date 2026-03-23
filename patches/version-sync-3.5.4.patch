@@ -1,0 +1,40 @@
+--- Fix: sync all version references to 3.5.4 in psc-sre-automacao-controller
+--- Image 3.5.3 was already built by CI, so next version must be 3.5.4
+
+=== File 1: src/swagger/swagger.json ===
+
+BEFORE:
+  "version": "3.4.2",
+
+AFTER:
+  "version": "3.5.4",
+
+=== File 2: package.json (line 3) ===
+
+BEFORE:
+  "version": "3.5.3",
+
+AFTER:
+  "version": "3.5.4",
+
+=== File 3: package-lock.json (line 3, top-level) ===
+
+BEFORE:
+  "version": "3.5.2",
+
+AFTER:
+  "version": "3.5.4",
+
+=== File 4: package-lock.json (line 9, packages[""]) ===
+
+BEFORE:
+      "version": "3.5.2",
+
+AFTER:
+      "version": "3.5.4",
+
+=== Summary ===
+Target version: 3.5.4
+Files changed: 3 (swagger.json, package.json, package-lock.json)
+Occurrences changed: 4
+Reason: image 3.5.3 already built — CI rejects duplicate tags

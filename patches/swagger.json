@@ -1,0 +1,541 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PSC SRE Automacao Controller",
+    "description": "API do Controller de automacao SRE. Orquestra a execucao de automacoes nos Agents distribuidos por cluster, gerencia logs de execucao, autenticacao JWT e integracao com o OAS (Orquestrador de Automacao de Servicos).",
+    "version": "3.5.4",
+    "contact": {
+      "name": "PSC SRE Automacao"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://sre-aut-controller.psc.{cluster}.bb.com.br",
+      "description": "Controller por cluster",
+      "variables": {
+        "cluster": {
+          "description": "Nome do cluster OpenShift",
+          "default": "k8shmlbb111b"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Endpoints de verificacao de saude da aplicacao"
+    },
+    {
+      "name": "Execute",
+      "description": "Execucao de automacoes nos Agents (rota legada)"
+    },
+    {
+      "name": "OAS SRE Controller",
+      "description": "Endpoint do OAS - orquestracao de automacoes SRE com despacho multi-cluster"
+    },
+    {
+      "name": "Execution Logs",
+      "description": "Consulta e envio de logs de execucao dos Agents"
+    },
+    {
+      "name": "Auth",
+      "description": "Autenticacao e autorizacao via JWT e API Keys"
+    },
+    {
+      "name": "Agents",
+      "description": "Registro e consulta de Agents conectados"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Retorna o estado de saude da aplicacao. Usado pelo liveness probe do Kubernetes.",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Aplicacao saudavel",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "service": { "type": "string", "example": "psc-sre-automacao-controller" },
+                    "timestamp": { "type": "string", "example": "2026-03-23T10:00:00-03:00" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Readiness check",
+        "description": "Retorna se a aplicacao esta pronta para receber requisicoes. Usado pelo readiness probe do Kubernetes.",
+        "operationId": "readinessCheck",
+        "responses": {
+          "200": {
+            "description": "Aplicacao pronta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/execute": {
+      "post": {
+        "tags": ["Execute"],
+        "summary": "Executar automacao no Agent (rota legada)",
+        "description": "Despacha a execucao de uma funcao de automacao para o Agent do cluster/namespace informado. Suporta modo sincrono (sync) e assincrono (async). Requer autenticacao JWT.",
+        "operationId": "executeAgent",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "Modo de execucao: sync (aguarda resultado) ou async (retorna imediatamente com execId)",
+            "schema": { "type": "string", "enum": ["sync", "async"], "default": "async" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cluster", "namespace", "function"],
+                "properties": {
+                  "cluster": {
+                    "type": "string",
+                    "description": "Nome do cluster de destino",
+                    "example": "k8shmlbb111b"
+                  },
+                  "namespace": {
+                    "type": "string",
+                    "description": "Namespace do workload no cluster",
+                    "example": "psc-sre-automacao"
+                  },
+                  "function": {
+                    "type": "string",
+                    "description": "Nome da funcao de automacao a ser executada no Agent",
+                    "example": "health_check"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Execucao aceita (modo async)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AsyncExecuteResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos obrigatorios ausentes ou invalidos",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent nao registrado para o cluster/namespace informado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Falha na comunicacao com o Agent",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "504": {
+            "description": "Timeout aguardando resposta do Agent",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Execution Logs"],
+        "summary": "Consultar status e logs de uma execucao",
+        "description": "Retorna o snapshot de execucao com status atual, entradas de log e metadados. Suporta filtros por data e limite de entradas.",
+        "operationId": "getExecutionLogs",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "query",
+            "description": "ID unico da execucao (recomendado)",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "execId",
+            "in": "query",
+            "description": "ID da execucao (alternativa ao uuid)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "description": "Filtrar logs por dia (formato YYYY-MM-DD)",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "dateFrom",
+            "in": "query",
+            "description": "Filtrar logs a partir desta data/hora (ISO 8601)",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "dateTo",
+            "in": "query",
+            "description": "Filtrar logs ate esta data/hora (ISO 8601)",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Numero maximo de entradas retornadas",
+            "schema": { "type": "integer", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot da execucao com logs",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExecutionSnapshot" }
+              }
+            }
+          },
+          "400": {
+            "description": "uuid ou execId nao informado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/execute/logs": {
+      "post": {
+        "tags": ["Execution Logs"],
+        "summary": "Enviar logs de execucao (callback do Agent)",
+        "description": "Recebe entradas de log enviadas pelo Agent durante a execucao de uma automacao. Requer JWT de callback do Agent.",
+        "operationId": "pushExecutionLogs",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["execId", "entries"],
+                "properties": {
+                  "execId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID da execucao"
+                  },
+                  "source": {
+                    "type": "string",
+                    "description": "Origem do log (ex: agent, controller)",
+                    "default": "agent"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Identificador de quem envia o log"
+                  },
+                  "entries": {
+                    "type": "array",
+                    "description": "Lista de entradas de log",
+                    "items": { "$ref": "#/components/schemas/LogEntry" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Logs recebidos com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "received": { "type": "integer", "example": 5 },
+                    "execId": { "type": "string" },
+                    "from": { "type": "string" },
+                    "source": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "execId ou entries ausente/invalido"
+          },
+          "403": {
+            "description": "execId do JWT nao confere com o do body"
+          }
+        }
+      }
+    },
+    "/oas/sre-controller": {
+      "post": {
+        "tags": ["OAS SRE Controller"],
+        "summary": "Executar automacao OAS multi-cluster",
+        "description": "Endpoint principal do OAS (Orquestrador de Automacao de Servicos). Valida o payload, resolve a imagem permitida, e despacha a execucao para os Agents de todos os clusters informados. Suporta autenticacao por origem interna (headers de namespace/serviceAccount do Kubernetes) ou JWT. Modos sync e async disponiveis.",
+        "operationId": "postOasSreController",
+        "security": [{ "bearerAuth": [] }, { "internalOrigin": [] }],
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "Modo de execucao: sync (aguarda todos os clusters finalizarem) ou async (retorna imediatamente)",
+            "schema": { "type": "string", "enum": ["sync", "async"], "default": "async" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image", "envs", "CLUSTERS_NAMES"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "description": "Nome da imagem de automacao permitida (deve estar na lista de imagens autorizadas)",
+                    "example": "psc-sre-ns-migration-preflight"
+                  },
+                  "envs": {
+                    "type": "object",
+                    "description": "Variaveis de ambiente passadas para o container da automacao no Agent",
+                    "additionalProperties": { "type": "string" },
+                    "example": {
+                      "NAMESPACE_ORIGEM": "app-old",
+                      "NAMESPACE_DESTINO": "app-new"
+                    }
+                  },
+                  "CLUSTERS_NAMES": {
+                    "type": "array",
+                    "description": "Lista de clusters onde a automacao sera executada",
+                    "items": { "type": "string" },
+                    "example": ["k8shmlbb111b", "k8shmlbb222b"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execucao concluida com sucesso (modo sync)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SyncOasResponse" }
+              }
+            }
+          },
+          "202": {
+            "description": "Execucao aceita (modo async)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AsyncOasResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload invalido - imagem nao permitida, envs ausente, ou clusters invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": false },
+                    "error": { "type": "string" },
+                    "details": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent nao registrado para um ou mais clusters informados"
+          },
+          "502": {
+            "description": "Falha na comunicacao com Agent ou execucao finalizada com erro"
+          },
+          "504": {
+            "description": "Timeout aguardando resposta dos Agents"
+          }
+        }
+      }
+    },
+    "/api-docs": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Swagger UI",
+        "description": "Interface grafica do Swagger para visualizacao e teste dos endpoints da API.",
+        "operationId": "swaggerUi",
+        "responses": {
+          "200": {
+            "description": "Pagina HTML do Swagger UI"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT assinado pelo Controller. Algoritmo HS256, issuer=psc-sre-automacao-controller, audience=psc-sre-automacao-agent."
+      },
+      "internalOrigin": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-techbb-namespace",
+        "description": "Autenticacao por origem interna do Kubernetes. Quando os headers x-techbb-namespace e x-techbb-service-account correspondem ao caller confiavel configurado, a autenticacao JWT e dispensada."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": false },
+          "error": { "type": "string", "description": "Mensagem de erro" },
+          "detail": { "type": "string", "description": "Detalhes adicionais do erro" },
+          "execId": { "type": "string", "format": "uuid", "description": "ID da execucao, quando disponivel" }
+        }
+      },
+      "AsyncExecuteResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "execId": { "type": "string", "format": "uuid" },
+          "mode": { "type": "string", "example": "async" },
+          "status": { "type": "string", "example": "RUNNING" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "message": { "type": "string", "example": "Request accepted. The Agent will process this execution asynchronously." }
+        }
+      },
+      "AsyncOasResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "mode": { "type": "string", "example": "async" },
+          "execId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "example": "RUNNING" },
+          "startedAt": { "type": "string", "format": "date-time" },
+          "image": { "type": "string" },
+          "clustersNames": { "type": "array", "items": { "type": "string" } },
+          "authMode": { "type": "string", "enum": ["jwt", "internal-origin"] },
+          "dispatches": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DispatchResult" }
+          },
+          "statusEndpoint": { "type": "string", "description": "URL para consultar o status da execucao" }
+        }
+      },
+      "SyncOasResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "mode": { "type": "string", "example": "sync" },
+          "execId": { "type": "string", "format": "uuid" },
+          "image": { "type": "string" },
+          "clustersNames": { "type": "array", "items": { "type": "string" } },
+          "authMode": { "type": "string", "enum": ["jwt", "internal-origin"] },
+          "dispatches": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DispatchResult" }
+          },
+          "statusEndpoint": { "type": "string" },
+          "status": { "type": "string", "enum": ["PENDING", "RUNNING", "DONE", "ERROR"] },
+          "statusLabel": { "type": "string" },
+          "finished": { "type": "boolean" },
+          "lastUpdate": { "type": "string", "format": "date-time" },
+          "count": { "type": "integer" },
+          "entries": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LogEntry" }
+          }
+        }
+      },
+      "DispatchResult": {
+        "type": "object",
+        "properties": {
+          "cluster": { "type": "string", "description": "Nome do cluster" },
+          "agentStatus": { "type": "integer", "description": "HTTP status code retornado pelo Agent" }
+        }
+      },
+      "ExecutionSnapshot": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "execId": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["PENDING", "RUNNING", "DONE", "ERROR"] },
+          "statusLabel": { "type": "string", "example": "Running" },
+          "finished": { "type": "boolean" },
+          "lastUpdate": { "type": "string", "format": "date-time" },
+          "count": { "type": "integer", "description": "Quantidade de entradas de log" },
+          "entries": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LogEntry" }
+          }
+        }
+      },
+      "LogEntry": {
+        "type": "object",
+        "properties": {
+          "ts": { "type": "string", "format": "date-time", "description": "Timestamp da entrada" },
+          "level": { "type": "string", "description": "Nivel do log (INFO, WARN, ERROR)" },
+          "message": { "type": "string", "description": "Mensagem do log" },
+          "status": { "type": "string", "enum": ["PENDING", "RUNNING", "DONE", "ERROR"], "description": "Status da execucao nesta entrada" },
+          "step": { "type": "integer", "description": "Numero do passo da automacao" },
+          "execId": { "type": "string", "description": "ID da execucao" },
+          "source": { "type": "string", "description": "Origem do log (agent, controller, trace)" },
+          "from": { "type": "string", "description": "Identificador de quem enviou o log" },
+          "data": { "description": "Dados adicionais da entrada" }
+        }
+      }
+    }
+  }
+}

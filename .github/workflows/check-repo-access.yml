@@ -2,6 +2,10 @@ name: Check Repo Access
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-repo-access.yml'
 
 jobs:
   check-access:

@@ -130,6 +130,7 @@ state/workspaces/<workspace_id>/
 | enqueue-agent-handoff.yml | Create agent handoff |
 | record-improvement.yml | Record improvements |
 | langchain-orchestrator.yml | Intelligent agent orchestration via LangChain + Claude |
+| check-repo-access.yml | Validate BBVINET_TOKEN access to corporate repos |
 
 ### Trigger Files
 | File | Triggers Workflow |
@@ -203,6 +204,27 @@ To prevent conflicts:
 - Log warnings with `echo "::warning ::"` for non-fatal issues
 - Log errors with `echo "::error ::"` for fatal issues
 - Never silently swallow errors with `|| true` — always log first
+
+## Session Startup (IMPORTANT — Run at every new session)
+Every new Claude Code session MUST:
+1. **Check corporate repo access**: Trigger `check-repo-access.yml` workflow (via workflow_dispatch or push) to validate `BBVINET_TOKEN` has access to all corporate repos (`agent`, `controller`, `CAP`).
+2. **Read workspace config**: Load `state/workspaces/ws-default/workspace.json` to understand current workspace setup.
+3. **Check active locks**: Verify no other agent holds a session lock before performing state-changing operations.
+
+### Workflow: check-repo-access.yml
+| Trigger | Secret Used | Repos Checked |
+|---------|-------------|---------------|
+| `workflow_dispatch` or push to `main` (self-path) | `BBVINET_TOKEN` | `bbvinet/psc-sre-automacao-agent`, `bbvinet/psc-sre-automacao-controller`, `bbvinet/psc_releases_cap_sre-aut-agent` |
+
+### Repository Secrets Available
+| Secret | Purpose |
+|--------|---------|
+| `BBVINET_TOKEN` | PAT with access to corporate repos (bbvinet org) |
+| `RELEASE_TOKEN` | Token for release operations |
+| `OPENAI_API_KEY` | OpenAI API key for LangChain orchestrator |
+
+### Mapping New Items for Future Sessions
+Any new workflow, secret, integration, or operational procedure created during a session MUST be documented in this file (CLAUDE.md) before the session ends. This ensures all future sessions have full context.
 
 ## Agent Compatibility
 This architecture is operable by Claude, ChatGPT, Codex, and GitHub Copilot.

@@ -36,10 +36,30 @@
             "step": 4,
             "action": "PR #90 criado e mergeado (squash)",
             "how": "Branch claude/resume-controller-changes-pVdlW. MCP github create_pull_request + merge_pull_request",
-            "result": "Merge SHA 38eff5e. Workflow apply-source-change deve disparar automaticamente."
+            "result": "Merge SHA 38eff5e. Workflow disparou run 29."
+          },
+          {
+            "step": 5,
+            "action": "Monitorou workflow run 29 — falhou",
+            "how": "WebFetch API /actions/workflows/apply-source-change.yml/runs + /actions/runs/23458334088/jobs",
+            "result": "Falhou no step 'Checkout autopilot (for patch files)'. actions/checkout@v4 nao suporta path absoluto /tmp/autopilot.",
+            "lesson": "actions/checkout@v4 so funciona dentro de $GITHUB_WORKSPACE. Para paths externos, usar git clone."
+          },
+          {
+            "step": 6,
+            "action": "Fix: trocou actions/checkout por git clone + bump run 30",
+            "how": "PR #92 criado e mergeado. git clone --depth 1 com RELEASE_TOKEN para /tmp/autopilot",
+            "result": "Merge SHA 673449c. Workflow deve disparar run 30."
           }
         ],
-        "mistakesMade": []
+        "mistakesMade": [
+          {
+            "mistake": "Usou actions/checkout@v4 com path absoluto /tmp/autopilot",
+            "error": "Step falhou — actions/checkout nao suporta paths fora de $GITHUB_WORKSPACE",
+            "fix": "Substituiu por git clone --depth 1 com RELEASE_TOKEN",
+            "prevention": "Para checkout em path customizado fora do workspace: SEMPRE usar git clone, nunca actions/checkout"
+          }
+        ]
       },
       {
         "id": "session_017Vu7y3pTKmpZxQoERQhKyN",
@@ -192,8 +212,8 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 29,
-    "lastDeployPR": 90,
+    "lastTriggerRun": 30,
+    "lastDeployPR": 92,
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -207,8 +227,41 @@
       "Ao resolver conflito: run = max(HEAD, main) + 1.",
       "SEMPRE fetch origin/main antes de criar branch.",
       "Push direto para main: BLOQUEADO (403). Sempre PR.",
-      "Deploy roda ponta-a-ponta sem intervencao. Usuario NAO aprova nada."
+      "Deploy roda ponta-a-ponta sem intervencao. Usuario NAO aprova nada.",
+      "actions/checkout@v4 NAO suporta paths absolutos fora de $GITHUB_WORKSPACE. Usar git clone.",
+      "SEMPRE monitorar workflow run apos trigger: WebFetch da API /actions/workflows/<name>/runs e /actions/runs/<id>/jobs"
     ]
+  },
+
+  "workflowMonitoring": {
+    "description": "Como monitorar workflow runs do GitHub Actions. SEMPRE acompanhar apos disparar um deploy.",
+    "listRuns": {
+      "url": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=5",
+      "tool": "WebFetch",
+      "fields": ["id", "status", "conclusion", "created_at", "head_sha"]
+    },
+    "getJobDetails": {
+      "url": "https://api.github.com/repos/lucassfreiree/autopilot/actions/runs/{run_id}/jobs",
+      "tool": "WebFetch",
+      "fields": ["name", "status", "conclusion", "steps[].name", "steps[].conclusion"]
+    },
+    "protocol": [
+      "1. Apos merge do PR que altera trigger: verificar se workflow disparou",
+      "2. WebFetch no URL de listRuns para ver status",
+      "3. Se failure: WebFetch no URL de getJobDetails para ver qual step falhou",
+      "4. Corrigir, bumpar run, novo PR, merge, re-monitorar",
+      "5. Repetir ate success ou identificar problema no repo corporativo"
+    ],
+    "knownFailures": [
+      {
+        "step": "Checkout autopilot (for patch files)",
+        "cause": "actions/checkout@v4 com path absoluto /tmp/autopilot",
+        "fix": "Trocado por git clone --depth 1 com RELEASE_TOKEN",
+        "fixedInPR": 92,
+        "fixedInRun": 30
+      }
+    ],
+    "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar."
   },
 
   "authArchitecture": {

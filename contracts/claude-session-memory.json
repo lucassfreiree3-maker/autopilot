@@ -2,12 +2,45 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-23T17:30:00-03:00",
-  "lastSessionId": "session_017Vu7y3pTKmpZxQoERQhKyN",
+  "lastUpdated": "2026-03-23T22:00:00-03:00",
+  "lastSessionId": "session_01WNCzT7nhQbajAjtvmqDgvK",
 
   "executionHistory": {
     "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
     "sessions": [
+      {
+        "id": "session_01WNCzT7nhQbajAjtvmqDgvK",
+        "date": "2026-03-23",
+        "summary": "Fix multi-file support in apply-source-change workflow + re-trigger run 29",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Diagnosticou porque runs 27-28 nao aplicaram mudancas",
+            "how": "git log + analise dos commits. Descobriu que change_type=multi-file nao era suportado pelo workflow",
+            "lesson": "apply-source-change.yml so suportava add-file, modify-file, delete-lines. multi-file era ignorado silenciosamente."
+          },
+          {
+            "step": 2,
+            "action": "Atualizou workflow para suportar multi-file",
+            "how": "Adicionou: setup exports changes_b64, apply step com case multi-file (search-replace + replace-file), checkout do autopilot para patches/, lint multi-file",
+            "filesChanged": [".github/workflows/apply-source-change.yml"],
+            "lesson": "search-replace usa sed com | como delimitador. replace-file copia de /tmp/autopilot/patches/. Checkout do autopilot e necessario."
+          },
+          {
+            "step": 3,
+            "action": "Bump trigger run 28 para 29",
+            "how": "Editou trigger/source-change.json run field",
+            "filesChanged": ["trigger/source-change.json"]
+          },
+          {
+            "step": 4,
+            "action": "PR #90 criado e mergeado (squash)",
+            "how": "Branch claude/resume-controller-changes-pVdlW. MCP github create_pull_request + merge_pull_request",
+            "result": "Merge SHA 38eff5e. Workflow apply-source-change deve disparar automaticamente."
+          }
+        ],
+        "mistakesMade": []
+      },
       {
         "id": "session_017Vu7y3pTKmpZxQoERQhKyN",
         "date": "2026-03-23",
@@ -159,8 +192,8 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 27,
-    "lastDeployPR": 85,
+    "lastTriggerRun": 29,
+    "lastDeployPR": 90,
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [

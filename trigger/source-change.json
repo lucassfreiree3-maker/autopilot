@@ -2,43 +2,28 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.5.4",
+  "version": "3.5.5",
   "changes": [
     {
       "target_path": "package.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.3\"",
-      "replace": "\"version\": \"3.5.4\""
+      "search": "\"version\": \"3.5.4\"",
+      "replace": "\"version\": \"3.5.5\""
     },
     {
       "target_path": "package-lock.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.2\"",
-      "replace": "\"version\": \"3.5.4\""
+      "search": "\"version\": \"3.5.4\"",
+      "replace": "\"version\": \"3.5.5\""
     },
     {
       "target_path": "src/swagger/swagger.json",
       "action": "replace-file",
       "content_ref": "patches/swagger.json"
-    },
-    {
-      "target_path": "src/middleware/oas-origin-auth.ts",
-      "action": "replace-file",
-      "content_ref": "patches/oas-origin-auth.ts"
-    },
-    {
-      "target_path": "src/controllers/execute.controller.ts",
-      "action": "replace-file",
-      "content_ref": "patches/execute.controller.fixed.ts"
-    },
-    {
-      "target_path": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
-      "action": "replace-file",
-      "content_ref": "patches/agents-execute-logs.controller.test.fixed.ts"
     }
   ],
-  "commit_message": "fix: OAS auth from env, execId in errors, fix test timers (3.5.4)",
+  "commit_message": "feat: complete swagger with all 18 routes, version bump 3.5.5",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 32
+  "run": 34
 }

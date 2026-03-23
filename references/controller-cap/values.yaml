@@ -3,7 +3,7 @@
 # Source: GitLab CAP repo (psc_releases_cap_sre-aut-controller)
 # Path: releases/openshift/hml/deploy/values.yaml
 # Image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller
-# Current tag: 3.5.4
+# Current tag: 3.5.5
 # Secret: psc-sre-automacao-controller-runtime
 # ============================================================
 global:
@@ -114,7 +114,7 @@ sre-aut-controller:
               value: "true"
             containers:
             - name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
-              image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:3.5.4
+              image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:3.5.5
               imagePullPolicy: "IfNotPresent"
               livenessProbe:
                 failureThreshold: 6

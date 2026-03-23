@@ -3,7 +3,7 @@
   "info": {
     "title": "PSC SRE Automacao Controller",
     "description": "API do Controller de automacao SRE. Orquestra a execucao de automacoes nos Agents distribuidos por cluster, gerencia logs de execucao, autenticacao JWT e integracao com o OAS (Orquestrador de Automacao de Servicos).",
-    "version": "3.5.4",
+    "version": "3.5.5",
     "contact": {
       "name": "PSC SRE Automacao"
     }
@@ -23,19 +23,7 @@
   "tags": [
     {
       "name": "Health",
-      "description": "Endpoints de verificacao de saude da aplicacao"
-    },
-    {
-      "name": "Execute",
-      "description": "Execucao de automacoes nos Agents (rota legada)"
-    },
-    {
-      "name": "OAS SRE Controller",
-      "description": "Endpoint do OAS - orquestracao de automacoes SRE com despacho multi-cluster"
-    },
-    {
-      "name": "Execution Logs",
-      "description": "Consulta e envio de logs de execucao dos Agents"
+      "description": "Endpoints de verificacao de saude, metricas e documentacao"
     },
     {
       "name": "Auth",
@@ -43,10 +31,48 @@
     },
     {
       "name": "Agents",
-      "description": "Registro e consulta de Agents conectados"
+      "description": "Registro, listagem e informacoes dos Agents conectados"
+    },
+    {
+      "name": "Execute",
+      "description": "Execucao de automacoes nos Agents (rota legada)"
+    },
+    {
+      "name": "Execution Logs",
+      "description": "Consulta e envio de logs de execucao dos Agents"
+    },
+    {
+      "name": "OAS SRE Controller",
+      "description": "Endpoint do OAS - orquestracao de automacoes SRE com despacho multi-cluster"
+    },
+    {
+      "name": "OAS Automations",
+      "description": "Automacoes disponiveis para integracao OAS - listagem, consulta e execucao"
+    },
+    {
+      "name": "Logs",
+      "description": "Rotacao e gerenciamento de logs locais"
     }
   ],
   "paths": {
+    "/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Informacoes do servico",
+        "description": "Retorna o nome, versao e mapa de todos os endpoints disponiveis no Controller.",
+        "operationId": "getServiceInfo",
+        "responses": {
+          "200": {
+            "description": "Informacoes do servico",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ServiceInfoResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": ["Health"],
@@ -61,9 +87,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "ok": { "type": "boolean", "example": true },
-                    "service": { "type": "string", "example": "psc-sre-automacao-controller" },
-                    "timestamp": { "type": "string", "example": "2026-03-23T10:00:00-03:00" }
+                    "status": { "type": "string", "example": "UP" }
                   }
                 }
               }
@@ -86,7 +110,7 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "ok": { "type": "boolean", "example": true }
+                    "status": { "type": "string", "example": "UP" }
                   }
                 }
               }
@@ -95,11 +119,251 @@
         }
       }
     },
+    "/metrics": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Metricas Prometheus",
+        "description": "Expoe metricas no formato Prometheus (request_seconds, response_size_bytes). Usado pelo endpoint de scraping do monitoramento.",
+        "operationId": "getMetrics",
+        "responses": {
+          "200": {
+            "description": "Metricas no formato Prometheus text",
+            "content": {
+              "text/plain": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro ao coletar metricas"
+          }
+        }
+      }
+    },
+    "/api-docs": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Swagger UI",
+        "description": "Interface grafica do Swagger para visualizacao e teste dos endpoints da API.",
+        "operationId": "swaggerUi",
+        "responses": {
+          "200": {
+            "description": "Pagina HTML do Swagger UI"
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Emitir token JWT",
+        "description": "Emite um token JWT para autenticacao nas rotas protegidas. Requer API Key no header x-api-key. O token e assinado com HS256 e inclui os scopes solicitados.",
+        "operationId": "issueToken",
+        "security": [{ "apiKeyAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "description": "Subject do token (sub claim)",
+                    "example": "helmfire-ritmo-client"
+                  },
+                  "scope": {
+                    "description": "Scope(s) solicitado(s). String separada por espaco/virgula ou array.",
+                    "oneOf": [
+                      { "type": "string", "example": "execute:automation send:logs" },
+                      { "type": "array", "items": { "type": "string" } }
+                    ]
+                  },
+                  "expiresIn": {
+                    "type": "string",
+                    "description": "Tempo de expiracao do token (ex: 5m, 1h, 3600)",
+                    "example": "5m"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token emitido com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Scopes invalidos ou ausentes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key invalida",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "403": {
+            "description": "Scopes solicitados nao permitidos para esta API Key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/required-scopes": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Listar scopes requeridos por rota",
+        "description": "Retorna a matriz de scopes exigidos para cada endpoint da API no ambiente atual. Util para descobrir quais scopes solicitar no POST /auth/token. Requer API Key.",
+        "operationId": "getRequiredRouteScopes",
+        "security": [{ "apiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Matriz de scopes por rota",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RouteScopesResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro ao resolver scopes do ambiente"
+          }
+        }
+      }
+    },
+    "/agent/list": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Listar Agents registrados",
+        "description": "Retorna a lista de Agents cadastrados no Controller com namespace, cluster, ambiente e data de registro.",
+        "operationId": "listAgents",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Numero maximo de agents retornados",
+            "schema": { "type": "integer", "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de agents",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentListResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/info": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Informacoes do Controller",
+        "description": "Retorna metadados basicos do Controller: nome do servico, hostname, timestamp atual e timezone.",
+        "operationId": "getControllerInfo",
+        "responses": {
+          "200": {
+            "description": "Metadados do Controller",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ControllerInfoResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agent/register": {
+      "post": {
+        "tags": ["Agents"],
+        "summary": "Registrar Agent",
+        "description": "Cadastra um novo Agent no inventario do Controller. Requer JWT de callback do Agent com scope REGISTER. Retorna 409 se o Agent ja estiver registrado.",
+        "operationId": "registerAgent",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["namespace", "cluster", "environment"],
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "description": "Namespace do Agent",
+                    "example": "psc-sre-automacao"
+                  },
+                  "cluster": {
+                    "type": "string",
+                    "description": "Cluster do Agent",
+                    "example": "k8shmlbb111b"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": ["desenv", "hml", "prod"],
+                    "description": "Ambiente do Agent"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent registrado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "ok": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Agent created." },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "namespace": { "type": "string" },
+                        "cluster": { "type": "string" },
+                        "environment": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload invalido - namespace, cluster ou environment ausente/invalido"
+          },
+          "409": {
+            "description": "Agent ja registrado com este cluster/namespace/environment"
+          }
+        }
+      }
+    },
     "/agent/execute": {
       "post": {
         "tags": ["Execute"],
         "summary": "Executar automacao no Agent (rota legada)",
-        "description": "Despacha a execucao de uma funcao de automacao para o Agent do cluster/namespace informado. Suporta modo sincrono (sync) e assincrono (async). Requer autenticacao JWT.",
+        "description": "Despacha a execucao de uma funcao de automacao para o Agent do cluster/namespace informado. Suporta modo sincrono (sync) e assincrono (async). Requer autenticacao JWT com scope EXECUTE.",
         "operationId": "executeAgent",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -139,6 +403,14 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Execucao concluida (modo sync)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExecutionSnapshot" }
+              }
+            }
+          },
           "202": {
             "description": "Execucao aceita (modo async)",
             "content": {
@@ -156,28 +428,13 @@
             }
           },
           "404": {
-            "description": "Agent nao registrado para o cluster/namespace informado",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            }
+            "description": "Agent nao registrado para o cluster/namespace informado"
           },
           "502": {
-            "description": "Falha na comunicacao com o Agent",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            }
+            "description": "Falha na comunicacao com o Agent"
           },
           "504": {
-            "description": "Timeout aguardando resposta do Agent",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            }
+            "description": "Timeout aguardando resposta do Agent"
           }
         }
       },
@@ -235,12 +492,7 @@
             }
           },
           "400": {
-            "description": "uuid ou execId nao informado",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            }
+            "description": "uuid ou execId nao informado"
           }
         }
       }
@@ -249,7 +501,7 @@
       "post": {
         "tags": ["Execution Logs"],
         "summary": "Enviar logs de execucao (callback do Agent)",
-        "description": "Recebe entradas de log enviadas pelo Agent durante a execucao de uma automacao. Requer JWT de callback do Agent.",
+        "description": "Recebe entradas de log enviadas pelo Agent durante a execucao de uma automacao. Requer JWT de callback do Agent com scope SEND.",
         "operationId": "pushExecutionLogs",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -307,6 +559,62 @@
           },
           "403": {
             "description": "execId do JWT nao confere com o do body"
+          }
+        }
+      }
+    },
+    "/agent/errors": {
+      "get": {
+        "tags": ["Agents"],
+        "summary": "Consultar log de erros",
+        "description": "Retorna as ultimas linhas do arquivo local de erros/log do Controller.",
+        "operationId": "getAgentErrors",
+        "parameters": [
+          {
+            "name": "lines",
+            "in": "query",
+            "description": "Numero de linhas a retornar",
+            "schema": { "type": "integer", "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Linhas do log de erros",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "lines": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logs/rotate": {
+      "get": {
+        "tags": ["Logs"],
+        "summary": "Rotacionar logs",
+        "description": "Rotaciona os arquivos de log locais e tenta enviar para o bucket S3/OSS configurado.",
+        "operationId": "rotateLogs",
+        "responses": {
+          "200": {
+            "description": "Rotacao executada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "rotated": { "type": "integer", "description": "Quantidade de arquivos rotacionados" }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -385,10 +693,7 @@
                   "properties": {
                     "ok": { "type": "boolean", "example": false },
                     "error": { "type": "string" },
-                    "details": {
-                      "type": "array",
-                      "items": { "type": "string" }
-                    }
+                    "details": { "type": "array", "items": { "type": "string" } }
                   }
                 }
               }
@@ -406,15 +711,146 @@
         }
       }
     },
-    "/api-docs": {
+    "/oas/automations": {
       "get": {
-        "tags": ["Health"],
-        "summary": "Swagger UI",
-        "description": "Interface grafica do Swagger para visualizacao e teste dos endpoints da API.",
-        "operationId": "swaggerUi",
+        "tags": ["OAS Automations"],
+        "summary": "Listar automacoes disponiveis",
+        "description": "Retorna a lista de automacoes registradas no Controller para integracao OAS. Cada automacao inclui nome, descricao e parametros aceitos.",
+        "operationId": "listOasAutomations",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Pagina HTML do Swagger UI"
+            "description": "Lista de automacoes",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AutomationListResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oas/automations/{automation}": {
+      "get": {
+        "tags": ["OAS Automations"],
+        "summary": "Consultar metadados de uma automacao",
+        "description": "Retorna nome, descricao e parametros de uma automacao especifica.",
+        "operationId": "getOasAutomation",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "automation",
+            "in": "path",
+            "required": true,
+            "description": "Nome da automacao (ex: get_pods, get_all_resources)",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metadados da automacao",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "automation": { "$ref": "#/components/schemas/AutomationMetadata" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nome da automacao ausente na URL"
+          },
+          "404": {
+            "description": "Automacao nao encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": false },
+                    "error": { "type": "string", "example": "Automation not found" },
+                    "automation": { "type": "string" },
+                    "available": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["OAS Automations"],
+        "summary": "Executar automacao OAS",
+        "description": "Executa uma automacao especifica no Agent do cluster/namespace informado. Requer JWT com scope EXECUTE.",
+        "operationId": "postOasAutomation",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "automation",
+            "in": "path",
+            "required": true,
+            "description": "Nome da automacao a executar",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["cluster", "namespace"],
+                "properties": {
+                  "cluster": {
+                    "type": "string",
+                    "description": "Cluster de destino",
+                    "example": "k8shmlbb111b"
+                  },
+                  "namespace": {
+                    "type": "string",
+                    "description": "Namespace de destino",
+                    "example": "psc-sre-automacao"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Execucao aceita",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean", "example": true },
+                    "execId": { "type": "string", "format": "uuid" },
+                    "status": { "type": "string", "example": "RUNNING" },
+                    "automation": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "cluster": { "type": "string" },
+                    "namespace": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos obrigatorios ausentes (cluster, namespace)"
+          },
+          "404": {
+            "description": "Automacao ou Agent nao encontrado"
+          },
+          "502": {
+            "description": "Falha na comunicacao com o Agent"
+          },
+          "504": {
+            "description": "Timeout aguardando resposta do Agent"
           }
         }
       }
@@ -426,7 +862,13 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "Token JWT assinado pelo Controller. Algoritmo HS256, issuer=psc-sre-automacao-controller, audience=psc-sre-automacao-agent."
+        "description": "Token JWT emitido por POST /auth/token. Algoritmo HS256, issuer=psc-sre-automacao-controller."
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API Key para emissao de tokens JWT e consulta de scopes. Configurada via AUTH_API_KEYS_SCOPES no Kubernetes Secret."
       },
       "internalOrigin": {
         "type": "apiKey",
@@ -443,6 +885,118 @@
           "error": { "type": "string", "description": "Mensagem de erro" },
           "detail": { "type": "string", "description": "Detalhes adicionais do erro" },
           "execId": { "type": "string", "format": "uuid", "description": "ID da execucao, quando disponivel" }
+        }
+      },
+      "ServiceInfoResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "service": { "type": "string", "example": "psc-sre-automacao-controller" },
+          "version": { "type": "string", "example": "3.5.5" },
+          "message": { "type": "string", "example": "Server online" },
+          "endpoints": {
+            "type": "object",
+            "description": "Mapa de todos os endpoints disponiveis",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "description": "JWT assinado" },
+          "tokenType": { "type": "string", "example": "Bearer" },
+          "expiresIn": { "type": "string", "example": "5m" },
+          "howToUse": { "type": "string", "example": "Authorization: Bearer <token>" }
+        }
+      },
+      "RouteScopesResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "source": {
+            "type": "object",
+            "properties": {
+              "kind": { "type": "string", "enum": ["kubernetes-secret", "environment"] }
+            }
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string" },
+                "path": { "type": "string" },
+                "auth": { "type": "string" },
+                "requiresToken": { "type": "boolean" },
+                "requiredScope": { "type": "string", "nullable": true },
+                "note": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "AgentListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "count": { "type": "integer" },
+          "agents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": { "type": "string" },
+                "cluster": { "type": "string" },
+                "environment": { "type": "string", "enum": ["desenv", "hml", "prod"] },
+                "registeredAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        }
+      },
+      "ControllerInfoResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "success": { "type": "boolean", "example": true },
+          "id": { "type": "string" },
+          "service": { "type": "string", "example": "psc-sre-automacao-controller" },
+          "hostname": { "type": "string" },
+          "now": { "type": "string", "format": "date-time" },
+          "timezone": { "type": "string", "example": "America/Sao_Paulo" },
+          "note": { "type": "string" }
+        }
+      },
+      "AutomationMetadata": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "get_pods" },
+          "description": { "type": "string", "example": "Lista pods do namespace especificado" },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean" },
+                "description": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "AutomationListResponse": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean", "example": true },
+          "count": { "type": "integer" },
+          "automations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AutomationMetadata" }
+          }
         }
       },
       "AsyncExecuteResponse": {

@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T17:59:21Z",
+  "runId": "23451642777",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23451642777",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+  "commitMessage": "fix: use jest.advanceTimersByTimeAsync for proper fake timer + async handling",
+  "commitSha": "0629502d9741de151f282c6e5f19015423ce4409",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

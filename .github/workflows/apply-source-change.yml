@@ -368,36 +368,29 @@ jobs:
 
       - name: "Lint check (our files)"
         working-directory: /tmp/source
+        timeout-minutes: 10
         env:
           CHANGES_B64: ${{ needs.setup.outputs.changes_b64 }}
         run: |
           CHANGE="${{ needs.setup.outputs.change_type }}"
 
-          # Collect files to lint
-          LINT_FILES=()
+          # For multi-file changes, skip per-file lint — the next step
+          # "Fix pre-existing lint errors" handles full src/ lint
           if [ "$CHANGE" = "multi-file" ]; then
-            CHANGES=$(echo "$CHANGES_B64" | base64 -d)
-            for TPATH in $(echo "$CHANGES" | jq -r '.[].target_path'); do
-              EXT="${TPATH##*.}"
-              [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]] && LINT_FILES+=("$TPATH")
-            done
-          else
-            TARGET="${{ needs.setup.outputs.target_path }}"
-            EXT="${TARGET##*.}"
-            [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]] && LINT_FILES+=("$TARGET")
-          fi
-
-          if [ ${#LINT_FILES[@]} -eq 0 ]; then
-            echo "No JS/TS files to lint, skipping"
+            echo "Multi-file change: deferring lint to pre-existing lint fix step"
             exit 0
           fi
 
-          echo "=== Running lint on ${#LINT_FILES[@]} file(s) ==="
+          TARGET="${{ needs.setup.outputs.target_path }}"
+          EXT="${TARGET##*.}"
+          if [[ ! "$EXT" =~ ^(js|ts|jsx|tsx)$ ]]; then
+            echo "Not a JS/TS file, skipping lint"
+            exit 0
+          fi
+
+          echo "=== Running lint on $TARGET ==="
           npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
-          for F in "${LINT_FILES[@]}"; do
-            echo "  Linting: $F"
-            npx eslint "$F" --fix 2>/dev/null || echo "::warning ::Lint issues on $F"
-          done
+          npx eslint "$TARGET" --fix 2>/dev/null || echo "::warning ::Lint issues on $TARGET"
 
       - name: "Fix pre-existing lint errors"
         working-directory: /tmp/source

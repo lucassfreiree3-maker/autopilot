@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "src/controllers/execute.controller.ts,src/__tests__/unit/agents-execute-logs.controller.test.ts,src/__tests__/unit/execute.controller.test.ts",
-  "run": 5
+  "files": "package.json",
+  "run": 6
 }

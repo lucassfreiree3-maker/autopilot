@@ -1,6 +1,6 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "package.json,package-lock.json,src/swagger/swagger.json,src/middleware/oas-origin-auth.ts",
-  "run": 9
+  "files": "src/app.ts,src/main.ts,src/routes.ts,src/routes/index.ts,src/controllers/oas-sre-controller.controller.ts,src/controllers/agents-execute-logs.controller.ts,src/controllers/execute.controller.ts,src/controllers/agents.controller.ts,src/controllers/auth.controller.ts,src/controllers/health.controller.ts,src/middleware/jwt.ts,src/middleware/scopes.ts,src/auth/scopes.ts",
+  "run": 10
 }

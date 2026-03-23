@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T17:07:34Z",
+  "runId": "23449855022",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23449855022",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+  "commitMessage": "fix: flush async microtasks before advancing fake timers in waitForFinalExecution tests",
+  "commitSha": "f6f2de2b3853ae02fda4442d4fabfbcae341a7c7",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

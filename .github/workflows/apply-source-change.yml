@@ -71,6 +71,7 @@ jobs:
       change_type: ${{ steps.cfg.outputs.change_type }}
       target_path: ${{ steps.cfg.outputs.target_path }}
       file_content_b64: ${{ steps.cfg.outputs.file_content_b64 }}
+      changes_b64: ${{ steps.cfg.outputs.changes_b64 }}
       commit_message: ${{ steps.cfg.outputs.commit_message }}
       skip_ci: ${{ steps.cfg.outputs.skip_ci }}
       promote: ${{ steps.cfg.outputs.promote }}
@@ -141,6 +142,14 @@ jobs:
           echo "image_pattern=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')" >> "$GITHUB_OUTPUT"
           # Base64 encode file_content to avoid shell quoting issues
           echo "file_content_b64=$(echo "$FILE_CONTENT" | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+          # For multi-file changes, export the changes array
+          if [ "$CHANGE_TYPE" = "multi-file" ]; then
+            CHANGES=$(echo "$TRIG" | jq -c '.changes // []')
+            echo "changes_b64=$(echo "$CHANGES" | base64 -w0)" >> "$GITHUB_OUTPUT"
+          else
+            echo "changes_b64=" >> "$GITHUB_OUTPUT"
+          fi
 
           # ── Summary ──
           echo "## 1. Setup" >> "$GITHUB_STEP_SUMMARY"
@@ -269,49 +278,125 @@ jobs:
             -not -path './node_modules/*' \
             -not -path './dist/*' | sort | head -50
 
+      - name: "Checkout autopilot (for patch files)"
+        if: needs.setup.outputs.change_type == 'multi-file'
+        uses: actions/checkout@v4
+        with:
+          path: /tmp/autopilot
+
       - name: "Apply change"
         working-directory: /tmp/source
         env:
           FILE_CONTENT_B64: ${{ needs.setup.outputs.file_content_b64 }}
+          CHANGES_B64: ${{ needs.setup.outputs.changes_b64 }}
         run: |
           TARGET="${{ needs.setup.outputs.target_path }}"
           CHANGE="${{ needs.setup.outputs.change_type }}"
 
           # Decode content from base64 (avoids shell quoting issues)
-          CONTENT=$(echo "$FILE_CONTENT_B64" | base64 -d)
+          CONTENT=$(echo "$FILE_CONTENT_B64" | base64 -d 2>/dev/null || echo "")
 
-          echo "=== Applying $CHANGE to $TARGET ==="
+          echo "=== Applying $CHANGE ==="
           case "$CHANGE" in
             add-file)
+              echo "Target: $TARGET"
               mkdir -p "$(dirname "$TARGET")"
               echo "$CONTENT" > "$TARGET"
               echo "Created: $TARGET"
               cat "$TARGET"
               ;;
             modify-file)
+              echo "Target: $TARGET"
               [ ! -f "$TARGET" ] && { echo "::error ::File not found: $TARGET"; exit 1; }
               echo "=== Before ===" && cat "$TARGET"
               echo "$CONTENT" > "$TARGET"
               echo "=== After ===" && cat "$TARGET"
               ;;
             delete-lines)
+              echo "Target: $TARGET"
               [ ! -f "$TARGET" ] && { echo "::error ::File not found: $TARGET"; exit 1; }
               echo "Deleting $TARGET" && rm "$TARGET"
               ;;
+            multi-file)
+              CHANGES=$(echo "$CHANGES_B64" | base64 -d)
+              COUNT=$(echo "$CHANGES" | jq 'length')
+              echo "Processing $COUNT file changes..."
+
+              for i in $(seq 0 $((COUNT - 1))); do
+                ITEM=$(echo "$CHANGES" | jq -c ".[$i]")
+                ACTION=$(echo "$ITEM" | jq -r '.action')
+                TPATH=$(echo "$ITEM" | jq -r '.target_path')
+                echo ""
+                echo "--- [$((i+1))/$COUNT] $ACTION → $TPATH ---"
+
+                case "$ACTION" in
+                  search-replace)
+                    SEARCH=$(echo "$ITEM" | jq -r '.search')
+                    REPLACE=$(echo "$ITEM" | jq -r '.replace')
+                    [ ! -f "$TPATH" ] && { echo "::error ::File not found: $TPATH"; exit 1; }
+                    BEFORE=$(grep -c "$SEARCH" "$TPATH" 2>/dev/null || echo "0")
+                    echo "Found $BEFORE occurrences of: $SEARCH"
+                    if [ "$BEFORE" = "0" ]; then
+                      echo "::warning ::Pattern not found in $TPATH, skipping"
+                    else
+                      sed -i "s|${SEARCH}|${REPLACE}|g" "$TPATH"
+                      echo "Replaced with: $REPLACE"
+                    fi
+                    ;;
+                  replace-file)
+                    CONTENT_REF=$(echo "$ITEM" | jq -r '.content_ref')
+                    PATCH_PATH="/tmp/autopilot/${CONTENT_REF}"
+                    if [ ! -f "$PATCH_PATH" ]; then
+                      echo "::error ::Patch file not found: $CONTENT_REF"
+                      exit 1
+                    fi
+                    mkdir -p "$(dirname "$TPATH")"
+                    cp "$PATCH_PATH" "$TPATH"
+                    echo "Replaced from: $CONTENT_REF ($(wc -l < "$TPATH") lines)"
+                    ;;
+                  *)
+                    echo "::error ::Unknown action: $ACTION"
+                    exit 1
+                    ;;
+                esac
+              done
+              echo ""
+              echo "=== All $COUNT changes applied ==="
+              ;;
           esac
 
-      - name: "Lint check (our file)"
+      - name: "Lint check (our files)"
         working-directory: /tmp/source
+        env:
+          CHANGES_B64: ${{ needs.setup.outputs.changes_b64 }}
         run: |
-          TARGET="${{ needs.setup.outputs.target_path }}"
-          EXT="${TARGET##*.}"
-          if [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]]; then
-            echo "=== Running lint on $TARGET ==="
-            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
-            npx eslint "$TARGET" --fix 2>/dev/null || echo "::warning ::Lint issues on our file"
+          CHANGE="${{ needs.setup.outputs.change_type }}"
+
+          # Collect files to lint
+          LINT_FILES=()
+          if [ "$CHANGE" = "multi-file" ]; then
+            CHANGES=$(echo "$CHANGES_B64" | base64 -d)
+            for TPATH in $(echo "$CHANGES" | jq -r '.[].target_path'); do
+              EXT="${TPATH##*.}"
+              [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]] && LINT_FILES+=("$TPATH")
+            done
           else
-            echo "Not a JS/TS file, skipping lint"
+            TARGET="${{ needs.setup.outputs.target_path }}"
+            EXT="${TARGET##*.}"
+            [[ "$EXT" =~ ^(js|ts|jsx|tsx)$ ]] && LINT_FILES+=("$TARGET")
           fi
+
+          if [ ${#LINT_FILES[@]} -eq 0 ]; then
+            echo "No JS/TS files to lint, skipping"
+            exit 0
+          fi
+
+          echo "=== Running lint on ${#LINT_FILES[@]} file(s) ==="
+          npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
+          for F in "${LINT_FILES[@]}"; do
+            echo "  Linting: $F"
+            npx eslint "$F" --fix 2>/dev/null || echo "::warning ::Lint issues on $F"
+          done
 
       - name: "Fix pre-existing lint errors"
         working-directory: /tmp/source

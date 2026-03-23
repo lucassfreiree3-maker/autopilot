@@ -293,10 +293,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 35,
+    "lastTriggerRun": 36,
     "lastSuccessfulRun": 34,
     "lastDeployPR": 93,
-    "pipelineStatus": "PENDING — run #35 (3.5.6) fix: mint JWT for internal-origin agent calls.",
+    "pipelineStatus": "PENDING — run #36 (3.5.6) fix: mint JWT for internal-origin agent calls. Run #35 falhou no CI Gate.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [

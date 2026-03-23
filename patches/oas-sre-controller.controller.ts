@@ -292,7 +292,7 @@ function mintInternalOriginJwt(execId: string): string | undefined {
   const token = jwt.sign(
     {
       execId,
-      scopes: [executeScope],
+      scope: [executeScope],
       origin: "internal-origin",
     },
     secret,

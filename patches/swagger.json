@@ -3,7 +3,7 @@
   "info": {
     "title": "PSC SRE Automacao Controller",
     "description": "API do Controller de automacao SRE. Orquestra a execucao de automacoes nos Agents distribuidos por cluster, gerencia logs de execucao, autenticacao JWT e integracao com o OAS (Orquestrador de Automacao de Servicos).",
-    "version": "3.5.5",
+    "version": "3.5.6",
     "contact": {
       "name": "PSC SRE Automacao"
     }

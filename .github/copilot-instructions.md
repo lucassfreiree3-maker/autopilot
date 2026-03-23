@@ -30,10 +30,10 @@ lucassfreiree/autopilot (this repo)
   agent-release-state.json
   controller-release-state.json
   release-freeze.json
-  locks/ (1 files)
-  audit/ (68 files)
+  locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  audit/ (71 files)
   improvements/ (1 files)
-  metrics/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  metrics/ (1 files)
   handoffs/ (1 files)
   approvals/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
 
@@ -136,6 +136,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | apply-source-change.yml | Apply Source Code Change | trigger file, manual |
 | backup-state.yml | Backup State | scheduled, manual |
 | bootstrap.yml | Bootstrap: Full Setup | manual |
+| check-repo-access.yml | Check Repo Access | manual |
 | ci-diagnose.yml | CI Diagnose: Fetch Error Logs | trigger file, manual |
 | ci-failure-analysis.yml | CI Failure Analysis | manual |
 | cleanup-branches.yml | Cleanup: Stale Branches | scheduled, manual, PR |
@@ -236,4 +237,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-22T20:11:46Z | Run: 23411513442*
+*Last synced: 2026-03-23T13:03:28Z | Run: 23438655994*

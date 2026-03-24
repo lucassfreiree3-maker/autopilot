@@ -2,18 +2,18 @@
   "workspaceId": "ws-default",
   "component": "controller",
   "sourceRepo": "bbvinet/psc-sre-automacao-controller",
-  "commitSha": "c90133b40674703d2dfc7d8c064ac4a024017788",
-  "commitMessage": "fix: update all test assertions for generic 401 messages (3.5.8)",
+  "commitSha": "6ef629a9c09f1773e5d9ad23dc4badd7beec6082",
+  "commitMessage": "fix: generic 401 in jwt.ts AND jwt-callback.ts + all test assertions (3.5.9)",
   "commitAuthor": "github-actions",
-  "diagnosedAt": "2026-03-24T13:26:24Z",
-  "runId": "23491756631",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23491756631",
+  "diagnosedAt": "2026-03-24T13:50:36Z",
+  "runId": "23492873478",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23492873478",
   "reproduction": {
     "scripts": "  build: tsc -p ./tsconfig.json\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  prestart: npm run build\n  dev: nodemon --watch src --exec ts-node-dev src/server.ts\n  test: jest\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --passWithNoTests --forceExit\n",
     "lintErrors": [],
     "buildSuccess": false,
     "buildLog": "  The file is in the program because:\n    Entry point for implicit type library 'strip-bom'\nerror TS2688: Cannot find type definition file for 'strip-json-comments'.\n  The file is in the program because:\n    Entry point for implicit type library 'strip-json-comments'\nerror TS2688: Cannot find type definition file for 'superagent'.\n  The file is in the program because:\n    Entry point for implicit type library 'superagent'\nerror TS2688: Cannot find type definition file for 'supertest'.\n  The file is in the program because:\n    Entry point for implicit type library 'supertest'\nerror TS2688: Cannot find type definition file for 'swagger-jsdoc'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-jsdoc'\nerror TS2688: Cannot find type definition file for 'swagger-ui-express'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-ui-express'\nerror TS2688: Cannot find type definition file for 'uuid'.\n  The file is in the program because:\n    Entry point for implicit type library 'uuid'\nerror TS2688: Cannot find type definition file for 'validator'.\n  The file is in the program because:\n    Entry point for implicit type library 'validator'\nerror TS2688: Cannot find type definition file for 'yargs'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs'\nerror TS2688: Cannot find type definition file for 'yargs-parser'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs-parser'\nBuild failed or not available\n",
     "testSuccess": false,
-    "testLog": "\n> psc-sre-automacao-controller@3.5.8 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
+    "testLog": "\n> psc-sre-automacao-controller@3.5.9 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
   }
 }

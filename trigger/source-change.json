@@ -15,26 +15,36 @@
       "content_ref": "patches/oas-sre-controller.route.test.ts"
     },
     {
+      "target_path": "src/__tests__/unit/agentsRouter.test.ts",
+      "action": "replace-file",
+      "content_ref": "patches/agentsRouter.test.ts"
+    },
+    {
+      "target_path": "src/__tests__/unit/jwt.middleware.test.ts",
+      "action": "replace-file",
+      "content_ref": "patches/jwt.middleware.test.ts"
+    },
+    {
       "target_path": "package.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.6\"",
-      "replace": "\"version\": \"3.5.7\""
+      "search": "\"version\": \"3.5.7\"",
+      "replace": "\"version\": \"3.5.8\""
     },
     {
       "target_path": "package-lock.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.6\"",
-      "replace": "\"version\": \"3.5.7\""
+      "search": "\"version\": \"3.5.7\"",
+      "replace": "\"version\": \"3.5.8\""
     },
     {
       "target_path": "src/swagger/swagger.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.6\"",
-      "replace": "\"version\": \"3.5.7\""
+      "search": "\"version\": \"3.5.7\"",
+      "replace": "\"version\": \"3.5.8\""
     }
   ],
-  "commit_message": "fix: generic 401 error messages + update test assertions (3.5.7)",
+  "commit_message": "fix: update all test assertions for generic 401 messages (3.5.8)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 40
+  "run": 41
 }

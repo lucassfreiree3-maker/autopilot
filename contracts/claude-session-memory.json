@@ -372,8 +372,8 @@
   },
 
   "versioningRules": {
-    "currentVersion": "3.5.7",
-    "previousVersion": "3.5.6",
+    "currentVersion": "3.5.8",
+    "previousVersion": "3.5.7",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versionFiles": [
       { "file": "package.json", "line": 3, "field": "version" },
@@ -412,10 +412,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 40,
+    "lastTriggerRun": 41,
     "lastSuccessfulRun": 38,
     "lastDeployPR": 104,
-    "pipelineStatus": "PENDING — run #40 (3.5.7) fix: test assertion 'Missing Bearer token' → 'Unauthorized'. Run #39 falhou porque teste esperava mensagem antiga.",
+    "pipelineStatus": "PENDING — run #41 (3.5.8) fix: ALL test assertions for generic 401. Runs 39-40 falharam porque 3 arquivos de teste esperavam mensagens antigas (agentsRouter.test.ts, jwt.middleware.test.ts, oas-sre-controller.route.test.ts).",
     "lastSuccessfulRun": 38,
     "multiFilePayload": {
       "change_type": "multi-file",
@@ -785,7 +785,9 @@
       "ts2769_jwt_sign": "expiresIn string nao aceito por @types/jsonwebtoken@9.0.6. Usar parseExpiresIn() com cast as jwt.SignOptions['expiresIn']. Copiar pattern do auth.controller.ts",
       "eslint_no_use_before_define": "ESLint rejeita funcoes chamadas antes da definicao. SEMPRE ordenar: funcoes auxiliares PRIMEIRO, funcoes que as usam DEPOIS. Verificar com: grep -n 'function ' file | sort -t: -k2 -n",
       "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install — erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
-      "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-diagnosis-controller.json no autopilot-state. Campo buildLog tem o erro exato. Corrigir patch, bump run, re-deploy automaticamente"
+      "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-logs-controller-*.txt no autopilot-state (ultimo arquivo = ultimo run). Corrigir patch, bump run, re-deploy automaticamente",
+      "error_message_change_breaks_tests": "CRITICO: Ao mudar qualquer mensagem de erro (ex: 401 response body), buscar TODOS os testes que verificam essa mensagem. Usar: grep -rn 'mensagem_antiga' src/__tests__/ para encontrar TODOS. Arquivos de teste afetados por mudanca no jwt.ts: agentsRouter.test.ts, jwt.middleware.test.ts, oas-sre-controller.route.test.ts",
+      "ci_gate_preexisting_bug": "CI Gate 'smart pre-existing detection' compara com commit anterior. Se 2 commits consecutivos falharem pelo MESMO motivo (ex: run 39 sem fix teste + run 40 com fix parcial), CI Gate classifica como pre-existing e PASSA. Resultado: autopilot mostra SUCCESS mas esteira corporativa FAILED. NAO confiar 100% no CI Gate — SEMPRE verificar ci-logs apos deploy."
     }
   },
 

@@ -2,7 +2,7 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.5.8",
+  "version": "3.5.9",
   "changes": [
     {
       "target_path": "src/middleware/jwt.ts",
@@ -30,26 +30,31 @@
       "content_ref": "patches/jwt.middleware.test.ts"
     },
     {
+      "target_path": "src/__tests__/unit/jwt-callback.middleware.test.ts",
+      "action": "replace-file",
+      "content_ref": "patches/jwt-callback.middleware.test.ts"
+    },
+    {
       "target_path": "package.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.8\"",
-      "replace": "\"version\": \"3.5.9\""
+      "search": "\"version\": \"3.5.9\"",
+      "replace": "\"version\": \"3.5.10\""
     },
     {
       "target_path": "package-lock.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.8\"",
-      "replace": "\"version\": \"3.5.9\""
+      "search": "\"version\": \"3.5.9\"",
+      "replace": "\"version\": \"3.5.10\""
     },
     {
       "target_path": "src/swagger/swagger.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.8\"",
-      "replace": "\"version\": \"3.5.9\""
+      "search": "\"version\": \"3.5.9\"",
+      "replace": "\"version\": \"3.5.10\""
     }
   ],
-  "commit_message": "fix: generic 401 in jwt.ts AND jwt-callback.ts + all test assertions (3.5.9)",
+  "commit_message": "fix: generic 401 in all middlewares + all 4 test files (3.5.10)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 42
+  "run": 43
 }

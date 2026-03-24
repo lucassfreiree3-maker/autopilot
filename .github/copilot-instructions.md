@@ -31,7 +31,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (140 files)
+  audit/ (141 files)
   improvements/ (1 files)
   metrics/ (2 files)
   handoffs/ (1 files)
@@ -131,36 +131,36 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 
 | File | Name | Triggers |
 |---|---|---|
-| agent-sync.yml | Agent Sync: Claude <-> ChatGPT | trigger file, manual |
-| alert-notify.yml | Alert & Notify | manual |
-| apply-source-change.yml | Apply Source Code Change | trigger file, manual |
-| backup-state.yml | Backup State | scheduled, manual |
-| bootstrap.yml | Bootstrap: Full Setup | manual |
-| check-repo-access.yml | Check Repo Access | push, manual |
-| ci-diagnose.yml | CI Diagnose: Fetch Error Logs | trigger file, manual |
-| ci-failure-analysis.yml | CI Failure Analysis | manual |
-| cleanup-branches.yml | Cleanup: Stale Branches | scheduled, manual, PR |
-| continuous-improvement.yml | Continuous Improvement | scheduled, trigger file, manual |
-| deploy-panel.yml | Deploy Panel | push, manual |
-| drift-correction.yml | Drift Correction | scheduled, manual |
-| enqueue-agent-handoff.yml | Enqueue Agent Handoff | manual |
-| fetch-files.yml | Fetch: Corporate Source Files | trigger file, manual |
-| fix-and-validate.yml | Fix CI + Validate Full Flow | trigger file, manual |
-| fix-corporate-ci.yml | Fix: Corporate CI Errors | trigger file, manual |
-| health-check.yml | Health Check | scheduled, manual |
-| langchain-orchestrator.yml | LangChain Orchestrator | manual, reusable |
-| record-improvement.yml | Record Improvement | manual |
-| release-agent.yml | Autopilot: Agent Release | manual |
-| release-approval.yml | Release Approval Gate | manual |
-| release-controller.yml | Autopilot: Controller Release | manual |
-| release-freeze.yml | Release Freeze | manual |
-| release-metrics.yml | Release Metrics | scheduled, manual |
-| restore-state.yml | Restore State (Rollback) | manual |
-| seed-workspace.yml | Seed Workspace | manual |
-| session-guard.yml | Session Guard: Prevent Concurrent Agent Conflicts | reusable |
-| test-corporate-flow.yml | Test: Corporate E2E Flow | trigger file, manual |
-| test-full-flow.yml | Test: Full Flow (Controller + Agent) | trigger file, manual |
-| workspace-lock-gc.yml | Lock GC | scheduled, manual |
+| agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
+| alert-notify.yml | [Infra] Alert & Notify | manual |
+| apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
+| backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
+| bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
+| check-repo-access.yml | [Corp] Check: Repo Access | push, manual |
+| ci-diagnose.yml | [Corp] CI: Diagnose Error Logs | trigger file, manual |
+| ci-failure-analysis.yml | [Agent] CI Failure Analysis | manual |
+| cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
+| continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
+| deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
+| drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
+| enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
+| fetch-files.yml | [Corp] Fetch: Source Files | trigger file, manual |
+| fix-and-validate.yml | [Corp] Fix: CI + Validate Full Flow | trigger file, manual |
+| fix-corporate-ci.yml | [Corp] Fix: CI Lint Errors | trigger file, manual |
+| health-check.yml | [Core] Health Check | scheduled, manual |
+| langchain-orchestrator.yml | [Agent] LangChain Orchestrator | manual, reusable |
+| record-improvement.yml | [Agent] Record Improvement | manual |
+| release-agent.yml | [Release] Agent | manual |
+| release-approval.yml | [Release] Approval Gate | manual |
+| release-controller.yml | [Release] Controller | manual |
+| release-freeze.yml | [Release] Freeze / Unfreeze | manual |
+| release-metrics.yml | [Release] Metrics | scheduled, manual |
+| restore-state.yml | [Core] Restore: State Rollback | manual |
+| seed-workspace.yml | [Core] Seed Workspace | manual |
+| session-guard.yml | [Core] Session Guard | reusable |
+| test-corporate-flow.yml | [Corp] Test: Corporate E2E Flow | trigger file, manual |
+| test-full-flow.yml | [Corp] Test: Full Flow (Controller + Agent) | trigger file, manual |
+| workspace-lock-gc.yml | [Core] Lock GC | scheduled, manual |
 
 
 ### Dispatch Inputs
@@ -237,4 +237,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 
 ---
-*Last synced: 2026-03-24T12:05:12Z | Run: 23488501813*
+*Last synced: 2026-03-24T12:25:06Z | Run: 23489267644*

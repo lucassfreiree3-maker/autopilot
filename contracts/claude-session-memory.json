@@ -328,7 +328,8 @@
     "lastTriggerRun": 38,
     "lastSuccessfulRun": 36,
     "lastDeployPR": 104,
-    "pipelineStatus": "PENDING — run #38 (3.5.6) fix ESLint no-use-before-define. Run #37 apply-source-change OK mas esteira corporativa falhou com ESLint.",
+    "pipelineStatus": "SUCCESS — run #38 (3.5.6) COMPLETO. Autopilot 7/7 stages OK + Esteira corporativa #203 OK. Imagem Docker 3.5.6 publicada.",
+    "lastSuccessfulRun": 38,
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -406,7 +407,7 @@
         "step": "Esteira corporativa — ESLint no-use-before-define (run 37)",
         "cause": "readAuthDecision() era usada na linha 328 mas definida na linha 369. ESLint no-use-before-define rejeita funcoes chamadas antes da definicao.",
         "fix": "Movido readAuthDecision() para antes de getAgentAuthorization(). Definicao na linha 320, uso nas linhas 333 e 419.",
-        "fixedInPR": "pendente",
+        "fixedInPR": 110,
         "fixedInRun": 38,
         "lesson": "SEMPRE definir funcoes ANTES de usa-las no arquivo. ESLint no-use-before-define nao aceita hoisting. Verificar ordenacao de funcoes auxiliares.",
         "diagnosticPattern": "error  'xxx' was used before it was defined  no-use-before-define"
@@ -415,7 +416,7 @@
         "step": "Esteira corporativa — TS2769 No overload matches jwt.sign (run 36)",
         "cause": "expiresIn era string pura ('5m') mas @types/jsonwebtoken@9.0.6 espera number | StringValue. TypeScript rejeitou o tipo.",
         "fix": "Adicionado parseExpiresIn() que converte string para jwt.SignOptions['expiresIn'] com cast correto. Copiado do auth.controller.ts existente no projeto.",
-        "fixedInPR": "pendente",
+        "fixedInPR": 108,
         "fixedInRun": 37,
         "lesson": "SEMPRE verificar tipagem de @types/jsonwebtoken. expiresIn DEVE ser castado via as jwt.SignOptions['expiresIn']. Usar parseExpiresIn() do auth.controller.ts como referencia.",
         "diagnosticPattern": "error TS2769: No overload matches this call + Type 'string' is not assignable to type 'number | StringValue | undefined'"
@@ -446,6 +447,14 @@
         "result": "SUCCESS — swagger completo com 18 rotas + version bump 3.5.5 deployado."
       },
       {
+        "run": 38,
+        "date": "2026-03-24",
+        "version": "3.5.6",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Promote to CAP", "Save State", "Audit"],
+        "result": "SUCCESS — fix ESLint no-use-before-define. Esteira corporativa #203 OK. Imagem Docker 3.5.6 publicada.",
+        "corporateCI": {"esteiraRun": 203, "commitSha": "02f0585", "duration": "13m 39s", "status": "SUCCESS"}
+      },
+      {
         "run": 36,
         "date": "2026-03-23",
         "version": "3.5.6",
@@ -453,7 +462,21 @@
         "result": "SUCCESS — mintInternalOriginJwt para chamadas internal-origin. Fix 401 agent. 3 deploys consecutivos com sucesso (33, 34, 36)."
       }
     ],
-    "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar."
+    "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar.",
+    "pollingStrategy": {
+      "description": "REGRA CRITICA: NUNCA usar sleep longo (5 min). Usar polling curto e frequente.",
+      "wrongApproach": "sleep 300 entre checks — desperdicou tempo, usuario ja viu resultado antes de mim",
+      "correctApproach": "sleep 30-60 segundos entre checks. Fazer WebFetch a cada 30-60s para verificar status.",
+      "protocol": [
+        "1. Apos disparar workflow: esperar 30s, fazer primeiro check",
+        "2. Se in_progress: esperar 30s, check novamente",
+        "3. Repetir ate completed (sucesso ou falha)",
+        "4. Para CI Gate (espera esteira corporativa): polls a cada 60s (pode demorar ate 20 min)",
+        "5. AVISAR usuario IMEDIATAMENTE ao detectar conclusao",
+        "6. NUNCA dormir mais de 60 segundos entre checks"
+      ],
+      "lesson": "Polling de 5 min e INACEITAVEL. Usuario ve resultado na dashboard antes do Claude. Usar polling de 30-60s."
+    }
   },
 
   "corporateCIMonitoring": {

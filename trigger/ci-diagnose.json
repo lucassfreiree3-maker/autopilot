@@ -1,7 +1,7 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "commit_sha": "",
-  "note": "Verify corporate CI passing after TS2769 fix (run 37)",
-  "run": 12
+  "commit_sha": "d932d7c35dbbe81120096d274be324198b6d3ffe",
+  "note": "Diagnose esteira #205 failure (run 40 - generic 401 + test fix)",
+  "run": 14
 }

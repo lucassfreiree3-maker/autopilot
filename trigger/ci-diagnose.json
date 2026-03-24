@@ -1,7 +1,7 @@
 {
   "workspace_id": "ws-default",
   "component": "controller",
-  "commit_sha": "6ef629a9c09f1773e5d9ad23dc4badd7beec6082",
-  "note": "Diagnose esteira #207 failure (run 42 - jwt-callback.ts fix 3.5.9)",
-  "run": 16
+  "commit_sha": "13a6a8bc238948fc3cfb46fe07c1c2db808357a4",
+  "note": "Check esteira #208 (run 43 - all test fixes 3.5.10). CI Gate says ci-failed-preexisting but run took 14+ min (tests passing?)",
+  "run": 17
 }

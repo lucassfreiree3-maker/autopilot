@@ -372,8 +372,8 @@
   },
 
   "versioningRules": {
-    "currentVersion": "3.5.9",
-    "previousVersion": "3.5.8",
+    "currentVersion": "3.5.10",
+    "previousVersion": "3.5.9",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versionFiles": [
       { "file": "package.json", "line": 3, "field": "version" },
@@ -412,10 +412,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 42,
-    "lastSuccessfulRun": 38,
+    "lastTriggerRun": 43,
+    "lastSuccessfulRun": 43,
     "lastDeployPR": 104,
-    "pipelineStatus": "PENDING — run #41 (3.5.8) fix: ALL test assertions for generic 401. Runs 39-40 falharam porque 3 arquivos de teste esperavam mensagens antigas (agentsRouter.test.ts, jwt.middleware.test.ts, oas-sre-controller.route.test.ts).",
+    "pipelineStatus": "SUCCESS — run #43 (3.5.10) COMPLETO. Esteira corporativa #208 PASSOU. Imagem Docker 3.5.10 publicada. NOTA: CI Gate reportou ci-failed-preexisting INCORRETAMENTE — esteira real passou.",
     "lastSuccessfulRun": 38,
     "multiFilePayload": {
       "change_type": "multi-file",
@@ -787,7 +787,7 @@
       "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install — erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
       "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-logs-controller-*.txt no autopilot-state (ultimo arquivo = ultimo run). Corrigir patch, bump run, re-deploy automaticamente",
       "error_message_change_breaks_tests": "CRITICO: Ao mudar qualquer mensagem de erro (ex: 401 response body), buscar TODOS os arquivos que retornam essa mensagem (jwt.ts, jwt-callback.ts, e qualquer outro middleware) E TODOS os testes que verificam. Usar: grep -rn 'mensagem_antiga' src/ para encontrar TODOS. Arquivos de CODIGO afetados: jwt.ts (3 mensagens), jwt-callback.ts (13 mensagens). Arquivos de TESTE afetados: agentsRouter.test.ts (4), jwt.middleware.test.ts (2), oas-sre-controller.route.test.ts (1). LESSON: jwt-callback.ts e um middleware SEPARADO do jwt.ts que tem suas PROPRIAS mensagens de erro. Ambos devem ser atualizados.",
-      "ci_gate_preexisting_bug": "CI Gate 'smart pre-existing detection' compara com commit anterior. Se 2 commits consecutivos falharem pelo MESMO motivo (ex: run 39 sem fix teste + run 40 com fix parcial), CI Gate classifica como pre-existing e PASSA. Resultado: autopilot mostra SUCCESS mas esteira corporativa FAILED. NAO confiar 100% no CI Gate — SEMPRE verificar ci-logs apos deploy."
+      "ci_gate_preexisting_bug": "CRITICO: CI Gate 'smart pre-existing detection' esta QUEBRADO. Reporta ciResult=failure MESMO quando a esteira corporativa PASSA. Aconteceu no run #43: esteira #208 PASSOU com sucesso mas CI Gate reportou ci-failed-preexisting. O CI Gate NAO e confiavel para determinar se a esteira passou ou falhou. Para saber o resultado REAL: 1) Checar ci-logs-controller-*.txt (se novo log apareceu com PASS em todos os testes = sucesso), 2) Perguntar ao usuario se necessario, 3) Tempo de execucao: esteira que FALHA em teste leva ~3.5 min, esteira que PASSA leva ~14 min. Se CI Gate levou 14+ min = provavelmente passou."
     }
   },
 

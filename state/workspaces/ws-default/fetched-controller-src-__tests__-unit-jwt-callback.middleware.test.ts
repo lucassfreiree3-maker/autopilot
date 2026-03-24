@@ -71,7 +71,7 @@ describe("JWT callback middleware (Agent → Controller)", () => {
     requireAgentCallbackJwt(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Missing Bearer token" });
+    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -87,7 +87,7 @@ describe("JWT callback middleware (Agent → Controller)", () => {
     requireAgentCallbackJwt(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid token" });
+    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
     expect(next).not.toHaveBeenCalled();
   });
 
@@ -114,7 +114,7 @@ describe("JWT callback middleware (Agent → Controller)", () => {
     requireAgentCallbackJwt(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid token" });
+    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
     expect(next).not.toHaveBeenCalled();
   });
 

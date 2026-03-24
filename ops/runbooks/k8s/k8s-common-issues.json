@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Kubernetes Common Issues",
+  "description": "Quick reference for common Kubernetes issues and resolutions",
+  "issues": {
+    "pod_crashloopbackoff": {
+      "symptoms": ["Pod status CrashLoopBackOff", "Container exiting with non-zero code"],
+      "diagnosis": [
+        "kubectl logs <pod> -n <ns> --previous",
+        "kubectl describe pod <pod> -n <ns>",
+        "Check exit code in container status",
+        "Check liveness/readiness probe configuration"
+      ],
+      "common_causes": [
+        "Application startup failure (missing config, wrong command)",
+        "OOMKilled (memory limit too low)",
+        "Liveness probe failing (wrong port, path, or timing)",
+        "Missing environment variables or secrets",
+        "Wrong image tag or entrypoint"
+      ],
+      "fixes": [
+        "Check and fix application configuration",
+        "Increase memory limits if OOMKilled",
+        "Adjust probe initialDelaySeconds and timeouts",
+        "Verify secrets and configmaps exist",
+        "Fix image reference"
+      ]
+    },
+    "pod_imagepullbackoff": {
+      "symptoms": ["Pod status ImagePullBackOff or ErrImagePull"],
+      "diagnosis": [
+        "kubectl describe pod <pod> -n <ns> | grep -A5 Events",
+        "Verify image exists: docker pull <image>",
+        "Check imagePullSecrets in pod spec"
+      ],
+      "common_causes": [
+        "Image does not exist in registry",
+        "Wrong image tag",
+        "Missing or expired imagePullSecrets",
+        "Private registry authentication failure",
+        "Registry rate limiting (Docker Hub)"
+      ],
+      "fixes": [
+        "Verify image name and tag",
+        "Create/update imagePullSecrets",
+        "Push image to registry",
+        "Use registry mirror for rate limiting"
+      ]
+    },
+    "pod_pending": {
+      "symptoms": ["Pod stuck in Pending state"],
+      "diagnosis": [
+        "kubectl describe pod <pod> -n <ns>",
+        "Check events for scheduling failures",
+        "kubectl get nodes -o wide",
+        "kubectl describe node <node>"
+      ],
+      "common_causes": [
+        "Insufficient CPU/memory on nodes",
+        "Node selector or affinity not matching",
+        "Taints preventing scheduling",
+        "PersistentVolumeClaim not bound",
+        "Resource quota exceeded"
+      ],
+      "fixes": [
+        "Scale up cluster or reduce resource requests",
+        "Fix node selector/affinity rules",
+        "Add tolerations for taints",
+        "Fix PVC or provision storage",
+        "Increase resource quota"
+      ]
+    },
+    "service_no_endpoints": {
+      "symptoms": ["Service returns no response", "Endpoints list is empty"],
+      "diagnosis": [
+        "kubectl get endpoints <svc> -n <ns>",
+        "kubectl get pods -l <selector> -n <ns>",
+        "Compare service selector with pod labels"
+      ],
+      "common_causes": [
+        "Service selector does not match pod labels",
+        "No pods running that match the selector",
+        "Pods not in Ready state",
+        "Wrong port in service spec"
+      ],
+      "fixes": [
+        "Fix label selector to match pods",
+        "Ensure pods are running and ready",
+        "Fix readiness probe",
+        "Correct port mapping"
+      ]
+    },
+    "hpa_not_scaling": {
+      "symptoms": ["HPA shows unknown/0% metrics", "Pods not scaling up"],
+      "diagnosis": [
+        "kubectl get hpa -n <ns>",
+        "kubectl describe hpa <name> -n <ns>",
+        "kubectl top pods -n <ns>"
+      ],
+      "common_causes": [
+        "metrics-server not installed or unhealthy",
+        "Resource requests not set on containers",
+        "Custom metrics not available",
+        "Min/max replicas misconfigured"
+      ],
+      "fixes": [
+        "Install/fix metrics-server",
+        "Set resource requests on containers",
+        "Fix custom metrics adapter",
+        "Adjust HPA min/max and thresholds"
+      ]
+    },
+    "ingress_not_working": {
+      "symptoms": ["502/503/504 from ingress", "DNS resolves but no response"],
+      "diagnosis": [
+        "kubectl get ingress -n <ns>",
+        "kubectl describe ingress <name> -n <ns>",
+        "Check ingress controller logs",
+        "Verify backend service and endpoints"
+      ],
+      "common_causes": [
+        "Backend service has no endpoints",
+        "TLS secret missing or invalid",
+        "Ingress class annotation missing",
+        "Path rewrite rules incorrect",
+        "Ingress controller not running"
+      ],
+      "fixes": [
+        "Fix backend service and pods",
+        "Create/update TLS secret",
+        "Add correct ingressClassName",
+        "Fix path and rewrite annotations",
+        "Restart ingress controller"
+      ]
+    }
+  }
+}

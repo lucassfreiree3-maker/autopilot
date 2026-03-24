@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "type": "checklist",
+  "name": "Troubleshooting Methodology",
+  "description": "Structured approach to troubleshooting any issue",
+  "methodology": {
+    "phase_1_observe": {
+      "name": "Observe & Collect",
+      "steps": [
+        "What is the exact error message or symptom?",
+        "When did the issue start? (timestamp)",
+        "What changed recently? (deploys, config, infra)",
+        "Who/what is affected? (users, services, regions)",
+        "Is it reproducible? (always, intermittent, specific conditions)",
+        "Check monitoring: dashboards, alerts, logs",
+        "Collect logs from affected services",
+        "Check resource utilization (CPU, memory, disk, network)"
+      ]
+    },
+    "phase_2_hypothesize": {
+      "name": "Hypothesize",
+      "steps": [
+        "List possible causes (minimum 3)",
+        "Rank by likelihood (most common first)",
+        "Rank by ease of verification",
+        "Start with the most likely + easiest to verify"
+      ]
+    },
+    "phase_3_test": {
+      "name": "Test & Validate",
+      "steps": [
+        "Test one hypothesis at a time",
+        "Use the simplest test that can confirm or eliminate",
+        "Record result of each test",
+        "If confirmed: proceed to fix",
+        "If eliminated: move to next hypothesis",
+        "If all eliminated: expand hypothesis list"
+      ]
+    },
+    "phase_4_fix": {
+      "name": "Fix & Verify",
+      "steps": [
+        "Apply the minimal fix that resolves the issue",
+        "Verify the fix resolves the symptom",
+        "Verify no new issues introduced",
+        "Monitor for recurrence (15-30 min)",
+        "Document the fix"
+      ]
+    },
+    "phase_5_learn": {
+      "name": "Learn & Prevent",
+      "steps": [
+        "Document root cause",
+        "Document timeline of events",
+        "Identify what would have prevented the issue",
+        "Create follow-up tasks (monitoring, alerts, tests, code fixes)",
+        "Update runbooks if applicable",
+        "Share findings with team"
+      ]
+    }
+  },
+  "quick_checks": {
+    "network": ["DNS resolution", "TCP connectivity", "TLS handshake", "HTTP response", "Firewall/security groups"],
+    "application": ["Process running", "Port listening", "Health endpoint", "Log errors", "Memory/CPU usage"],
+    "kubernetes": ["Pod status", "Pod logs", "Events", "Service endpoints", "Ingress config"],
+    "database": ["Connection", "Query performance", "Disk space", "Replication lag", "Lock contention"],
+    "ci_cd": ["Runner status", "Credentials valid", "Image available", "Resource limits", "Cache health"]
+  }
+}

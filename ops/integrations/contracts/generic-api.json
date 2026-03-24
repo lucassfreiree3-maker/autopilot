@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "name": "Generic API Contract Template",
+  "type": "rest-api",
+  "description": "Template for documenting REST API integrations",
+  "base_url": "${API_BASE_URL}",
+  "authentication": {
+    "type": "bearer|api_key|basic|oauth2",
+    "token_env_var": "${API_TOKEN}",
+    "header_name": "Authorization",
+    "header_format": "Bearer ${token}"
+  },
+  "rate_limits": {
+    "requests_per_second": null,
+    "requests_per_minute": null,
+    "note": "Document rate limits per endpoint when known"
+  },
+  "endpoints": [
+    {
+      "name": "Example GET",
+      "method": "GET",
+      "path": "/api/v1/resources",
+      "description": "List resources",
+      "params": {"page": "integer", "per_page": "integer"},
+      "response": {"type": "array", "items": "resource object"},
+      "status_codes": {"200": "Success", "401": "Unauthorized", "429": "Rate limited"}
+    },
+    {
+      "name": "Example POST",
+      "method": "POST",
+      "path": "/api/v1/resources",
+      "description": "Create resource",
+      "body": {"name": "string (required)", "config": "object"},
+      "response": {"type": "object", "description": "Created resource"},
+      "status_codes": {"201": "Created", "400": "Validation error", "409": "Conflict"}
+    }
+  ],
+  "error_handling": {
+    "pattern": "Check HTTP status code first, then parse error body",
+    "retry_on": [429, 500, 502, 503, 504],
+    "backoff": "exponential (2s, 4s, 8s, 16s)"
+  }
+}

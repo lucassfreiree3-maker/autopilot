@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Incident Response",
+  "description": "Standard operating procedure for incident response",
+  "severity_levels": {
+    "P1": {
+      "name": "Critical",
+      "description": "Service completely down or data loss",
+      "response_time": "15 minutes",
+      "resolution_target": "1 hour",
+      "escalation": "immediate"
+    },
+    "P2": {
+      "name": "High",
+      "description": "Service degraded, major feature broken",
+      "response_time": "30 minutes",
+      "resolution_target": "4 hours",
+      "escalation": "30 minutes"
+    },
+    "P3": {
+      "name": "Medium",
+      "description": "Minor feature broken, workaround available",
+      "response_time": "2 hours",
+      "resolution_target": "24 hours",
+      "escalation": "4 hours"
+    },
+    "P4": {
+      "name": "Low",
+      "description": "Cosmetic or minor issue",
+      "response_time": "24 hours",
+      "resolution_target": "1 week",
+      "escalation": "none"
+    }
+  },
+  "phases": [
+    {
+      "phase": "1. Detection & Triage",
+      "steps": [
+        "Identify the alert source (monitoring, user report, automated check)",
+        "Classify severity (P1-P4) based on impact and urgency",
+        "Open incident tracking entry with timestamp",
+        "Identify affected systems, services, and users",
+        "Assign incident owner"
+      ]
+    },
+    {
+      "phase": "2. Investigation",
+      "steps": [
+        "Gather initial data: logs, metrics, recent changes, deployments",
+        "Check monitoring dashboards for anomalies",
+        "Review recent deployments and config changes",
+        "Identify blast radius (which services/users affected)",
+        "Form initial hypothesis",
+        "Run diagnostic scripts: ops/scripts/troubleshooting/diagnose.sh"
+      ]
+    },
+    {
+      "phase": "3. Containment",
+      "steps": [
+        "If deployment-related: consider rollback",
+        "If config-related: revert configuration",
+        "If capacity-related: scale resources",
+        "If external dependency: activate fallbacks/circuit breakers",
+        "Communicate status to stakeholders"
+      ]
+    },
+    {
+      "phase": "4. Resolution",
+      "steps": [
+        "Apply fix (code, config, infra)",
+        "Validate fix in staging if possible",
+        "Deploy fix to production",
+        "Verify resolution with monitoring",
+        "Confirm with affected users if applicable"
+      ]
+    },
+    {
+      "phase": "5. Post-Incident",
+      "steps": [
+        "Document timeline of events",
+        "Record root cause",
+        "Identify preventive measures",
+        "Create follow-up tasks (monitoring, alerts, tests)",
+        "Update runbooks if needed",
+        "Log in ops-log.jsonl"
+      ]
+    }
+  ],
+  "diagnostic_commands": {
+    "kubernetes": "ops/scripts/k8s/cluster-health.sh",
+    "endpoints": "ops/scripts/troubleshooting/diagnose.sh endpoint <url>",
+    "pipelines": "ops/scripts/ci/analyze-pipeline.sh <platform> <args>",
+    "cloud": "ops/scripts/cloud/cloud-check.sh <provider>",
+    "monitoring": "ops/scripts/monitoring/alert-check.sh <platform>"
+  }
+}

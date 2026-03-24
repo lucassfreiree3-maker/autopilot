@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "tool": "aws",
+  "description": "AWS CLI and SDK configuration for operational use",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["IAM User (access key)", "IAM Role (assume role)", "SSO (aws sso login)", "Instance Profile (EC2/ECS)"],
+    "recommended": "SSO or IAM Role with least-privilege",
+    "env_vars": {
+      "AWS_ACCESS_KEY_ID": {"status": "pending", "secret": true, "description": "IAM access key ID"},
+      "AWS_SECRET_ACCESS_KEY": {"status": "pending", "secret": true, "description": "IAM secret access key"},
+      "AWS_DEFAULT_REGION": {"status": "pending", "default": "us-east-1", "description": "Default region"},
+      "AWS_PROFILE": {"status": "pending", "description": "Named profile from ~/.aws/credentials"},
+      "AWS_ROLE_ARN": {"status": "pending", "description": "Role ARN for assume-role flows"}
+    },
+    "files": {
+      "~/.aws/credentials": "Access keys per profile (NEVER commit)",
+      "~/.aws/config": "Region, output format, SSO config per profile"
+    },
+    "github_actions_secrets": {
+      "AWS_ACCESS_KEY_ID": {"status": "pending", "scope": "repository"},
+      "AWS_SECRET_ACCESS_KEY": {"status": "pending", "scope": "repository"},
+      "AWS_ROLE_ARN": {"status": "pending", "scope": "repository", "note": "Preferred: use OIDC with GitHub Actions"}
+    },
+    "oidc_federation": {
+      "description": "Recommended: GitHub Actions OIDC provider → AWS IAM Role (no long-lived keys)",
+      "setup_steps": [
+        "1. Create OIDC provider in AWS IAM for token.actions.githubusercontent.com",
+        "2. Create IAM Role with trust policy for GitHub repo",
+        "3. Use aws-actions/configure-aws-credentials@v4 with role-to-assume"
+      ],
+      "status": "pending"
+    }
+  },
+  "cli_patterns": {
+    "identity_check": "aws sts get-caller-identity",
+    "list_regions": "aws ec2 describe-regions --output table",
+    "ec2_instances": "aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,Type:InstanceType,Name:Tags[?Key==`Name`].Value|[0]}' --output table",
+    "eks_clusters": "aws eks list-clusters --output table",
+    "s3_buckets": "aws s3 ls",
+    "cloudwatch_logs": "aws logs filter-log-events --log-group-name <GROUP> --start-time <EPOCH_MS> --filter-pattern <PATTERN>",
+    "ssm_session": "aws ssm start-session --target <INSTANCE_ID>"
+  },
+  "minimum_permissions": [
+    "sts:GetCallerIdentity",
+    "ec2:Describe*",
+    "eks:Describe*",
+    "eks:ListClusters",
+    "s3:ListBucket",
+    "logs:FilterLogEvents",
+    "cloudwatch:GetMetricData",
+    "iam:GetUser"
+  ],
+  "pending_items": [
+    "AWS account ID",
+    "IAM user or role for automation",
+    "Default region selection",
+    "OIDC federation setup for GitHub Actions",
+    "S3 bucket for Terraform state (if needed)",
+    "EKS cluster endpoints (if exists)"
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "type": "checklist",
+  "name": "New Environment Setup",
+  "description": "Checklist for setting up a new environment or workspace",
+  "categories": {
+    "infrastructure": {
+      "items": [
+        "Cloud provider account and IAM configured",
+        "VPC/Network with subnets created",
+        "DNS zone and records configured",
+        "TLS certificates provisioned (Let's Encrypt or CA)",
+        "Container registry available",
+        "K8s cluster provisioned and accessible",
+        "Storage (S3/Blob/GCS) configured",
+        "Database provisioned (if needed)",
+        "Secrets management configured (Vault/Parameter Store/Secret Manager)"
+      ]
+    },
+    "cicd": {
+      "items": [
+        "Git repository created and access configured",
+        "CI/CD platform configured (runners, agents, tokens)",
+        "Pipeline configuration committed (.gitlab-ci.yml / .github/workflows / Jenkinsfile)",
+        "Container build pipeline working",
+        "Deploy pipeline working (staging + production)",
+        "Secrets injected in CI/CD (tokens, credentials)",
+        "Branch protection rules configured",
+        "PR/MR review policies defined"
+      ]
+    },
+    "monitoring": {
+      "items": [
+        "Monitoring agent deployed (Datadog/Prometheus/CloudWatch)",
+        "Log collection configured",
+        "Application metrics instrumented",
+        "Dashboards created (infra + app)",
+        "Alert rules configured",
+        "Notification channels configured (Slack/Teams/PagerDuty)",
+        "Uptime monitoring configured (synthetic checks)",
+        "SLOs defined and tracked"
+      ]
+    },
+    "security": {
+      "items": [
+        "Network policies configured (K8s or security groups)",
+        "RBAC configured (K8s + cloud IAM)",
+        "Secrets encrypted at rest",
+        "TLS everywhere (ingress, service-to-service)",
+        "Container image scanning in CI",
+        "Dependency vulnerability scanning",
+        "Pod security standards enforced",
+        "Audit logging enabled"
+      ]
+    },
+    "operations": {
+      "items": [
+        "Backup strategy defined and automated",
+        "Disaster recovery plan documented",
+        "Runbooks created for common operations",
+        "Incident response process defined",
+        "On-call rotation configured (if applicable)",
+        "Cost monitoring and budgets configured",
+        "Resource tagging standards applied",
+        "Documentation updated"
+      ]
+    }
+  }
+}

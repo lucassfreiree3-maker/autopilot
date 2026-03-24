@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Pipeline Troubleshooting",
+  "description": "Diagnosing and fixing CI/CD pipeline failures",
+  "common_failures": {
+    "build_failure": {
+      "symptoms": ["Compilation error", "Dependency resolution failure", "Docker build failed"],
+      "investigation": [
+        "Check build logs for specific error message",
+        "Verify dependency versions and lock files",
+        "Check if base images are accessible",
+        "Verify build cache is not stale",
+        "Check for disk space issues on runner"
+      ],
+      "common_fixes": [
+        "Clear build cache",
+        "Update dependency lock files",
+        "Fix compilation errors in code",
+        "Update base image reference",
+        "Increase runner disk space"
+      ]
+    },
+    "test_failure": {
+      "symptoms": ["Test assertion failed", "Timeout during tests", "Test infrastructure error"],
+      "investigation": [
+        "Identify which tests failed and their error messages",
+        "Check if failures are flaky (re-run to confirm)",
+        "Verify test environment configuration",
+        "Check for resource contention (CPU, memory, ports)",
+        "Compare with last successful run"
+      ],
+      "common_fixes": [
+        "Fix failing test assertions",
+        "Increase test timeouts for slow environments",
+        "Fix test data or fixtures",
+        "Isolate flaky tests",
+        "Fix resource cleanup in test teardown"
+      ]
+    },
+    "deploy_failure": {
+      "symptoms": ["Deploy timeout", "Health check failed", "Permission denied", "Image pull failed"],
+      "investigation": [
+        "Check deploy logs for specific error",
+        "Verify target environment is reachable",
+        "Check credentials and permissions",
+        "Verify image exists in registry",
+        "Check resource availability (CPU, memory quotas)"
+      ],
+      "common_fixes": [
+        "Fix image reference or tag",
+        "Update credentials/tokens",
+        "Fix health check configuration",
+        "Increase resource limits",
+        "Fix deployment manifest"
+      ]
+    },
+    "authentication_failure": {
+      "symptoms": ["401 Unauthorized", "403 Forbidden", "Token expired", "Permission denied"],
+      "investigation": [
+        "Check if token/credential is expired",
+        "Verify token scopes/permissions",
+        "Check if secret rotation happened",
+        "Verify service account permissions",
+        "Check IP allowlists if applicable"
+      ],
+      "common_fixes": [
+        "Rotate/renew token",
+        "Update secret in CI/CD configuration",
+        "Fix service account permissions",
+        "Update IP allowlist"
+      ]
+    },
+    "runner_infrastructure": {
+      "symptoms": ["Job stuck in pending", "Runner not picking up jobs", "Out of disk/memory on runner"],
+      "investigation": [
+        "Check runner status and connectivity",
+        "Check runner labels/tags match job requirements",
+        "Verify runner has sufficient resources",
+        "Check concurrent job limits",
+        "Look for zombie processes on runner"
+      ],
+      "common_fixes": [
+        "Restart runner service",
+        "Clean up disk space on runner",
+        "Increase runner resources",
+        "Register additional runners",
+        "Fix runner configuration"
+      ]
+    }
+  },
+  "platform_specific": {
+    "github_actions": {
+      "log_access": "Settings > Actions > Logs or API /actions/runs/{id}/logs",
+      "secrets_location": "Settings > Secrets and variables > Actions",
+      "runner_check": "Settings > Actions > Runners",
+      "common_issues": [
+        "GITHUB_TOKEN permissions (contents: write, packages: write)",
+        "Secret not available in fork PRs",
+        "Concurrency group blocking runs",
+        "Actions version pinning (use SHA, not tags)"
+      ]
+    },
+    "gitlab_ci": {
+      "log_access": "CI/CD > Pipelines > Job logs",
+      "secrets_location": "Settings > CI/CD > Variables",
+      "runner_check": "Settings > CI/CD > Runners",
+      "common_issues": [
+        "Runner tags not matching",
+        "Protected variable not available on branch",
+        "Artifact download failure between stages",
+        "Docker-in-Docker configuration"
+      ]
+    },
+    "jenkins": {
+      "log_access": "Build > Console Output",
+      "secrets_location": "Manage Jenkins > Manage Credentials",
+      "common_issues": [
+        "Plugin version conflicts",
+        "Workspace cleanup issues",
+        "Agent node offline",
+        "Groovy sandbox restrictions"
+      ]
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "description": "Operational environment configuration for all workspaces",
+  "createdAt": "2026-03-24T18:00:00Z",
+  "workspace": "shared",
+  "structure": {
+    "ops/scripts/": "Executable operational scripts organized by domain",
+    "ops/scripts/troubleshooting/": "Universal diagnostic and troubleshooting tools",
+    "ops/scripts/ci/": "CI/CD pipeline analysis and management",
+    "ops/scripts/k8s/": "Kubernetes cluster operations and health checks",
+    "ops/scripts/terraform/": "Terraform/Terragrunt operational wrappers",
+    "ops/scripts/cloud/": "Multi-cloud authentication and resource checks",
+    "ops/scripts/monitoring/": "Alert checking across monitoring platforms",
+    "ops/scripts/utils/": "Shared utilities (logging, formatting, helpers)",
+    "ops/runbooks/": "Operational runbooks organized by domain",
+    "ops/runbooks/incidents/": "Incident response procedures",
+    "ops/runbooks/pipelines/": "CI/CD pipeline troubleshooting",
+    "ops/runbooks/k8s/": "Kubernetes common issues and resolutions",
+    "ops/runbooks/terraform/": "Terraform operational procedures",
+    "ops/runbooks/cloud/": "Cloud provider operational procedures",
+    "ops/runbooks/monitoring/": "Monitoring setup and operations",
+    "ops/templates/": "Reusable templates for infrastructure and CI/CD",
+    "ops/templates/ci/": "CI/CD pipeline templates (GitLab, GitHub Actions, Jenkins)",
+    "ops/templates/k8s/": "Kubernetes manifest templates",
+    "ops/templates/terraform/": "Terraform module and backend templates",
+    "ops/templates/monitoring/": "Prometheus alerts and Grafana dashboards",
+    "ops/checklists/": "Operational checklists for common procedures",
+    "ops/logs/": "Operational action logs (auto-generated, gitignored)"
+  },
+  "scripts": {
+    "diagnose": {
+      "path": "ops/scripts/troubleshooting/diagnose.sh",
+      "usage": "./diagnose.sh <target> [args]",
+      "targets": ["endpoint", "pod", "service", "dns", "connectivity", "node", "cert", "system"]
+    },
+    "analyze-pipeline": {
+      "path": "ops/scripts/ci/analyze-pipeline.sh",
+      "usage": "./analyze-pipeline.sh <platform> [args]",
+      "platforms": ["github", "gitlab", "jenkins"]
+    },
+    "cluster-health": {
+      "path": "ops/scripts/k8s/cluster-health.sh",
+      "usage": "./cluster-health.sh [namespace|--all-namespaces]"
+    },
+    "tf-ops": {
+      "path": "ops/scripts/terraform/tf-ops.sh",
+      "usage": "./tf-ops.sh <action> [path]",
+      "actions": ["plan", "apply", "validate", "fmt", "drift", "state-list", "state-show", "destroy", "unlock", "import", "docs", "cost"]
+    },
+    "cloud-check": {
+      "path": "ops/scripts/cloud/cloud-check.sh",
+      "usage": "./cloud-check.sh <provider> [action]",
+      "providers": ["aws", "azure", "gcp", "all"]
+    },
+    "alert-check": {
+      "path": "ops/scripts/monitoring/alert-check.sh",
+      "usage": "./alert-check.sh <platform>",
+      "platforms": ["datadog", "grafana", "prometheus", "alertmanager", "all"]
+    }
+  },
+  "conventions": {
+    "naming": {
+      "scripts": "kebab-case (e.g., cluster-health.sh)",
+      "runbooks": "kebab-case JSON (e.g., k8s-common-issues.json)",
+      "templates": "kebab-case with suffix (e.g., deployment-template.yaml)",
+      "logs": "ops-log.jsonl (JSON Lines format, append-only)"
+    },
+    "logging": {
+      "format": "JSONL (one JSON object per line)",
+      "fields": ["timestamp", "workspace", "agent", "action", "description", "result", "details"],
+      "tool": "ops/scripts/utils/ops-logger.sh (source and use ops_log function)"
+    }
+  }
+}

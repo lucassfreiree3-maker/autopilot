@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "tool": "azure",
+  "description": "Azure CLI and SDK configuration for operational use",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["Service Principal (client secret)", "Service Principal (certificate)", "Managed Identity", "Azure CLI (az login)", "OIDC (GitHub Actions)"],
+    "recommended": "OIDC with GitHub Actions or Managed Identity for automation",
+    "env_vars": {
+      "AZURE_SUBSCRIPTION_ID": {"status": "pending", "description": "Target subscription ID"},
+      "AZURE_TENANT_ID": {"status": "pending", "description": "Azure AD tenant ID"},
+      "AZURE_CLIENT_ID": {"status": "pending", "description": "Service principal app ID"},
+      "AZURE_CLIENT_SECRET": {"status": "pending", "secret": true, "description": "Service principal secret"},
+      "ARM_SUBSCRIPTION_ID": {"status": "pending", "description": "For Terraform Azure provider"},
+      "ARM_TENANT_ID": {"status": "pending", "description": "For Terraform Azure provider"},
+      "ARM_CLIENT_ID": {"status": "pending", "description": "For Terraform Azure provider"},
+      "ARM_CLIENT_SECRET": {"status": "pending", "secret": true, "description": "For Terraform Azure provider"}
+    },
+    "github_actions_secrets": {
+      "AZURE_CLIENT_ID": {"status": "pending"},
+      "AZURE_TENANT_ID": {"status": "pending"},
+      "AZURE_SUBSCRIPTION_ID": {"status": "pending"},
+      "AZURE_CREDENTIALS": {"status": "pending", "note": "JSON blob for azure/login@v2 (legacy)"}
+    },
+    "oidc_federation": {
+      "description": "Recommended: GitHub Actions OIDC → Azure AD federated credential (no secrets)",
+      "setup_steps": [
+        "1. Register App in Azure AD",
+        "2. Add Federated Credential for GitHub Actions",
+        "3. Assign RBAC role to the App on subscription/resource group",
+        "4. Use azure/login@v2 with client-id, tenant-id, subscription-id"
+      ],
+      "status": "pending"
+    }
+  },
+  "cli_patterns": {
+    "identity_check": "az account show",
+    "list_subscriptions": "az account list --output table",
+    "resource_groups": "az group list --output table",
+    "aks_clusters": "az aks list --output table",
+    "vms": "az vm list --output table",
+    "aks_credentials": "az aks get-credentials --resource-group <RG> --name <CLUSTER>",
+    "activity_log": "az monitor activity-log list --resource-group <RG> --output table"
+  },
+  "minimum_permissions": [
+    "Reader on subscription",
+    "Azure Kubernetes Service Cluster User Role (for AKS)",
+    "Contributor on resource group (for Terraform apply)"
+  ],
+  "pending_items": [
+    "Azure subscription ID",
+    "Azure AD tenant ID",
+    "Service Principal or App Registration",
+    "OIDC federation for GitHub Actions",
+    "Resource group names",
+    "AKS cluster details (if exists)"
+  ]
+}

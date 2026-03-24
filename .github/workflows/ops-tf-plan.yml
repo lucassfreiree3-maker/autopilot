@@ -1,0 +1,80 @@
+name: "Ops: Terraform Plan"
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Terraform module path (relative to repo root)"
+        required: true
+        default: "ops/terraform/environments/dev"
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options: [plan, validate, fmt-check, drift]
+        default: plan
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-cit"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ops-tf-${{ inputs.path }}
+  cancel-in-progress: true
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Configure cloud credentials
+        run: |
+          echo "::notice::Configure cloud auth based on provider in terraform config"
+          echo "::notice::This step should be customized per environment"
+        # TODO: Add cloud auth step based on provider
+        # AWS: aws-actions/configure-aws-credentials@v4
+        # Azure: azure/login@v2
+        # GCP: google-github-actions/auth@v2
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.path }}
+        run: terraform init -input=false
+        continue-on-error: true
+
+      - name: Terraform ${{ inputs.action }}
+        working-directory: ${{ inputs.path }}
+        run: |
+          case "${{ inputs.action }}" in
+            plan)
+              terraform plan -input=false -out=tfplan 2>&1 | tee tf-output.log
+              ;;
+            validate)
+              terraform validate 2>&1 | tee tf-output.log
+              ;;
+            fmt-check)
+              terraform fmt -check -recursive 2>&1 | tee tf-output.log
+              ;;
+            drift)
+              terraform plan -detailed-exitcode -input=false 2>&1 | tee tf-output.log || true
+              ;;
+          esac
+
+      - name: Upload plan output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tf-${{ inputs.action }}-${{ github.run_number }}
+          path: |
+            ${{ inputs.path }}/tf-output.log
+            ${{ inputs.path }}/tfplan
+          retention-days: 30

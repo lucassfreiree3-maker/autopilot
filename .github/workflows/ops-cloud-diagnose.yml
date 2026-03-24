@@ -1,0 +1,69 @@
+name: "Ops: Cloud Diagnostics"
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Cloud provider"
+        required: true
+        type: choice
+        options: [aws, azure, gcp, all]
+      action:
+        description: "Action"
+        required: true
+        type: choice
+        options: [auth, resources]
+        default: auth
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-cit"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-cloud-${{ github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS (if selected)
+        if: inputs.provider == 'aws' || inputs.provider == 'all'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_DEFAULT_REGION || 'us-east-1' }}
+        continue-on-error: true
+
+      - name: Configure Azure (if selected)
+        if: inputs.provider == 'azure' || inputs.provider == 'all'
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: true
+
+      - name: Configure GCP (if selected)
+        if: inputs.provider == 'gcp' || inputs.provider == 'all'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+        continue-on-error: true
+
+      - name: Run cloud diagnostics
+        run: |
+          chmod +x ops/scripts/cloud/cloud-check.sh
+          ./ops/scripts/cloud/cloud-check.sh "${{ inputs.provider }}" "${{ inputs.action }}" 2>&1 | tee cloud-diag.log
+
+      - name: Upload diagnostic report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-diagnostic-${{ inputs.provider }}-${{ github.run_number }}
+          path: cloud-diag.log
+          retention-days: 30

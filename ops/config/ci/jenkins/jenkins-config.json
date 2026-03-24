@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "tool": "jenkins",
+  "description": "Jenkins configuration reference for pipeline operations",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["API Token", "Username/Password", "LDAP", "SAML SSO"],
+    "env_vars": {
+      "JENKINS_URL": {"status": "pending", "description": "Jenkins instance URL"},
+      "JENKINS_USER": {"status": "pending", "description": "Jenkins username for API"},
+      "JENKINS_TOKEN": {"status": "pending", "secret": true, "description": "Jenkins API token"}
+    },
+    "github_actions_secrets": {
+      "JENKINS_URL": {"status": "pending"},
+      "JENKINS_USER": {"status": "pending"},
+      "JENKINS_TOKEN": {"status": "pending"}
+    }
+  },
+  "pipeline_structure": {
+    "config_file": "Jenkinsfile",
+    "pipeline_types": ["Declarative Pipeline (recommended)", "Scripted Pipeline"],
+    "key_concepts": {
+      "agents": "Where jobs run (any, docker, kubernetes, label-based)",
+      "stages": "Logical grouping of steps",
+      "credentials": "Manage Jenkins > Manage Credentials (scoped by domain/folder)",
+      "shared_libraries": "Reusable pipeline code in separate repos",
+      "blue_ocean": "Modern UI for pipeline visualization"
+    }
+  },
+  "troubleshooting": {
+    "common_issues": {
+      "agent_offline": ["Check agent connectivity", "Restart agent service", "Check disk space on agent"],
+      "plugin_conflicts": ["Update plugins", "Check Jenkins version compatibility", "Review plugin dependency tree"],
+      "groovy_sandbox": ["Use @NonCPS for non-serializable operations", "Request script approval from admin"],
+      "workspace_issues": ["Clean workspace in post block", "Check disk space", "Use cleanWs() step"],
+      "credential_not_found": ["Verify credential ID matches", "Check credential scope (global vs folder)", "Verify domain restrictions"]
+    },
+    "diagnostic_script": "ops/scripts/ci/analyze-pipeline.sh jenkins <job_url> [build_number]"
+  },
+  "api_patterns": {
+    "trigger_build": "curl -X POST ${JENKINS_URL}/job/<NAME>/build --user ${JENKINS_USER}:${JENKINS_TOKEN}",
+    "get_build_info": "curl ${JENKINS_URL}/job/<NAME>/<BUILD>/api/json --user ${JENKINS_USER}:${JENKINS_TOKEN}",
+    "get_console_log": "curl ${JENKINS_URL}/job/<NAME>/<BUILD>/consoleText --user ${JENKINS_USER}:${JENKINS_TOKEN}",
+    "get_queue": "curl ${JENKINS_URL}/queue/api/json --user ${JENKINS_USER}:${JENKINS_TOKEN}"
+  },
+  "template_location": "ops/templates/ci/jenkinsfile-template.groovy",
+  "pending_items": [
+    "Jenkins instance URL",
+    "Admin/API credentials",
+    "Agent/node configuration",
+    "Plugin list and versions",
+    "Shared library repos (if used)"
+  ]
+}

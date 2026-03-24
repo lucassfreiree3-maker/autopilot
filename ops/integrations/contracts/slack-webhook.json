@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "name": "Slack Incoming Webhook",
+  "type": "webhook",
+  "direction": "outbound",
+  "description": "Send notifications to Slack channels",
+  "endpoint": {
+    "url": "${SLACK_WEBHOOK_URL}",
+    "method": "POST",
+    "content_type": "application/json"
+  },
+  "payload_template": {
+    "text": "{{message}}",
+    "blocks": [
+      {
+        "type": "header",
+        "text": {"type": "plain_text", "text": "{{title}}"}
+      },
+      {
+        "type": "section",
+        "fields": [
+          {"type": "mrkdwn", "text": "*Status:*\n{{status}}"},
+          {"type": "mrkdwn", "text": "*Workspace:*\n{{workspace}}"},
+          {"type": "mrkdwn", "text": "*Action:*\n{{action}}"},
+          {"type": "mrkdwn", "text": "*Timestamp:*\n{{timestamp}}"}
+        ]
+      },
+      {
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": "{{details}}"}
+      }
+    ]
+  },
+  "usage_examples": {
+    "alert": {
+      "title": "Alert: High CPU on production",
+      "status": "firing",
+      "action": "auto-detected",
+      "details": "CPU usage above 80% for 5 minutes"
+    },
+    "deploy": {
+      "title": "Deploy: v3.5.12 to production",
+      "status": "success",
+      "action": "apply-source-change",
+      "details": "Image published to registry"
+    }
+  },
+  "curl_example": "curl -X POST ${SLACK_WEBHOOK_URL} -H 'Content-Type: application/json' -d '{\"text\": \"Test notification from autopilot\"}'"
+}

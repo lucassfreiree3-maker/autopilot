@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "description": "Visual index for CIT workspace — quick reference for agents",
+  "workspace_id": "ws-cit",
+  "company": "CIT",
+  "status": "setup",
+  "identification": {
+    "token_secret": "CIT_TOKEN",
+    "data_classification": "Internal",
+    "stack": "DevOps (K8s, Docker, Terraform, Ansible, Helm, ArgoCD, CI/CD)",
+    "machine": "CIT workstation"
+  },
+  "repos": [],
+  "state_path": "state/workspaces/ws-cit/",
+  "trigger_files": [],
+  "workflows_that_use_this_workspace": [
+    "ops-cloud-diagnose.yml",
+    "ops-tf-plan.yml",
+    "ops-k8s-health.yml",
+    "ops-monitor-alerts.yml",
+    "ops-pipeline-diagnose.yml"
+  ],
+  "corporate_workflows_available": false,
+  "corporate_workflows_blocked_by": [
+    "CIT_TOKEN not configured",
+    "No repos registered in workspace.json",
+    "[Corp] workflows hardcode BBVINET_TOKEN — need dynamic token selection"
+  ],
+  "current_state": {
+    "repos_configured": 0,
+    "token_available": false,
+    "cloud_credentials": "pending",
+    "ops_environment": "ready"
+  }
+}

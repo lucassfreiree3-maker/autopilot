@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "description": "Operational readiness tracker — what's configured, what's pending, what's blocked",
+  "lastUpdated": "2026-03-24T19:00:00Z",
+  "updatedBy": "claude-code",
+  "summary": {
+    "total_tools": 12,
+    "ready": 2,
+    "partial": 4,
+    "pending": 6,
+    "readiness_score": "17%"
+  },
+  "tools": {
+    "github": {
+      "status": "ready",
+      "category": "ci",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": true,
+      "pending_items": ["GitHub Environments (staging, production, ops)", "Slack webhook for notifications"]
+    },
+    "github_actions": {
+      "status": "ready",
+      "category": "ci",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": true,
+      "note": "5 operational workflows created (cloud, terraform, k8s, monitoring, pipeline)",
+      "pending_items": ["Cloud provider secrets for operational workflows"]
+    },
+    "aws": {
+      "status": "pending",
+      "category": "cloud",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["AWS account ID", "IAM credentials or OIDC setup", "Default region"]
+    },
+    "azure": {
+      "status": "pending",
+      "category": "cloud",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Azure subscription ID", "Service principal", "OIDC federation"]
+    },
+    "gcp": {
+      "status": "pending",
+      "category": "cloud",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["GCP project ID", "Service account key", "Workload Identity"]
+    },
+    "terraform": {
+      "status": "partial",
+      "category": "iac",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["State backend (S3/Blob/GCS)", "Cloud credentials", "First module"]
+    },
+    "kubernetes": {
+      "status": "partial",
+      "category": "container",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Cluster access", "kubeconfig", "Namespace definitions"]
+    },
+    "gitlab_ci": {
+      "status": "pending",
+      "category": "ci",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["GitLab instance URL", "Access token", "Project IDs"]
+    },
+    "jenkins": {
+      "status": "pending",
+      "category": "ci",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Jenkins instance URL", "API credentials", "Job configurations"]
+    },
+    "datadog": {
+      "status": "pending",
+      "category": "monitoring",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Datadog API key", "Application key", "Agent deployment"]
+    },
+    "grafana": {
+      "status": "partial",
+      "category": "monitoring",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Grafana URL", "Service account token", "Datasource configuration"]
+    },
+    "prometheus": {
+      "status": "partial",
+      "category": "monitoring",
+      "structure": true,
+      "config": true,
+      "scripts": true,
+      "workflows": true,
+      "docs": true,
+      "credentials": false,
+      "pending_items": ["Prometheus URL", "Scrape targets", "Alert rules deployment"]
+    }
+  },
+  "readiness_by_category": {
+    "ci": {"ready": 2, "partial": 0, "pending": 2, "tools": ["github", "github_actions", "gitlab_ci", "jenkins"]},
+    "cloud": {"ready": 0, "partial": 0, "pending": 3, "tools": ["aws", "azure", "gcp"]},
+    "iac": {"ready": 0, "partial": 1, "pending": 0, "tools": ["terraform"]},
+    "container": {"ready": 0, "partial": 1, "pending": 0, "tools": ["kubernetes"]},
+    "monitoring": {"ready": 0, "partial": 2, "pending": 1, "tools": ["datadog", "grafana", "prometheus"]}
+  },
+  "what_can_run_now": [
+    "GitHub Actions workflows (all autopilot workflows)",
+    "Local diagnostics (ops/scripts/troubleshooting/diagnose.sh system)",
+    "Pipeline analysis for GitHub repos (GITHUB_TOKEN available)",
+    "Terraform validate/fmt on local modules",
+    "Script development and testing"
+  ],
+  "what_needs_credentials": [
+    "Cloud provider operations (AWS, Azure, GCP)",
+    "Kubernetes cluster operations",
+    "Terraform plan/apply against real infrastructure",
+    "Monitoring alert checks (Datadog, Grafana, Prometheus)",
+    "GitLab CI and Jenkins pipeline analysis",
+    "Slack notifications"
+  ]
+}

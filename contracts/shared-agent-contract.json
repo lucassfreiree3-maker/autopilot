@@ -84,9 +84,28 @@
     "method": "List directories under state/workspaces/ on autopilot-state branch",
     "endpoint": "repos/{repo}/contents/state/workspaces?ref=autopilot-state",
     "eachWorkspace": "Read workspace.json for repo/branch/path configuration",
-    "defaultWorkspace": "ws-default"
+    "noDefaultWorkspace": true,
+    "note": "There is NO default workspace. Agents MUST identify the target workspace from conversation context before any operation."
+  },
+  "workspaceIdentification": {
+    "description": "MANDATORY protocol for identifying which workspace to operate on. No workspace is default.",
+    "protocol": [
+      "1. BEFORE any operation, identify which company/workspace the user is talking about",
+      "2. Look for context clues: company name, repo names, stack mentions, tool mentions",
+      "3. If context is ambiguous, ASK the user which workspace before proceeding",
+      "4. NEVER assume a workspace — always confirm from context or ask",
+      "5. Once identified, verify workspace_id exists in state/workspaces/",
+      "6. Read workspace.json to get repos, token, and config for that workspace"
+    ],
+    "contextClues": {
+      "ws-default (Getronics)": ["controller", "agent", "NestJS", "bbvinet", "psc-sre", "swagger", "Jest", "ESLint", "esteira", "build NPM", "Getronics"],
+      "ws-cit (CIT)": ["DevOps", "Terraform", "Kubernetes", "K8s", "Docker", "cloud", "AWS", "Azure", "GCP", "pipeline", "monitoring", "Datadog", "Grafana", "Prometheus", "infrastructure", "IaC", "CIT", "ops/"]
+    },
+    "quickIndex": "ops/config/workspaces/{workspace_id}.json",
+    "separationGuide": "ops/docs/workspace-separation.md"
   },
   "rules": [
+    "NEVER assume a default workspace — always identify from conversation context or ask the user",
     "Never store corporate secrets in the autopilot repo",
     "Never store corporate code in the autopilot repo",
     "Always use workspace_id, never hardcode tenant/org names",
@@ -98,7 +117,8 @@
     "State is the source of truth, not agent memory",
     "Always validate jq output with fallbacks (2>/dev/null || echo fallback)",
     "Use base64 encoding when passing content between workflow jobs",
-    "Never silently swallow errors - always log before continuing"
+    "Never silently swallow errors - always log before continuing",
+    "Never mix data, credentials, or operations between workspaces"
   ],
   "errorHandling": {
     "jqCalls": "Always add 2>/dev/null || echo 'fallback' to jq commands",

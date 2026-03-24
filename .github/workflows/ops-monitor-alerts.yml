@@ -1,0 +1,53 @@
+name: "Ops: Check Active Alerts"
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Monitoring platform"
+        required: true
+        type: choice
+        options: [datadog, grafana, prometheus, alertmanager, all]
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-cit"
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ops-monitor-alerts
+  cancel-in-progress: true
+
+jobs:
+  check-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check alerts
+        run: |
+          chmod +x ops/scripts/monitoring/alert-check.sh
+          PLATFORM="${{ inputs.platform || 'all' }}"
+          ./ops/scripts/monitoring/alert-check.sh "$PLATFORM" 2>&1 | tee alerts.log
+        env:
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+          DD_APP_KEY: ${{ secrets.DD_APP_KEY }}
+          DD_SITE: ${{ vars.DD_SITE || 'datadoghq.com' }}
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+          PROMETHEUS_URL: ${{ vars.PROMETHEUS_URL }}
+          ALERTMANAGER_URL: ${{ vars.ALERTMANAGER_URL }}
+        continue-on-error: true
+
+      - name: Upload alert report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alerts-${{ github.run_number }}
+          path: alerts.log
+          retention-days: 7

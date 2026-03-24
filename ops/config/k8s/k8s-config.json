@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "tool": "kubernetes",
+  "description": "Kubernetes operational configuration — clusters, contexts, namespaces",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["kubeconfig file", "Service Account Token", "OIDC (cloud provider)", "Cloud CLI (aws eks, az aks, gcloud container)"],
+    "kubeconfig": {
+      "location": "~/.kube/config",
+      "env_var": "KUBECONFIG",
+      "note": "Multiple configs: export KUBECONFIG=~/.kube/config:~/.kube/config-cit"
+    },
+    "cloud_integration": {
+      "aws_eks": "aws eks update-kubeconfig --name <CLUSTER> --region <REGION>",
+      "azure_aks": "az aks get-credentials --resource-group <RG> --name <CLUSTER>",
+      "gcp_gke": "gcloud container clusters get-credentials <CLUSTER> --zone <ZONE>"
+    },
+    "github_actions": {
+      "description": "Use cloud provider auth + CLI to get kubeconfig dynamically in workflows",
+      "pattern": "Auth to cloud → get kubeconfig → kubectl commands"
+    }
+  },
+  "clusters": {
+    "description": "Register clusters as they become available",
+    "template": {
+      "name": "<CLUSTER_NAME>",
+      "provider": "aws|azure|gcp|on-prem",
+      "region": "<REGION>",
+      "environment": "dev|staging|production",
+      "context_name": "<CONTEXT_NAME>",
+      "endpoint": "<API_SERVER_URL>",
+      "namespaces": ["default", "app", "monitoring", "ingress"],
+      "status": "pending"
+    },
+    "registered": []
+  },
+  "namespace_conventions": {
+    "pattern": "<app>-<env> or <team>-<app>",
+    "standard_namespaces": [
+      "default (avoid using in production)",
+      "kube-system (cluster services)",
+      "monitoring (prometheus, grafana, alertmanager)",
+      "ingress (ingress controllers)",
+      "cert-manager (TLS automation)"
+    ]
+  },
+  "operational_tools": {
+    "kubectl": {"required": true, "version": ">=1.28"},
+    "helm": {"required": true, "version": ">=3.12"},
+    "k9s": {"recommended": true, "description": "Terminal UI for K8s"},
+    "kubectx": {"recommended": true, "description": "Switch contexts quickly"},
+    "kubens": {"recommended": true, "description": "Switch namespaces quickly"},
+    "stern": {"recommended": true, "description": "Multi-pod log tailing"}
+  },
+  "troubleshooting_scripts": {
+    "cluster_health": "ops/scripts/k8s/cluster-health.sh",
+    "pod_diagnose": "ops/scripts/troubleshooting/diagnose.sh pod <name> [namespace]",
+    "service_diagnose": "ops/scripts/troubleshooting/diagnose.sh service <name> [namespace]"
+  },
+  "manifests_location": "ops/templates/k8s/",
+  "pending_items": [
+    "Cluster access credentials",
+    "kubeconfig for each cluster",
+    "Namespace list per environment",
+    "RBAC roles for automation service account",
+    "Ingress controller type and config",
+    "Storage class details"
+  ]
+}

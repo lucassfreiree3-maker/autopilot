@@ -1,8 +1,8 @@
-name: "[Infra] Sync Copilot Prompt"
+name: "[Infra] Sync Codex Prompt"
 
-# Auto-regenerates .github/copilot-instructions.md whenever
+# Auto-regenerates AGENTS.md whenever
 # workflows, schemas, contracts, or triggers change.
-# Keeps Copilot always up-to-date with the latest project state.
+# Keeps Codex always up-to-date with the latest project state.
 
 on:
   push:
@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: sync-copilot
+  group: sync-codex
   cancel-in-progress: true
 
 env:
@@ -51,7 +51,7 @@ jobs:
           DISPATCH_TABLE=""
           for F in .github/workflows/*.yml; do
             BN=$(basename "$F")
-            [ "$BN" = "sync-copilot-prompt.yml" ] && continue
+            [ "$BN" = "sync-codex-prompt.yml" ] && continue
             WF_NAME=$(python3 -c "
           import yaml
           with open('$F') as f:
@@ -102,8 +102,9 @@ jobs:
           for F in trigger/*.json; do
             BN=$(basename "$F")
             MATCHING=$(grep -rl "trigger/${BN}" .github/workflows/ 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "—")
-            FIELDS=$(jq -r 'keys | map(select(. != "schemaVersion" and . != "run")) | join(", ")' "$F" 2>/dev/null || echo "—")
-            TRIG_TABLE="${TRIG_TABLE}| \`trigger/${BN}\` | ${MATCHING} | ${FIELDS} |\n"
+            FIELDS=$(jq -r 'keys | map(select(. != "schemaVersion" and . != "run" and . != "_context")) | join(", ")' "$F" 2>/dev/null || echo "—")
+            CONTEXT=$(jq -r '._context // "—"' "$F" 2>/dev/null || echo "—")
+            TRIG_TABLE="${TRIG_TABLE}| \`trigger/${BN}\` | ${MATCHING} | ${CONTEXT} | ${FIELDS} |\n"
           done
 
           # ── Schemas ──
@@ -125,16 +126,30 @@ jobs:
             AGENT_TABLE="${AGENT_TABLE}| ${AGENT} | ${AID} | ${CAPS} |\n"
           done
 
-          # ── State files ──
+          # ── Available workspaces ──
+          echo "=== Checking workspaces ==="
+          WS_TABLE=""
+          WS_LIST=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces?ref=$STATE_BRANCH" --jq '.[].name' 2>/dev/null || echo "ws-default")
+          for WS_ID in $WS_LIST; do
+            WS_COMPANY=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.company.name // .displayName // "—"' 2>/dev/null || echo "—")
+            WS_STATUS=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+            WS_TABLE="${WS_TABLE}| ${WS_ID} | ${WS_COMPANY} | ${WS_STATUS} |\n"
+          done
+
+          # ── State files (per workspace) ──
           echo "=== Checking state ==="
           STATE_INFO=""
-          for SF in workspace.json health.json agent-release-state.json controller-release-state.json release-freeze.json; do
-            EXISTS=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/ws-default/${SF}?ref=$STATE_BRANCH" --jq '.name' 2>/dev/null || echo "")
-            [ -n "$EXISTS" ] && STATE_INFO="${STATE_INFO}  ${SF}\n" || STATE_INFO="${STATE_INFO}  ${SF} (MISSING)\n"
-          done
-          for SUBDIR in locks audit improvements metrics handoffs approvals; do
-            COUNT=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/ws-default/${SUBDIR}?ref=$STATE_BRANCH" --jq 'length' 2>/dev/null || echo "0")
-            STATE_INFO="${STATE_INFO}  ${SUBDIR}/ (${COUNT} files)\n"
+          for WS_ID in $WS_LIST; do
+            STATE_INFO="${STATE_INFO}#### ${WS_ID}\n"
+            for SF in workspace.json health.json agent-release-state.json controller-release-state.json release-freeze.json; do
+              EXISTS=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/${SF}?ref=$STATE_BRANCH" --jq '.name' 2>/dev/null || echo "")
+              [ -n "$EXISTS" ] && STATE_INFO="${STATE_INFO}  ${SF}\n" || STATE_INFO="${STATE_INFO}  ${SF} (MISSING)\n"
+            done
+            for SUBDIR in locks audit improvements metrics handoffs approvals; do
+              COUNT=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/${SUBDIR}?ref=$STATE_BRANCH" --jq 'length' 2>/dev/null || echo "0")
+              STATE_INFO="${STATE_INFO}  ${SUBDIR}/ (${COUNT} files)\n"
+            done
+            STATE_INFO="${STATE_INFO}\n"
           done
 
           # Save to env files for next step
@@ -145,24 +160,55 @@ jobs:
             echo "SCHEMA_TABLE<<EOF4"; echo -e "$SCHEMA_TABLE"; echo "EOF4"
             echo "AGENT_TABLE<<EOF5"; echo -e "$AGENT_TABLE"; echo "EOF5"
             echo "STATE_INFO<<EOF6"; echo -e "$STATE_INFO"; echo "EOF6"
+            echo "WS_TABLE<<EOF7"; echo -e "$WS_TABLE"; echo "EOF7"
           } >> "$GITHUB_ENV"
 
       - name: "Generate prompt"
         run: |
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          cat > .github/copilot-instructions.md << 'STATIC_EOF'
-          # Autopilot — GitHub Copilot Integration Prompt
+          cat > AGENTS.md << 'STATIC_EOF'
+          # Autopilot — Codex Agent Prompt
 
-          > **Auto-generated** by `sync-copilot-prompt.yml`. Do NOT edit manually.
+          > **Auto-generated** by `sync-codex-prompt.yml`. Do NOT edit manually.
 
-          You are **GitHub Copilot** operating inside the **Autopilot** control plane (`lucassfreiree/autopilot`).
+          You are **Codex** operating inside the **Autopilot** control plane (`lucassfreiree/autopilot`).
           Autopilot is a web-only CI/CD orchestration system that manages releases for corporate repos using GitHub Actions.
 
           ## YOUR IDENTITY
-          - **Agent ID**: `copilot`
-          - **Role**: Dispatcher, reviewer, and coordinator between Claude Code and Codex
-          - **You CAN**: Read state, trigger workflows, create handoffs, review PRs, create issues
+          - **Agent ID**: `codex`
+          - **Role**: Code implementation, refactoring, bulk changes, test execution, CI monitoring
+          - **You CAN**: Implement code, run tests, create patches, trigger workflows, consume handoffs, read/write state
           - **You CANNOT**: Push directly to corporate repos (use workflows instead)
+
+          ---
+
+          ## WORKSPACE IDENTIFICATION (CRITICAL — DO THIS FIRST)
+
+          This control plane manages **multiple companies**. Each company is an **isolated context**.
+          **BEFORE any operation**, identify which workspace you're working with:
+
+          1. Check trigger file `_context` field for visual identification
+          2. Check `workspace_id` in trigger files or user context
+          3. If user mentions Getronics, controller, agent, NestJS, bbvinet → `ws-default`
+          4. If user mentions CIT, DevOps, Terraform, K8s, cloud, monitoring → `ws-cit`
+          5. **If ambiguous: ASK the user — NEVER assume a default**
+
+          Read your workspace contract: `contracts/codex-agent-contract.json`
+          Read shared rules: `contracts/shared-agent-contract.json`
+
+          STATIC_EOF
+
+          # Fix indentation from heredoc
+          sed -i 's/^          //' AGENTS.md
+
+          echo "" >> AGENTS.md
+          echo "### Available Workspaces" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "| Workspace ID | Company | Status |" >> AGENTS.md
+          echo "|---|---|---|" >> AGENTS.md
+          echo -e "$WS_TABLE" >> AGENTS.md
+
+          cat >> AGENTS.md << 'ARCH_SECTION'
 
           ---
 
@@ -176,14 +222,16 @@ jobs:
           └── panel/               → GitHub Pages UI
           ```
 
-          ### Current state files (ws-default):
+          ### State files (per workspace):
           ```
-          STATIC_EOF
+          ARCH_SECTION
 
-          echo -e "$STATE_INFO" >> .github/copilot-instructions.md
-          echo '```' >> .github/copilot-instructions.md
+          sed -i 's/^          //' AGENTS.md
 
-          cat >> .github/copilot-instructions.md << 'TRIGGER_SECTION'
+          echo -e "$STATE_INFO" >> AGENTS.md
+          echo '```' >> AGENTS.md
+
+          cat >> AGENTS.md << 'TRIGGER_SECTION'
 
           ---
 
@@ -191,19 +239,23 @@ jobs:
 
           ### Method 1: Trigger Files (PREFERRED)
           Edit a trigger file on `main` branch, bump the `run` field.
+          **Always check the `_context` field** to confirm you're targeting the correct workspace.
 
-          | Trigger File | Workflow | Config Fields |
-          |---|---|---|
+          | Trigger File | Workflow | Context | Config Fields |
+          |---|---|---|---|
           TRIGGER_SECTION
 
-          echo -e "$TRIG_TABLE" >> .github/copilot-instructions.md
+          sed -i 's/^          //' AGENTS.md
 
-          cat >> .github/copilot-instructions.md << 'EXAMPLE_SECTION'
+          echo -e "$TRIG_TABLE" >> AGENTS.md
+
+          cat >> AGENTS.md << 'EXAMPLE_SECTION'
 
           **Example — trigger a source code change:**
           ```json
           {
             "schemaVersion": 1,
+            "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
             "workspace_id": "ws-default",
             "component": "agent",
             "change_type": "add-file",
@@ -217,17 +269,18 @@ jobs:
 
           ### Method 2: workflow_dispatch API
           ```bash
+          # ALWAYS specify workspace_id — never omit it
           gh api repos/lucassfreiree/autopilot/actions/workflows/{WORKFLOW}/dispatches \
-            --method POST -f ref=main -f "inputs[workspace_id]=ws-default"
+            --method POST -f ref=main -f "inputs[workspace_id]=<WORKSPACE_ID>"
           ```
 
           ### Method 3: Create handoff
           ```bash
           gh api repos/lucassfreiree/autopilot/actions/workflows/enqueue-agent-handoff.yml/dispatches \
             --method POST -f ref=main \
-            -f "inputs[from_agent]=copilot" -f "inputs[to_agent]=claude" \
+            -f "inputs[from_agent]=codex" -f "inputs[to_agent]=claude" \
             -f "inputs[component]=agent" -f "inputs[summary]=Your request" \
-            -f "inputs[workspace_id]=ws-default" -f "inputs[priority]=high"
+            -f "inputs[workspace_id]=<WORKSPACE_ID>" -f "inputs[priority]=high"
           ```
 
           ---
@@ -235,14 +288,17 @@ jobs:
           ## HOW TO READ STATE
 
           ```bash
-          # Workspace config
-          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/workspace.json?ref=autopilot-state" --jq '.content' | base64 -d
+          # List available workspaces
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces?ref=autopilot-state" --jq '.[].name'
+
+          # Workspace config (replace <WS_ID> with identified workspace)
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/workspace.json?ref=autopilot-state" --jq '.content' | base64 -d
 
           # Session lock (CHECK BEFORE ACTING!)
-          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/locks/session-lock.json?ref=autopilot-state" --jq '.content' | base64 -d
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/locks/session-lock.json?ref=autopilot-state" --jq '.content' | base64 -d
 
           # Release state / Health / Improvement report
-          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{FILE}?ref=autopilot-state" --jq '.content' | base64 -d
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?ref=autopilot-state" --jq '.content' | base64 -d
           ```
 
           ---
@@ -250,45 +306,47 @@ jobs:
           ## SESSION GUARD (CRITICAL)
 
           **Before ANY state-changing operation:**
-          1. Read `locks/session-lock.json`
+          1. Read `locks/session-lock.json` for the target workspace
           2. If `agentId != "none"` AND `expiresAt > now` → **STOP**
           3. Create a **handoff** instead of forcing
 
           ---
           EXAMPLE_SECTION
 
-          echo "## REGISTERED AGENTS" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "| Agent | ID | Capabilities |" >> .github/copilot-instructions.md
-          echo "|---|---|---|" >> .github/copilot-instructions.md
-          echo -e "$AGENT_TABLE" >> .github/copilot-instructions.md
+          sed -i 's/^          //' AGENTS.md
 
-          echo "" >> .github/copilot-instructions.md
-          echo "---" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "## ALL WORKFLOWS" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "| File | Name | Triggers |" >> .github/copilot-instructions.md
-          echo "|---|---|---|" >> .github/copilot-instructions.md
-          echo -e "$WF_TABLE" >> .github/copilot-instructions.md
+          echo "## REGISTERED AGENTS" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "| Agent | ID | Capabilities |" >> AGENTS.md
+          echo "|---|---|---|" >> AGENTS.md
+          echo -e "$AGENT_TABLE" >> AGENTS.md
 
-          echo "" >> .github/copilot-instructions.md
-          echo "### Dispatch Inputs" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "| Workflow | Inputs |" >> .github/copilot-instructions.md
-          echo "|---|---|" >> .github/copilot-instructions.md
-          echo -e "$DISPATCH_TABLE" >> .github/copilot-instructions.md
+          echo "" >> AGENTS.md
+          echo "---" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "## ALL WORKFLOWS" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "| File | Name | Triggers |" >> AGENTS.md
+          echo "|---|---|---|" >> AGENTS.md
+          echo -e "$WF_TABLE" >> AGENTS.md
 
-          echo "" >> .github/copilot-instructions.md
-          echo "---" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "## SCHEMAS" >> .github/copilot-instructions.md
-          echo "" >> .github/copilot-instructions.md
-          echo "| Schema | Description |" >> .github/copilot-instructions.md
-          echo "|---|---|" >> .github/copilot-instructions.md
-          echo -e "$SCHEMA_TABLE" >> .github/copilot-instructions.md
+          echo "" >> AGENTS.md
+          echo "### Dispatch Inputs" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "| Workflow | Inputs |" >> AGENTS.md
+          echo "|---|---|" >> AGENTS.md
+          echo -e "$DISPATCH_TABLE" >> AGENTS.md
 
-          cat >> .github/copilot-instructions.md << 'RULES_SECTION'
+          echo "" >> AGENTS.md
+          echo "---" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "## SCHEMAS" >> AGENTS.md
+          echo "" >> AGENTS.md
+          echo "| Schema | Description |" >> AGENTS.md
+          echo "|---|---|" >> AGENTS.md
+          echo -e "$SCHEMA_TABLE" >> AGENTS.md
+
+          cat >> AGENTS.md << 'RULES_SECTION'
 
           ---
 
@@ -298,8 +356,9 @@ jobs:
           2. **NEVER** push directly to corporate repos — always use workflows
           3. **ALWAYS** check session lock before state-changing operations
           4. **ALWAYS** use `workspace_id` — never hardcode tenant/org names
-          5. State on `autopilot-state` is the **source of truth**
-          6. If you can't do something, create a **handoff** to Claude or Codex
+          5. **ALWAYS** identify workspace from context BEFORE any operation — never assume a default
+          6. State on `autopilot-state` is the **source of truth**
+          7. If you can't do something, create a **handoff** to Claude
 
           ## COMMON TASKS
 
@@ -312,32 +371,39 @@ jobs:
           | Freeze releases | Dispatch `release-freeze.yml` with `action=freeze` |
           | Backup state | Dispatch `backup-state.yml` |
           | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
-          | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
           RULES_SECTION
 
-          echo "" >> .github/copilot-instructions.md
-          echo "---" >> .github/copilot-instructions.md
-          echo "*Last synced: ${NOW} | Run: ${{ github.run_id }}*" >> .github/copilot-instructions.md
+          sed -i 's/^          //' AGENTS.md
+
+          echo "" >> AGENTS.md
+          echo "---" >> AGENTS.md
+          echo "*Last synced: ${NOW} | Run: ${{ github.run_id }}*" >> AGENTS.md
 
       - name: "Commit if changed"
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add .github/copilot-instructions.md
+
+          # Remove old copilot file if exists
+          if [ -f ".github/copilot-instructions.md" ]; then
+            git rm .github/copilot-instructions.md
+          fi
+
+          git add AGENTS.md
           if git diff --cached --quiet; then
-            echo "No changes to copilot prompt"
+            echo "No changes to codex prompt"
           else
-            LINES=$(wc -l < .github/copilot-instructions.md)
-            git commit -m "docs: auto-sync copilot prompt ($LINES lines) [skip ci]"
+            LINES=$(wc -l < AGENTS.md)
+            git commit -m "docs: auto-sync codex prompt ($LINES lines) [skip ci]"
             git push origin main
-            echo "Pushed updated copilot prompt ($LINES lines)"
+            echo "Pushed updated codex prompt ($LINES lines)"
           fi
 
       - name: "Summary"
         if: always()
         run: |
-          LINES=$(wc -l < .github/copilot-instructions.md 2>/dev/null || echo "0")
-          echo "## Sync Copilot Prompt" >> "$GITHUB_STEP_SUMMARY"
+          LINES=$(wc -l < AGENTS.md 2>/dev/null || echo "0")
+          echo "## Sync Codex Prompt" >> "$GITHUB_STEP_SUMMARY"
           echo "- Lines: $LINES" >> "$GITHUB_STEP_SUMMARY"
           echo "- Workflows scanned: $(ls .github/workflows/*.yml | wc -l)" >> "$GITHUB_STEP_SUMMARY"
           echo "- Triggers: $(ls trigger/*.json | wc -l)" >> "$GITHUB_STEP_SUMMARY"
@@ -361,8 +427,8 @@ jobs:
           AUDIT=$(jq -n --arg ts "$NOW" --arg run "${{ github.run_id }}" \
             --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --arg result "${{ needs.sync.result }}" \
-            '{operation:"sync-copilot-prompt",timestamp:$ts,runId:$run,runUrl:$url,syncResult:$result}')
-          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/audit/copilot-sync-${SN}.json" \
+            '{operation:"sync-codex-prompt",timestamp:$ts,runId:$run,runUrl:$url,syncResult:$result}')
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/audit/codex-sync-${SN}.json" \
             --method PUT -f "branch=autopilot-state" \
-            -f "message=audit: copilot-sync $SN [skip ci]" \
+            -f "message=audit: codex-sync $SN [skip ci]" \
             -f "content=$(echo "$AUDIT"|base64 -w0)" 2>/dev/null || true

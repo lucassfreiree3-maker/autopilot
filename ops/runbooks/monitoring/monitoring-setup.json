@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Monitoring Setup and Operations",
+  "description": "Guide for setting up and operating monitoring across platforms",
+  "platforms": {
+    "datadog": {
+      "setup": [
+        "Install Datadog agent on hosts or as K8s DaemonSet",
+        "Configure DD_API_KEY and DD_SITE",
+        "Enable integrations (K8s, Docker, cloud providers)",
+        "Set up log collection",
+        "Create dashboards and monitors"
+      ],
+      "key_monitors": [
+        "Host: CPU > 80% for 5 min",
+        "Host: Memory > 85% for 5 min",
+        "Host: Disk > 90%",
+        "K8s: Pod restarts > 3 in 10 min",
+        "K8s: CrashLoopBackOff detected",
+        "APM: Error rate > 5%",
+        "APM: P95 latency > threshold",
+        "Logs: Error pattern detected"
+      ]
+    },
+    "prometheus_grafana": {
+      "setup": [
+        "Deploy Prometheus (or kube-prometheus-stack via Helm)",
+        "Configure scrape targets in prometheus.yml",
+        "Deploy Grafana and connect Prometheus datasource",
+        "Import standard dashboards (Node Exporter, K8s)",
+        "Configure Alertmanager for notifications"
+      ],
+      "key_alerts": {
+        "infrastructure": [
+          "NodeCPUHighUsage: node_cpu_seconds_total > 80%",
+          "NodeMemoryHighUsage: node_memory_MemAvailable_bytes < 15%",
+          "NodeDiskFull: node_filesystem_avail_bytes < 10%",
+          "NodeDown: up == 0 for 5m"
+        ],
+        "kubernetes": [
+          "KubePodCrashLooping: rate(kube_pod_container_status_restarts_total[15m]) > 0",
+          "KubePodNotReady: kube_pod_status_ready != 1 for 15m",
+          "KubeDeploymentReplicasMismatch: kube_deployment_spec_replicas != kube_deployment_status_ready_replicas",
+          "KubeNodeNotReady: kube_node_status_condition{condition='Ready',status='true'} == 0"
+        ],
+        "application": [
+          "HighErrorRate: rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m]) > 0.05",
+          "HighLatency: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > threshold",
+          "ServiceDown: probe_success == 0 for 2m"
+        ]
+      },
+      "grafana_dashboards": [
+        "Node Exporter Full (ID: 1860)",
+        "Kubernetes Cluster (ID: 6417)",
+        "Kubernetes Pods (ID: 6336)",
+        "NGINX Ingress (ID: 9614)",
+        "CoreDNS (ID: 5926)"
+      ]
+    }
+  },
+  "slo_framework": {
+    "description": "Standard SLO definitions for services",
+    "availability": {
+      "target": "99.9%",
+      "measurement": "successful_requests / total_requests over 30 days",
+      "alert_burn_rate": "Error budget consumed > 10% in 1 hour"
+    },
+    "latency": {
+      "target": "P95 < 500ms, P99 < 1000ms",
+      "measurement": "histogram_quantile over 30 days",
+      "alert": "P95 > target for 5 minutes"
+    }
+  }
+}

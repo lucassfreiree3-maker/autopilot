@@ -21,6 +21,7 @@
     "editor": "github.dev"
   },
   "instructions": {
+    "workspaceIdentification": "FIRST STEP of every operation: identify which workspace (company) the user is talking about from conversation context. Use contextClues in shared-agent-contract.json. If ambiguous, ASK before proceeding. NEVER assume any workspace as default.",
     "stateAccess": "Use MCP GitHub tools or gh CLI to read/write state on autopilot-state branch",
     "lockProtocol": "Acquire lock via state file creation, check for existing lock first. Always release in finally/cleanup stage.",
     "sessionGuard": "Before any state-changing operation, acquire session lock. If another agent (codex) holds the lock, ABORT - never force override.",

@@ -19,3 +19,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Ops logs (auto-generated, not tracked)
+ops/logs/

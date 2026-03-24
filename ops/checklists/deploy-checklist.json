@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "type": "checklist",
+  "name": "Deploy Checklist",
+  "description": "Pre-deploy and post-deploy verification checklist",
+  "pre_deploy": [
+    "Code reviewed and approved",
+    "All tests passing (unit, integration, e2e)",
+    "No critical/high security vulnerabilities",
+    "Version bumped correctly",
+    "Changelog/release notes prepared",
+    "Database migrations tested (if applicable)",
+    "Feature flags configured (if applicable)",
+    "Rollback plan documented",
+    "Monitoring alerts acknowledged (no active P1/P2)",
+    "Communication sent to stakeholders (if major change)"
+  ],
+  "during_deploy": [
+    "Monitor deployment progress",
+    "Watch error rates and latency dashboards",
+    "Verify health check endpoints",
+    "Check pod/instance rollout status",
+    "Verify log output for errors"
+  ],
+  "post_deploy": [
+    "All pods/instances healthy and ready",
+    "Health checks passing",
+    "Error rate within SLO",
+    "Latency within SLO",
+    "Key user flows verified (smoke test)",
+    "No new errors in logs",
+    "Database state consistent (if migrations ran)",
+    "Monitoring dashboards show expected behavior",
+    "Update deployment tracking (version, timestamp, deployer)",
+    "Close deployment task/ticket"
+  ],
+  "rollback_triggers": [
+    "Error rate exceeds 5x baseline",
+    "P95 latency exceeds 3x baseline",
+    "Health checks failing after initial delay",
+    "Critical functionality broken",
+    "Data integrity issue detected"
+  ]
+}

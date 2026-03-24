@@ -19,6 +19,7 @@
     "editor": "github.dev"
   },
   "instructions": {
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context. Check trigger file _context field. If ambiguous, ask. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
     "stateAccess": "Read state from autopilot-state branch via GitHub API. Use gh api repos/lucassfreiree/autopilot/contents/{path}?ref=autopilot-state",
     "lockProtocol": "Read session-lock.json before any action. If locked by another agent, create handoff instead of proceeding.",
     "sessionGuard": "CRITICAL: Check locks/session-lock.json. If agentId != 'none' and not expired, ABORT and create handoff. Never force override.",
@@ -46,7 +47,6 @@
     "Should create handoffs for complex implementations instead of doing them directly"
   ],
   "contextFiles": [
-    ".github/copilot-instructions.md",
     "contracts/shared-agent-contract.json",
     "CLAUDE.md"
   ]

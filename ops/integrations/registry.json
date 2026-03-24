@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "description": "Integration registry — tracks all external integrations, webhooks, APIs and their status",
+  "lastUpdated": "2026-03-24T18:30:00Z",
+  "integrations": {
+    "slack": {
+      "type": "webhook",
+      "purpose": "Notifications, alerts, approvals",
+      "status": "pending",
+      "config": {
+        "webhook_url": {"env_var": "SLACK_WEBHOOK_URL", "secret": true, "status": "pending"},
+        "channel": {"env_var": "SLACK_CHANNEL", "default": "#ops-alerts", "status": "pending"}
+      },
+      "used_by": ["alert-notify.yml", "ops-monitor-alerts.yml"],
+      "contract": "ops/integrations/contracts/slack-webhook.json"
+    },
+    "datadog": {
+      "type": "api",
+      "purpose": "Monitoring, metrics, APM, logs",
+      "status": "pending",
+      "config_location": "ops/config/monitoring/datadog/datadog-config.json"
+    },
+    "grafana": {
+      "type": "api",
+      "purpose": "Dashboards, alerting, visualization",
+      "status": "pending",
+      "config_location": "ops/config/monitoring/grafana/grafana-config.json"
+    },
+    "prometheus": {
+      "type": "api",
+      "purpose": "Metrics collection and alerting",
+      "status": "pending",
+      "config_location": "ops/config/monitoring/prometheus/prometheus-config.json"
+    },
+    "terraform_cloud": {
+      "type": "api",
+      "purpose": "Remote state, plan/apply, policy enforcement",
+      "status": "pending",
+      "config": {
+        "url": {"default": "https://app.terraform.io"},
+        "token": {"env_var": "TERRAFORM_CLOUD_TOKEN", "secret": true, "status": "pending"},
+        "organization": {"status": "pending"}
+      }
+    },
+    "pagerduty": {
+      "type": "webhook",
+      "purpose": "Incident management, on-call escalation",
+      "status": "not_planned",
+      "note": "Configure when on-call rotation is established"
+    },
+    "github_api": {
+      "type": "api",
+      "purpose": "Repository management, workflow orchestration, issue tracking",
+      "status": "active",
+      "config": {
+        "token": "GITHUB_TOKEN (auto-provided in Actions) or RELEASE_TOKEN",
+        "base_url": "https://api.github.com"
+      }
+    }
+  },
+  "status_legend": {
+    "active": "Fully configured and operational",
+    "pending": "Structure ready, awaiting credentials/endpoints",
+    "not_planned": "Not currently planned, may be added later"
+  }
+}

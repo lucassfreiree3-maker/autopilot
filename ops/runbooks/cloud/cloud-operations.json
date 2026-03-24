@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Cloud Operations",
+  "description": "Multi-cloud operational procedures (AWS, Azure, GCP)",
+  "aws": {
+    "common_tasks": {
+      "check_iam": "aws sts get-caller-identity && aws iam get-user",
+      "list_ec2": "aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name,Type:InstanceType,Name:Tags[?Key==`Name`].Value|[0]}' --output table",
+      "list_eks": "aws eks list-clusters --output table",
+      "check_logs": "aws logs filter-log-events --log-group-name <group> --start-time <epoch_ms> --filter-pattern <pattern>",
+      "check_alb_health": "aws elbv2 describe-target-health --target-group-arn <arn>",
+      "check_rds_status": "aws rds describe-db-instances --query 'DBInstances[].{ID:DBInstanceIdentifier,Status:DBInstanceStatus,Engine:Engine}' --output table"
+    },
+    "troubleshooting": {
+      "ec2_unreachable": [
+        "Check instance state: aws ec2 describe-instance-status --instance-id <id>",
+        "Check security groups: aws ec2 describe-security-groups --group-ids <sg-id>",
+        "Check network ACLs and route tables",
+        "Check VPC flow logs for denied traffic",
+        "Try Session Manager: aws ssm start-session --target <id>"
+      ],
+      "eks_issues": [
+        "Update kubeconfig: aws eks update-kubeconfig --name <cluster> --region <region>",
+        "Check cluster status: aws eks describe-cluster --name <cluster>",
+        "Check node groups: aws eks list-nodegroups --cluster-name <cluster>",
+        "Check OIDC provider for IRSA",
+        "Verify aws-auth ConfigMap"
+      ]
+    }
+  },
+  "azure": {
+    "common_tasks": {
+      "check_identity": "az account show",
+      "list_resources": "az resource list --output table",
+      "list_aks": "az aks list --output table",
+      "check_logs": "az monitor log-analytics query --workspace <id> --analytics-query <kusto>",
+      "check_app_insights": "az monitor app-insights query --app <name> --analytics-query <kusto>"
+    },
+    "troubleshooting": {
+      "aks_issues": [
+        "Get credentials: az aks get-credentials --resource-group <rg> --name <cluster>",
+        "Check cluster status: az aks show --resource-group <rg> --name <cluster>",
+        "Check node pools: az aks nodepool list --resource-group <rg> --cluster-name <cluster>",
+        "Browse cluster: az aks browse --resource-group <rg> --name <cluster>",
+        "Check Azure CNI or kubenet issues"
+      ]
+    }
+  },
+  "gcp": {
+    "common_tasks": {
+      "check_identity": "gcloud auth list && gcloud config get-value project",
+      "list_gke": "gcloud container clusters list",
+      "list_compute": "gcloud compute instances list",
+      "check_logs": "gcloud logging read 'resource.type=\"k8s_container\"' --limit=50 --format=json"
+    },
+    "troubleshooting": {
+      "gke_issues": [
+        "Get credentials: gcloud container clusters get-credentials <cluster> --zone <zone>",
+        "Check cluster status: gcloud container clusters describe <cluster> --zone <zone>",
+        "Check node pools: gcloud container node-pools list --cluster <cluster> --zone <zone>",
+        "Check Workload Identity configuration",
+        "Check network policies and firewall rules"
+      ]
+    }
+  }
+}

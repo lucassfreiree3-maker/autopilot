@@ -18,6 +18,7 @@
     "editor": "github.dev"
   },
   "instructions": {
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context. Check trigger file _context field and workspace_id. If ambiguous, verify with user. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
     "stateAccess": "Use gh CLI to read/write state on autopilot-state branch",
     "lockProtocol": "Check locks/ directory via gh api before starting operations. Always release locks on completion.",
     "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by claude-code, ABORT and create a handoff instead. Never force override another agent's lock.",
@@ -27,6 +28,7 @@
     "sourceCodeChanges": "Use apply-source-change.yml workflow or trigger file. Never push directly to corporate repos without session lock."
   },
   "contextFiles": [
+    "AGENTS.md",
     "contracts/shared-agent-contract.json",
     "schemas/*.schema.json"
   ]

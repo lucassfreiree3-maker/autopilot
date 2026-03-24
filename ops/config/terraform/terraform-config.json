@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "tool": "terraform",
+  "description": "Terraform and Terragrunt operational configuration",
+  "status": "placeholder",
+  "versions": {
+    "terraform": {"minimum": "1.5.0", "recommended": ">=1.7.0"},
+    "terragrunt": {"minimum": "0.50.0", "recommended": ">=0.55.0"}
+  },
+  "directory_structure": {
+    "description": "Recommended directory layout for multi-environment IaC",
+    "layout": {
+      "ops/terraform/": "Root for all Terraform/Terragrunt code",
+      "ops/terraform/modules/": "Reusable Terraform modules",
+      "ops/terraform/environments/": "Per-environment configurations",
+      "ops/terraform/environments/dev/": "Development environment",
+      "ops/terraform/environments/staging/": "Staging environment",
+      "ops/terraform/environments/production/": "Production environment",
+      "ops/terraform/global/": "Global resources (IAM, DNS, shared infra)"
+    }
+  },
+  "backend": {
+    "recommended": "S3 + DynamoDB (AWS) or Azure Blob or GCS",
+    "templates": {
+      "aws_s3": "ops/templates/terraform/backend-s3.tf",
+      "azure_blob": "ops/config/terraform/backend-azurerm.tf.template",
+      "gcs": "ops/config/terraform/backend-gcs.tf.template"
+    },
+    "state_files": {
+      "pattern": "<PROJECT>/<ENVIRONMENT>/terraform.tfstate",
+      "locking": "Always enable (DynamoDB for AWS, native for Azure/GCS)",
+      "encryption": "Always enable at rest"
+    },
+    "github_actions_secrets": {
+      "TF_STATE_BUCKET": {"status": "pending", "description": "State backend bucket name"},
+      "TF_STATE_LOCK_TABLE": {"status": "pending", "description": "DynamoDB table for locking (AWS)"},
+      "TF_STATE_RG": {"status": "pending", "description": "Resource group for state (Azure)"}
+    }
+  },
+  "providers": {
+    "aws": {"source": "hashicorp/aws", "version_constraint": "~> 5.0", "auth": "See ops/config/cloud/aws/"},
+    "azurerm": {"source": "hashicorp/azurerm", "version_constraint": "~> 3.0", "auth": "See ops/config/cloud/azure/"},
+    "google": {"source": "hashicorp/google", "version_constraint": "~> 5.0", "auth": "See ops/config/cloud/gcp/"},
+    "kubernetes": {"source": "hashicorp/kubernetes", "version_constraint": "~> 2.0"},
+    "helm": {"source": "hashicorp/helm", "version_constraint": "~> 2.0"}
+  },
+  "conventions": {
+    "naming": {
+      "resources": "<project>-<environment>-<resource_type> (e.g., myapp-prod-rds)",
+      "modules": "Descriptive, lowercase, hyphens (e.g., vpc-module, eks-cluster)",
+      "variables": "snake_case, descriptive (e.g., instance_type, vpc_cidr)"
+    },
+    "tagging": {
+      "required_tags": ["Environment", "Project", "ManagedBy=terraform", "Team", "CostCenter"],
+      "pattern": "Use locals block for common tags, merge per resource"
+    },
+    "validation": [
+      "terraform fmt -check -recursive (formatting)",
+      "terraform validate (syntax)",
+      "tflint (linting)",
+      "tfsec or checkov (security scanning)",
+      "terraform plan (review changes)"
+    ]
+  },
+  "github_actions_workflow": {
+    "pattern": "Plan on PR → Review → Apply on merge",
+    "steps": [
+      "1. Checkout code",
+      "2. Setup Terraform (hashicorp/setup-terraform@v3)",
+      "3. Configure cloud auth (OIDC preferred)",
+      "4. terraform init",
+      "5. terraform plan (save plan file, post to PR comment)",
+      "6. terraform apply (on merge to main only, auto-approve)"
+    ]
+  },
+  "operational_script": "ops/scripts/terraform/tf-ops.sh",
+  "module_template": "ops/templates/terraform/module-template/",
+  "pending_items": [
+    "State backend (bucket, table, resource group)",
+    "Cloud provider credentials for automation",
+    "Module structure for first infrastructure",
+    "Environment-specific variable files",
+    "GitHub Actions workflow for Terraform plan/apply"
+  ]
+}

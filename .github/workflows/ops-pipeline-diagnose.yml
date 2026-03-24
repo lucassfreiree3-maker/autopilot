@@ -1,0 +1,63 @@
+name: "Ops: Pipeline Diagnostics"
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "CI/CD platform"
+        required: true
+        type: choice
+        options: [github, gitlab, jenkins]
+      target:
+        description: "Target (repo for GitHub, project_id for GitLab, job_url for Jenkins)"
+        required: true
+      identifier:
+        description: "Workflow name, pipeline ID, or build number (optional)"
+        required: false
+      run_id:
+        description: "Specific run/pipeline/build ID (optional)"
+        required: false
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-cit"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ops-pipeline-diag-${{ github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pipeline diagnostics
+        run: |
+          chmod +x ops/scripts/ci/analyze-pipeline.sh
+
+          ARGS="${{ inputs.target }}"
+          [ -n "${{ inputs.identifier }}" ] && ARGS="$ARGS ${{ inputs.identifier }}"
+          [ -n "${{ inputs.run_id }}" ] && ARGS="$ARGS ${{ inputs.run_id }}"
+
+          ./ops/scripts/ci/analyze-pipeline.sh "${{ inputs.platform }}" $ARGS 2>&1 | tee pipeline-diag.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_URL: ${{ vars.GITLAB_URL || 'https://gitlab.com' }}
+          JENKINS_URL: ${{ vars.JENKINS_URL }}
+          JENKINS_USER: ${{ secrets.JENKINS_USER }}
+          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload diagnostic report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-diag-${{ inputs.platform }}-${{ github.run_number }}
+          path: pipeline-diag.log
+          retention-days: 30

@@ -1,0 +1,77 @@
+name: "Ops: K8s Cluster Health"
+
+on:
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: "Cluster name or context"
+        required: true
+      provider:
+        description: "Cloud provider"
+        required: true
+        type: choice
+        options: [aws, azure, gcp]
+      namespace:
+        description: "Namespace (or --all-namespaces)"
+        required: true
+        default: "--all-namespaces"
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-cit"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-k8s-${{ inputs.cluster }}
+  cancel-in-progress: true
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure AWS EKS
+        if: inputs.provider == 'aws'
+        run: |
+          aws eks update-kubeconfig --name "${{ inputs.cluster }}" --region "${{ vars.AWS_DEFAULT_REGION || 'us-east-1' }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        continue-on-error: true
+
+      - name: Configure Azure AKS
+        if: inputs.provider == 'azure'
+        run: |
+          az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID"
+          az aks get-credentials --resource-group "${{ vars.AKS_RESOURCE_GROUP }}" --name "${{ inputs.cluster }}"
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        continue-on-error: true
+
+      - name: Configure GCP GKE
+        if: inputs.provider == 'gcp'
+        run: |
+          echo '${{ secrets.GCP_SA_KEY }}' | gcloud auth activate-service-account --key-file=-
+          gcloud container clusters get-credentials "${{ inputs.cluster }}" --zone "${{ vars.GKE_ZONE || 'us-central1-a' }}" --project "${{ vars.GCP_PROJECT_ID }}"
+        continue-on-error: true
+
+      - name: Run cluster health check
+        run: |
+          chmod +x ops/scripts/k8s/cluster-health.sh
+          ./ops/scripts/k8s/cluster-health.sh "${{ inputs.namespace }}" 2>&1 | tee k8s-health.log
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k8s-health-${{ inputs.cluster }}-${{ github.run_number }}
+          path: k8s-health.log
+          retention-days: 30

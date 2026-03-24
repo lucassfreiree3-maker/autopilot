@@ -18,6 +18,7 @@
     "editor": "github.dev"
   },
   "instructions": {
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context before any operation. If ambiguous, ask. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
     "stateAccess": "Read state files from autopilot-state branch via GitHub web UI or API",
     "lockProtocol": "Check locks/ directory before starting work, coordinate via handoffs. Always release locks on completion.",
     "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by another agent, ABORT and create a handoff instead.",

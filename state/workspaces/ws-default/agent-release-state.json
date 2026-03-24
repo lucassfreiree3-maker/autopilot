@@ -2,16 +2,24 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "agent",
-  "lastReleasedSha": "7e20cc0ec9dfdf0949cdf8978dbfcf782f7a628c",
-  "lastTag": "2.2.3",
-  "updatedAt": "2026-03-22T20:21:24Z",
-  "runId": "23411513443",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23411513443",
+  "lastReleasedSha": "99f5da2637c060805ad9c5925fd84f928900b5b7",
+  "lastTag": "2.2.5",
+  "lastVersion": "2.2.5",
+  "updatedAt": "2026-03-24T21:15:32Z",
+  "runId": "23512177537",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23512177537",
+  "promotions": [
+    {
+      "target": "cap",
+      "repo": "bbvinet/psc_releases_cap_sre-aut-agent",
+      "branch": "main",
+      "path": "releases/openshift/hml/deploy/values.yaml",
+      "tag": "2.2.5",
+      "sha": "99f5da2637c060805ad9c5925fd84f928900b5b7",
+      "timestamp": "2026-03-24T21:15:32Z",
+      "status": "success"
+    }
+  ],
   "ciResult": "success",
-  "status": "promoted",
-  "changeType": "source-code",
-  "commitMessage": "chore: bump version 2.2.2 → 2.2.3",
-  "promoted": true,
-  "preExistingFailure": false,
-  "gateDecision": "pass"
+  "status": "promoted"
 }

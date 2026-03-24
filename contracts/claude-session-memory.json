@@ -2,44 +2,131 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-23T23:55:00-03:00",
-  "lastSessionId": "session_01WNCzT7nhQbajAjtvmqDgvK_eslint_fix",
+  "lastUpdated": "2026-03-24T12:00:00-03:00",
+  "lastSessionId": "session_setup_cit_multicompany",
+
+  "multiCompanyModel": {
+    "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
+    "companies": {
+      "getronics": {
+        "workspaceId": "ws-default",
+        "machine": "getronics-workstation",
+        "stack": "Node/TypeScript (NestJS, Jest, ESLint)",
+        "tokenSecret": "BBVINET_TOKEN",
+        "repos": ["bbvinet/psc-sre-automacao-controller", "bbvinet/psc-sre-automacao-agent", "bbvinet/psc_releases_cap_sre-aut-agent"],
+        "status": "active",
+        "lastDeploy": "3.5.6 (run #38)",
+        "notes": "Pipeline completo e funcional. Controller no GitLab (sem auto-promote). Esteira de Build NPM."
+      },
+      "cit": {
+        "workspaceId": "ws-cit",
+        "machine": "cit-workstation",
+        "stack": "DevOps (K8s, Docker, Terraform, Ansible, Helm, ArgoCD, CI/CD)",
+        "tokenSecret": "CIT_TOKEN",
+        "repos": [],
+        "status": "setup",
+        "lastDeploy": null,
+        "notes": "Nova empresa. Stack DevOps. Repos e pipelines a serem configurados conforme demanda."
+      }
+    },
+    "goldenRules": [
+      "NUNCA misturar dados, credenciais, commits ou estado entre empresas",
+      "Identificar contexto ativo ANTES de qualquer operacao",
+      "Cada empresa usa exclusivamente seu proprio token",
+      "Em caso de duvida, o padrao e isolamento",
+      "Monitorar CI de cada empresa SEPARADAMENTE",
+      "Workspace config e a fonte de verdade para cada empresa"
+    ]
+  },
 
   "contextSeparation": {
-    "description": "REGRA CRITICA: Existem DOIS contextos COMPLETAMENTE SEPARADOS. NUNCA misturar commits, monitoramento, ou status entre eles.",
+    "description": "REGRA CRITICA: Contexto do autopilot (control plane) e separado do contexto corporativo de CADA empresa. NUNCA misturar.",
     "autopilot": {
       "repo": "lucassfreiree/autopilot",
-      "what": "Projeto pessoal do usuario. Onde ficam patches, triggers, workflows, docs, memoria.",
+      "what": "Projeto pessoal do usuario. Control plane centralizado para todas as empresas.",
       "commits": "PRs que o Claude faz (branch claude/* → PR → squash merge em main)",
       "ci": "GitHub Actions do autopilot (apply-source-change.yml, ci-diagnose.yml, etc.)",
       "monitoring": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/...",
       "successCriteria": "Workflow apply-source-change completar todos os stages (Setup → Audit)",
-      "note": "Sucesso do workflow autopilot NAO significa sucesso do deploy corporativo!"
+      "note": "Sucesso do workflow autopilot NAO significa sucesso do deploy corporativo de NENHUMA empresa!"
     },
-    "corporate": {
+    "getronics": {
       "repo": "bbvinet/psc-sre-automacao-controller (ou agent)",
-      "what": "Repo da EMPRESA. Codigo de producao real. Push feito pelo workflow apply-source-change.",
-      "commits": "Commits feitos pelo github-actions bot via BBVINET_TOKEN — NAO confundir com commits do autopilot",
-      "ci": "Esteira de Build NPM — runner corporativo (NÃO é GitHub Actions do autopilot)",
-      "monitoring": "ci-diagnose.yml busca logs → salva em autopilot-state (ci-logs-controller-*.txt, ci-diagnosis-controller.json)",
-      "successCriteria": "Imagem Docker publicada no registry corporativo (docker.binarios.intranet.bb.com.br)",
-      "note": "CI Gate no autopilot verifica a esteira corporativa via API, mas a esteira pode continuar falhando apos CI Gate passar (smart pre-existing detection)"
+      "what": "Repo da GETRONICS. Codigo de producao real. Push feito pelo workflow apply-source-change.",
+      "commits": "Commits feitos pelo github-actions bot via BBVINET_TOKEN",
+      "ci": "Esteira de Build NPM — runner corporativo",
+      "monitoring": "ci-diagnose.yml busca logs → salva em autopilot-state (ci-logs-controller-*.txt)",
+      "successCriteria": "Imagem Docker publicada no registry corporativo",
+      "note": "CI Gate no autopilot verifica a esteira corporativa via API, mas a esteira pode continuar falhando apos CI Gate passar"
+    },
+    "cit": {
+      "workspace": "ws-cit",
+      "what": "Contexto DevOps da CIT. Repos e pipelines serao configurados conforme demanda.",
+      "stack": "DevOps — K8s, Docker, Terraform, Ansible, Helm, ArgoCD, monitoring",
+      "status": "setup — aguardando repos e credenciais",
+      "note": "Isolamento total do contexto Getronics. Nenhum dado ou operacao compartilhada."
     },
     "goldenRules": [
-      "NUNCA misturar commits do autopilot com commits do corporativo",
-      "Monitorar SEPARADAMENTE: 1) workflow do autopilot, 2) esteira corporativa",
-      "Quando usuario diz 'esteira quebrou' → refere-se a esteira CORPORATIVA (Esteira de Build NPM), NAO ao workflow do autopilot",
-      "Sucesso do apply-source-change (autopilot) NAO garante sucesso da Esteira de Build NPM (corporativo)",
-      "CI Gate pode passar com pre-existing detection mesmo quando esteira corporativa falha",
-      "Para diagnosticar esteira corporativa: usar ci-diagnose workflow → ler ci-logs-controller-*.txt no autopilot-state",
-      "Logs reais da esteira corporativa estao nos arquivos ci-logs-controller-*.txt — NAO no ci-diagnosis-controller.json (que roda tsc/jest local sem npm install)",
-      "Os dois SHAs sao DIFERENTES: SHA do PR mergeado no autopilot vs SHA do commit pushado no repo corporativo"
+      "NUNCA misturar dados entre Getronics e CIT",
+      "Identificar QUAL empresa antes de qualquer acao",
+      "Monitorar SEPARADAMENTE: autopilot vs CI de cada empresa",
+      "Sucesso do apply-source-change NAO garanta sucesso do CI corporativo (vale para todas as empresas)",
+      "Cada empresa tem seu proprio token, repos, pipeline e estado",
+      "Os SHAs sao DIFERENTES entre autopilot e cada repo corporativo"
     ]
   },
 
   "executionHistory": {
     "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
     "sessions": [
+      {
+        "id": "session_setup_cit_multicompany",
+        "date": "2026-03-24",
+        "summary": "Setup multi-company model: CIT workspace (DevOps) + Getronics isolation + workspace schema v3",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Evoluiu workspace schema para v3 com suporte multi-empresa",
+            "how": "Adicionou campos company (id, name, machine, dataClassification), stack (primary, tools, platforms), credentials (tokenSecretName), repos[] (array generico), allowedAgents",
+            "filesChanged": ["schemas/workspace.schema.json"],
+            "lesson": "Schema antigo (v2) mantido como campos legacy (controller, agent) para backward compatibility com ws-default. Novos workspaces usam repos[]."
+          },
+          {
+            "step": 2,
+            "action": "Criou workspace ws-cit para CIT (DevOps)",
+            "how": "state/workspaces/ws-cit/workspace.json com company.id=cit, stack DevOps, CIT_TOKEN",
+            "filesCreated": ["state/workspaces/ws-cit/workspace.json"],
+            "lesson": "Workspace CIT começa sem repos — serão adicionados conforme demanda."
+          },
+          {
+            "step": 3,
+            "action": "Atualizou ws-default com metadados Getronics",
+            "how": "Adicionou company (id=getronics), stack, credentials ao workspace.json existente. Schema v2→v3",
+            "filesChanged": ["state/workspaces/ws-default/workspace.json"],
+            "lesson": "Campos legacy (controller, agent) mantidos intactos. Workflows existentes nao precisam de alteracao."
+          },
+          {
+            "step": 4,
+            "action": "Atualizou CLAUDE.md com modelo multi-empresa",
+            "how": "Reescreveu Context Separation para multi-company. Adicionou CIT na tabela de workspaces. Adicionou CIT_TOKEN na tabela de secrets.",
+            "filesChanged": ["CLAUDE.md"]
+          },
+          {
+            "step": 5,
+            "action": "Atualizou session memory com multiCompanyModel",
+            "how": "Adicionou bloco multiCompanyModel com companies (getronics + cit), goldenRules. Expandiu contextSeparation para incluir CIT.",
+            "filesChanged": ["contracts/claude-session-memory.json"],
+            "lesson": "Memoria agora rastreia estado de cada empresa separadamente."
+          }
+        ],
+        "mistakesMade": [],
+        "keyDecisions": [
+          "Nenhum workflow alterado — esteira Getronics permanece intacta",
+          "Schema v3 backward-compatible: campos legacy mantidos",
+          "CIT começa em modo setup — repos adicionados sob demanda",
+          "Isolamento por design: cada empresa com token, workspace e estado proprios"
+        ]
+      },
       {
         "id": "session_01WNCzT7nhQbajAjtvmqDgvK",
         "date": "2026-03-23",

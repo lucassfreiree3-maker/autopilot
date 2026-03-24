@@ -75,27 +75,50 @@ Visual automation and external integrations (100% self-hosted, open-source).
 - `workflows/approval-gate.json` — Interactive Slack approval for releases
 - `README.md` — Integration guide
 
-## Context Separation (CRITICAL — Two Completely Different Environments)
+## Context Separation (CRITICAL — Multi-Company Isolation)
 
-There are **TWO separate contexts** that must NEVER be mixed:
+This control plane manages **multiple companies** from a single point. Each company is a **completely isolated context**.
 
-| | **Autopilot (Projeto Pessoal)** | **Corporativo (Empresa)** |
+### Company Contexts
+
+| | **Getronics** (ws-default) | **CIT** (ws-cit) |
 |---|---|---|
-| **Repo** | `lucassfreiree/autopilot` | `bbvinet/psc-sre-automacao-controller` (ou agent) |
-| **Commits** | PRs do Claude (branch `claude/*` → PR → squash merge) | Commits do `github-actions` bot via `BBVINET_TOKEN` |
-| **CI** | GitHub Actions do autopilot | Esteira de Build NPM (runner corporativo) |
-| **Monitoramento** | API `/actions/workflows/.../runs` | `ci-diagnose.yml` → `ci-logs-controller-*.txt` no autopilot-state |
-| **Sucesso** | Workflow apply-source-change completa 7 stages | Imagem Docker publicada no registry |
+| **Workspace** | `ws-default` | `ws-cit` |
+| **Machine** | Getronics workstation | CIT workstation |
+| **Stack** | Node/TypeScript (NestJS, Jest) | DevOps (K8s, Docker, Terraform, IaC, CI/CD) |
+| **Repos** | `bbvinet/psc-sre-automacao-*` | To be configured |
+| **Token** | `BBVINET_TOKEN` | `CIT_TOKEN` (when available) |
+| **Data Classification** | Confidential | Internal |
+
+### Autopilot vs Corporate Context (per company)
+
+| | **Autopilot (Control Plane)** | **Corporate (per workspace)** |
+|---|---|---|
+| **Repo** | `lucassfreiree/autopilot` | Configured in workspace.json `repos[]` |
+| **Commits** | PRs do Claude (`claude/*` → PR → squash merge) | Commits via workspace token |
+| **CI** | GitHub Actions do autopilot | CI pipeline da empresa (configurado por workspace) |
 | **SHAs** | SHA do merge no autopilot | SHA do commit no repo corporativo (DIFERENTE!) |
 
-### Separation Rules
-1. **NUNCA** misturar commits do autopilot com commits do corporativo
-2. **Monitorar SEPARADAMENTE**: workflow do autopilot vs esteira corporativa
-3. Quando usuario diz "esteira quebrou" → refere-se à **esteira CORPORATIVA**, não ao workflow do autopilot
-4. **Sucesso do apply-source-change NÃO garante sucesso da Esteira de Build NPM**
-5. CI Gate pode passar com "pre-existing detection" mesmo quando esteira falha
-6. Para diagnosticar esteira corporativa: `ci-diagnose.yml` → ler `ci-logs-controller-*.txt` (NÃO `ci-diagnosis-controller.json` que roda local sem npm install)
-7. Os dois SHAs são DIFERENTES e não devem ser confundidos
+### Isolation Rules
+1. **NUNCA** misturar dados, commits, credenciais ou estado entre empresas
+2. **Cada workspace** usa exclusivamente seu proprio token (secret name em `credentials.tokenSecretName`)
+3. **Monitorar SEPARADAMENTE**: workflow do autopilot vs CI de cada empresa
+4. Quando usuario menciona CI/esteira → identificar QUAL empresa antes de agir
+5. **Sucesso do apply-source-change NAO garante sucesso do CI corporativo** (vale para todas as empresas)
+6. **Contexto ativo** deve ser identificado ANTES de qualquer operacao
+7. **Em caso de duvida, o padrao e isolamento** — nunca assumir que contextos podem ser compartilhados
+8. Os SHAs sao DIFERENTES entre autopilot e cada repo corporativo
+
+### Getronics-Specific Rules
+1. Esteira de Build NPM (runner corporativo) — monitorar via `ci-diagnose.yml`
+2. Logs reais: `ci-logs-controller-*.txt` no autopilot-state (NAO `ci-diagnosis-controller.json`)
+3. CI Gate pode passar com "pre-existing detection" mesmo quando esteira falha
+4. Controller CAP no GitLab — auto-promote NAO funciona ate migracao
+
+### CIT-Specific Rules
+1. Stack DevOps — foco em infraestrutura, automacao, containers, IaC
+2. Repos e pipelines serao configurados conforme demanda
+3. Operacoes iniciais nao requerem deploy pipeline — foco em organizacao e tooling
 
 ## Rules
 1. Never store corporate code, secrets, or internal URLs in this repo
@@ -121,10 +144,11 @@ There are **TWO separate contexts** that must NEVER be mixed:
 ## Workspaces
 
 ### Active Workspaces
-| Workspace ID | Status | Description |
-|-------------|--------|-------------|
-| `ws-default` | Active | Primary workspace (bbvinet corporate repos) |
-| `ws-corp-1` | Empty/Template | Reserved for additional corporate workspace |
+| Workspace ID | Company | Status | Stack | Description |
+|-------------|---------|--------|-------|-------------|
+| `ws-default` | Getronics | Active | Node/TypeScript | Primary workspace (bbvinet corporate repos) |
+| `ws-cit` | CIT | Active | DevOps | DevOps workspace (K8s, Docker, Terraform, CI/CD) |
+| `ws-corp-1` | — | Empty/Template | — | Reserved for additional corporate workspace |
 
 ### State Location
 ```
@@ -398,11 +422,12 @@ Every new Claude Code session MUST:
 | `workflow_dispatch` or push to `main` (self-path) | `BBVINET_TOKEN` | `bbvinet/psc-sre-automacao-agent`, `bbvinet/psc-sre-automacao-controller`, `bbvinet/psc_releases_cap_sre-aut-agent` |
 
 ### Repository Secrets Available
-| Secret | Purpose |
-|--------|---------|
-| `BBVINET_TOKEN` | PAT with access to corporate repos (bbvinet org) |
-| `RELEASE_TOKEN` | Token for release operations |
-| `OPENAI_API_KEY` | OpenAI API key for LangChain orchestrator |
+| Secret | Company | Purpose |
+|--------|---------|---------|
+| `BBVINET_TOKEN` | Getronics | PAT with access to corporate repos (bbvinet org) |
+| `RELEASE_TOKEN` | Shared | Token for release operations and autopilot checkout |
+| `OPENAI_API_KEY` | Shared | OpenAI API key for LangChain orchestrator |
+| `CIT_TOKEN` | CIT | PAT for CIT corporate repos (to be configured) |
 
 ### Auto-Mapping for Future Sessions (MANDATORY — No user intervention required)
 Claude Code MUST automatically and proactively keep this file (CLAUDE.md) up to date. This is NOT optional and does NOT require the user to ask.

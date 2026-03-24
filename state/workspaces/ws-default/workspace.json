@@ -1,9 +1,26 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "workspaceId": "ws-default",
-  "displayName": "Default Workspace",
+  "displayName": "Getronics Workspace",
   "createdAt": "2026-03-21T21:41:00Z",
-  "updatedAt": "2026-03-21T22:00:00Z",
+  "updatedAt": "2026-03-24T12:00:00Z",
+  "company": {
+    "id": "getronics",
+    "name": "Getronics",
+    "machine": "getronics-workstation",
+    "dataClassification": "confidential"
+  },
+  "stack": {
+    "primary": "node",
+    "tools": ["typescript", "nestjs", "jest", "eslint", "docker", "kubernetes"],
+    "platforms": ["openshift", "kubernetes"]
+  },
+  "credentials": {
+    "tokenSecretName": "BBVINET_TOKEN",
+    "additionalSecrets": [
+      { "name": "RELEASE_TOKEN", "purpose": "Release operations and autopilot checkout" }
+    ]
+  },
   "controller": {
     "sourceRepo": "bbvinet/psc-sre-automacao-controller",
     "deployRepo": "",

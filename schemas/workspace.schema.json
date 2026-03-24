@@ -5,13 +5,72 @@
   "type": "object",
   "required": ["schemaVersion", "workspaceId", "createdAt"],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": { "const": 3 },
     "workspaceId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$" },
     "displayName": { "type": "string", "maxLength": 100 },
     "createdAt": { "type": "string", "format": "date-time" },
     "updatedAt": { "type": "string", "format": "date-time" },
+    "company": {
+      "type": "object",
+      "description": "Company context isolation — each workspace belongs to exactly one company",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$", "description": "Unique company identifier (lowercase, no spaces)" },
+        "name": { "type": "string", "description": "Company display name" },
+        "machine": { "type": "string", "description": "Machine/environment identifier where this context operates" },
+        "dataClassification": { "type": "string", "enum": ["public", "internal", "confidential", "restricted"], "default": "internal" }
+      }
+    },
+    "stack": {
+      "type": "object",
+      "description": "Technology stack for this workspace context",
+      "properties": {
+        "primary": { "type": "string", "description": "Primary technology (e.g., node, python, devops, java)" },
+        "tools": { "type": "array", "items": { "type": "string" }, "description": "Key tools and platforms" },
+        "platforms": { "type": "array", "items": { "type": "string" }, "description": "Infrastructure platforms (e.g., kubernetes, aws, azure)" }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "description": "Credential references (secret names, never actual values)",
+      "properties": {
+        "tokenSecretName": { "type": "string", "description": "GitHub secret name for repo access token" },
+        "additionalSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "purpose": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "repos": {
+      "type": "array",
+      "description": "All repositories managed in this workspace",
+      "items": {
+        "type": "object",
+        "required": ["id", "sourceRepo"],
+        "properties": {
+          "id": { "type": "string", "description": "Logical component name (e.g., controller, agent, infra)" },
+          "sourceRepo": { "type": "string", "description": "org/repo format" },
+          "platform": { "type": "string", "enum": ["github", "gitlab", "bitbucket", "azure-devops"], "default": "github" },
+          "deployRepo": { "type": "string" },
+          "deployBranch": { "type": "string", "default": "main" },
+          "deployValuesPath": { "type": "string" },
+          "ciWorkflowName": { "type": "string" },
+          "imagePattern": { "type": "string" },
+          "capRepo": { "type": "string" },
+          "capBranch": { "type": "string" },
+          "capValuesPath": { "type": "string" }
+        }
+      }
+    },
     "controller": {
       "type": "object",
+      "description": "Legacy: controller config (kept for backward compatibility with ws-default)",
       "properties": {
         "sourceRepo": { "type": "string" },
         "deployRepo": { "type": "string" },
@@ -23,6 +82,7 @@
     },
     "agent": {
       "type": "object",
+      "description": "Legacy: agent config (kept for backward compatibility with ws-default)",
       "properties": {
         "sourceRepo": { "type": "string" },
         "deployRepo": { "type": "string" },
@@ -38,10 +98,11 @@
     "settings": {
       "type": "object",
       "properties": {
-        "promotionTarget": { "type": "string", "enum": ["deploy", "cap", "both"], "default": "both" },
+        "promotionTarget": { "type": "string", "enum": ["deploy", "cap", "both", "none"], "default": "both" },
         "autoRelease": { "type": "boolean", "default": true },
         "lockTimeoutMinutes": { "type": "integer", "default": 30 },
-        "healthCheckEnabled": { "type": "boolean", "default": true }
+        "healthCheckEnabled": { "type": "boolean", "default": true },
+        "allowedAgents": { "type": "array", "items": { "type": "string" }, "description": "Agents permitted to operate on this workspace" }
       }
     }
   }

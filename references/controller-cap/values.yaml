@@ -114,7 +114,7 @@ sre-aut-controller:
               value: "true"
             containers:
             - name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
-              image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:3.5.10
+              image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:3.5.11
               imagePullPolicy: "IfNotPresent"
               livenessProbe:
                 failureThreshold: 6

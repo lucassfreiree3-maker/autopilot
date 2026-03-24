@@ -54,6 +54,20 @@ function resolveHeaderCandidates(envName: string): string[] {
   return uniqueValues(fromEnv);
 }
 
+function readBodyHeaders(req: Request): Record<string, string> {
+  const body = req.body as Record<string, unknown> | undefined;
+  if (!body || typeof body !== "object") return {};
+  const raw = body.headers;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const result: Record<string, string> = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof val === "string" && val.trim()) {
+      result[key.toLowerCase()] = val.trim();
+    }
+  }
+  return result;
+}
+
 function firstHeaderValue(
   req: Request,
   candidates: string[],
@@ -65,9 +79,17 @@ function firstHeaderValue(
     }))
     .find((item) => item.value !== "");
 
-  if (!found) return null;
+  if (found) return found;
 
-  return found;
+  const bodyHeaders = readBodyHeaders(req);
+  const fromBody = candidates
+    .map((candidate) => ({
+      value: bodyHeaders[candidate.toLowerCase()] || "",
+      headerName: candidate,
+    }))
+    .find((item) => item.value !== "");
+
+  return fromBody || null;
 }
 
 function normalized(value: string): string {

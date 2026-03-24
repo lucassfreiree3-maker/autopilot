@@ -135,7 +135,7 @@ This control plane manages **multiple companies** from a single point. Each comp
 ## Controller CAP (GitLab — not yet migrated to GitHub)
 - **Reference file**: `references/controller-cap/values.yaml`
 - **Image**: `docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller`
-- **Current deployed tag**: `3.5.10`
+- **Current deployed tag**: `3.5.11`
 - **K8s Secret**: `psc-sre-automacao-controller-runtime` (11 keys: JWT_SECRET, AUTH_API_KEYS_SCOPES, SCOPE_*, AWS_REGION, OSS_*)
 - **K8s Secret**: `sre-controller-auth` (4 keys: OAS_TRUSTED_NAMESPACE, OAS_TRUSTED_SERVICE_ACCOUNT, OAS_ORIGIN_NAMESPACE_HEADERS, OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS)
 - **Trusted caller**: namespace=`sgh-oaas-playbook-jobs`, serviceAccount=`default`, header=`x-techbb-namespace`/`x-techbb-service-account`

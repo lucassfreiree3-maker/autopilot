@@ -412,10 +412,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 39,
-    "lastSuccessfulRun": 36,
+    "lastTriggerRun": 40,
+    "lastSuccessfulRun": 38,
     "lastDeployPR": 104,
-    "pipelineStatus": "PENDING — run #39 (3.5.7) generic 401 error messages. Eliminando vazamento de detalhes de auth.",
+    "pipelineStatus": "PENDING — run #40 (3.5.7) fix: test assertion 'Missing Bearer token' → 'Unauthorized'. Run #39 falhou porque teste esperava mensagem antiga.",
     "lastSuccessfulRun": 38,
     "multiFilePayload": {
       "change_type": "multi-file",

@@ -10,6 +10,11 @@
       "content_ref": "patches/jwt.ts"
     },
     {
+      "target_path": "src/__tests__/unit/oas-sre-controller.route.test.ts",
+      "action": "replace-file",
+      "content_ref": "patches/oas-sre-controller.route.test.ts"
+    },
+    {
       "target_path": "package.json",
       "action": "search-replace",
       "search": "\"version\": \"3.5.6\"",
@@ -28,8 +33,8 @@
       "replace": "\"version\": \"3.5.7\""
     }
   ],
-  "commit_message": "fix: generic 401 error messages to prevent auth implementation leakage (3.5.7)",
+  "commit_message": "fix: generic 401 error messages + update test assertions (3.5.7)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 39
+  "run": 40
 }

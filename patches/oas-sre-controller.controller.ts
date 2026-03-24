@@ -317,6 +317,11 @@ function mintInternalOriginJwt(execId: string): string | undefined {
   return `Bearer ${token}`;
 }
 
+function readAuthDecision(res: Response): OasOriginAuthDecision | undefined {
+  const locals = res.locals as Locals;
+  return locals.oasAuthDecision;
+}
+
 function getAgentAuthorization(
   req: Request,
   res: Response,
@@ -364,11 +369,6 @@ async function callAgent(
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-function readAuthDecision(res: Response): OasOriginAuthDecision | undefined {
-  const locals = res.locals as Locals;
-  return locals.oasAuthDecision;
 }
 
 function summarizeDispatches(dispatches: AgentCallResult[]) {

@@ -10,8 +10,8 @@
       "content_ref": "patches/oas-sre-controller.controller.ts"
     }
   ],
-  "commit_message": "fix: correct TypeScript types for jwt.sign expiresIn parameter",
+  "commit_message": "fix: move readAuthDecision before usage (ESLint no-use-before-define)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 37
+  "run": 38
 }

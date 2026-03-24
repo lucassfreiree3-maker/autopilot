@@ -75,6 +75,28 @@ Visual automation and external integrations (100% self-hosted, open-source).
 - `workflows/approval-gate.json` — Interactive Slack approval for releases
 - `README.md` — Integration guide
 
+## Context Separation (CRITICAL — Two Completely Different Environments)
+
+There are **TWO separate contexts** that must NEVER be mixed:
+
+| | **Autopilot (Projeto Pessoal)** | **Corporativo (Empresa)** |
+|---|---|---|
+| **Repo** | `lucassfreiree/autopilot` | `bbvinet/psc-sre-automacao-controller` (ou agent) |
+| **Commits** | PRs do Claude (branch `claude/*` → PR → squash merge) | Commits do `github-actions` bot via `BBVINET_TOKEN` |
+| **CI** | GitHub Actions do autopilot | Esteira de Build NPM (runner corporativo) |
+| **Monitoramento** | API `/actions/workflows/.../runs` | `ci-diagnose.yml` → `ci-logs-controller-*.txt` no autopilot-state |
+| **Sucesso** | Workflow apply-source-change completa 7 stages | Imagem Docker publicada no registry |
+| **SHAs** | SHA do merge no autopilot | SHA do commit no repo corporativo (DIFERENTE!) |
+
+### Separation Rules
+1. **NUNCA** misturar commits do autopilot com commits do corporativo
+2. **Monitorar SEPARADAMENTE**: workflow do autopilot vs esteira corporativa
+3. Quando usuario diz "esteira quebrou" → refere-se à **esteira CORPORATIVA**, não ao workflow do autopilot
+4. **Sucesso do apply-source-change NÃO garante sucesso da Esteira de Build NPM**
+5. CI Gate pode passar com "pre-existing detection" mesmo quando esteira falha
+6. Para diagnosticar esteira corporativa: `ci-diagnose.yml` → ler `ci-logs-controller-*.txt` (NÃO `ci-diagnosis-controller.json` que roda local sem npm install)
+7. Os dois SHAs são DIFERENTES e não devem ser confundidos
+
 ## Rules
 1. Never store corporate code, secrets, or internal URLs in this repo
 2. Always use workspace_id — never hardcode tenant/org names

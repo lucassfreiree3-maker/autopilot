@@ -2,8 +2,40 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-23T20:00:00-03:00",
-  "lastSessionId": "session_01WNCzT7nhQbajAjtvmqDgvK_fix356",
+  "lastUpdated": "2026-03-23T23:55:00-03:00",
+  "lastSessionId": "session_01WNCzT7nhQbajAjtvmqDgvK_eslint_fix",
+
+  "contextSeparation": {
+    "description": "REGRA CRITICA: Existem DOIS contextos COMPLETAMENTE SEPARADOS. NUNCA misturar commits, monitoramento, ou status entre eles.",
+    "autopilot": {
+      "repo": "lucassfreiree/autopilot",
+      "what": "Projeto pessoal do usuario. Onde ficam patches, triggers, workflows, docs, memoria.",
+      "commits": "PRs que o Claude faz (branch claude/* → PR → squash merge em main)",
+      "ci": "GitHub Actions do autopilot (apply-source-change.yml, ci-diagnose.yml, etc.)",
+      "monitoring": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/...",
+      "successCriteria": "Workflow apply-source-change completar todos os stages (Setup → Audit)",
+      "note": "Sucesso do workflow autopilot NAO significa sucesso do deploy corporativo!"
+    },
+    "corporate": {
+      "repo": "bbvinet/psc-sre-automacao-controller (ou agent)",
+      "what": "Repo da EMPRESA. Codigo de producao real. Push feito pelo workflow apply-source-change.",
+      "commits": "Commits feitos pelo github-actions bot via BBVINET_TOKEN — NAO confundir com commits do autopilot",
+      "ci": "Esteira de Build NPM — runner corporativo (NÃO é GitHub Actions do autopilot)",
+      "monitoring": "ci-diagnose.yml busca logs → salva em autopilot-state (ci-logs-controller-*.txt, ci-diagnosis-controller.json)",
+      "successCriteria": "Imagem Docker publicada no registry corporativo (docker.binarios.intranet.bb.com.br)",
+      "note": "CI Gate no autopilot verifica a esteira corporativa via API, mas a esteira pode continuar falhando apos CI Gate passar (smart pre-existing detection)"
+    },
+    "goldenRules": [
+      "NUNCA misturar commits do autopilot com commits do corporativo",
+      "Monitorar SEPARADAMENTE: 1) workflow do autopilot, 2) esteira corporativa",
+      "Quando usuario diz 'esteira quebrou' → refere-se a esteira CORPORATIVA (Esteira de Build NPM), NAO ao workflow do autopilot",
+      "Sucesso do apply-source-change (autopilot) NAO garante sucesso da Esteira de Build NPM (corporativo)",
+      "CI Gate pode passar com pre-existing detection mesmo quando esteira corporativa falha",
+      "Para diagnosticar esteira corporativa: usar ci-diagnose workflow → ler ci-logs-controller-*.txt no autopilot-state",
+      "Logs reais da esteira corporativa estao nos arquivos ci-logs-controller-*.txt — NAO no ci-diagnosis-controller.json (que roda tsc/jest local sem npm install)",
+      "Os dois SHAs sao DIFERENTES: SHA do PR mergeado no autopilot vs SHA do commit pushado no repo corporativo"
+    ]
+  },
 
   "executionHistory": {
     "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
@@ -293,10 +325,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 37,
+    "lastTriggerRun": 38,
     "lastSuccessfulRun": 36,
     "lastDeployPR": 104,
-    "pipelineStatus": "PENDING — run #37 (3.5.6) fix TS2769 expiresIn type. Run #36 apply-source-change OK mas esteira corporativa falhou com TS2769.",
+    "pipelineStatus": "PENDING — run #38 (3.5.6) fix ESLint no-use-before-define. Run #37 apply-source-change OK mas esteira corporativa falhou com ESLint.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -369,6 +401,15 @@
         "fixedInPR": 104,
         "fixedInRun": 36,
         "lesson": "SEMPRE verificar nome exato dos claims JWT. Agent usa payload.scope (singular). Nunca scopes (plural)."
+      },
+      {
+        "step": "Esteira corporativa — ESLint no-use-before-define (run 37)",
+        "cause": "readAuthDecision() era usada na linha 328 mas definida na linha 369. ESLint no-use-before-define rejeita funcoes chamadas antes da definicao.",
+        "fix": "Movido readAuthDecision() para antes de getAgentAuthorization(). Definicao na linha 320, uso nas linhas 333 e 419.",
+        "fixedInPR": "pendente",
+        "fixedInRun": 38,
+        "lesson": "SEMPRE definir funcoes ANTES de usa-las no arquivo. ESLint no-use-before-define nao aceita hoisting. Verificar ordenacao de funcoes auxiliares.",
+        "diagnosticPattern": "error  'xxx' was used before it was defined  no-use-before-define"
       },
       {
         "step": "Esteira corporativa — TS2769 No overload matches jwt.sign (run 36)",
@@ -632,6 +673,8 @@
       "ci_gate_block": "Smart CI diz que falha NAO e pre-existente. Analisar build/test/lint logs do repo corporativo. Corrigir patch, bump run, novo PR+merge",
       "fetch_files_not_triggering": "fetch-files.json so dispara quando mergeado em main. Push para branch NAO dispara. Alternativa: ler do autopilot-state branch (fetched-* files)",
       "ts2769_jwt_sign": "expiresIn string nao aceito por @types/jsonwebtoken@9.0.6. Usar parseExpiresIn() com cast as jwt.SignOptions['expiresIn']. Copiar pattern do auth.controller.ts",
+      "eslint_no_use_before_define": "ESLint rejeita funcoes chamadas antes da definicao. SEMPRE ordenar: funcoes auxiliares PRIMEIRO, funcoes que as usam DEPOIS. Verificar com: grep -n 'function ' file | sort -t: -k2 -n",
+      "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install — erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
       "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-diagnosis-controller.json no autopilot-state. Campo buildLog tem o erro exato. Corrigir patch, bump run, re-deploy automaticamente"
     }
   },

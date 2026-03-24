@@ -1,0 +1,21 @@
+{
+  "workspaceId": "ws-default",
+  "date": "2026-03-24",
+  "collectedAt": "2026-03-24T05:15:35Z",
+  "controller": {
+    "version": "none",
+    "status": "ci-passed",
+    "ciResult": "success"
+  },
+  "agent": {
+    "version": "none",
+    "status": "promoted",
+    "ciResult": "success"
+  },
+  "totalAuditEntries": 140,
+  "runsLast24h": 157,
+  "failuresLast24h": 8,
+  "frozen": false,
+  "health": "degraded",
+  "runId": "23474289806"
+}

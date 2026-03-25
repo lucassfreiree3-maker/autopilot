@@ -71,7 +71,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (202 files)
+  audit/ (203 files)
   improvements/ (1 files)
   metrics/ (3 files)
   handoffs/ (1 files)
@@ -109,8 +109,8 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
-| `trigger/fix-ci.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
-| `trigger/full-test.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
+| `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
+| `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
 | `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
@@ -196,6 +196,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
+| auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
 | bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
 | check-repo-access.yml | [Corp] Check: Repo Access | push, manual |
@@ -312,4 +313,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-25T19:25:38Z | Run: 23559880778*
+*Last synced: 2026-03-25T19:31:54Z | Run: 23560136194*

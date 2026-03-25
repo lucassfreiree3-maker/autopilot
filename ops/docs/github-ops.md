@@ -82,3 +82,20 @@ See CLAUDE.md for full workflow listing.
     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
     service_account: ${{ secrets.GCP_SA_EMAIL }}
 ```
+
+## Automatic PR + Merge (Codex-safe)
+
+Para evitar idas e vindas manuais, use o script:
+
+```bash
+./ops/scripts/git/auto-pr-merge.sh "<commit_message>" "<pr_title>" "<pr_body>"
+```
+
+Ele executa, em sequência:
+1. `git diff --check` (sanidade)
+2. Commit automático (se houver mudanças)
+3. Push da branch atual
+4. Criação de PR (se ainda não existir)
+5. `gh pr merge --auto --squash --delete-branch`
+
+> Observação: o merge ocorre automaticamente quando os checks obrigatórios da branch protegida terminarem com sucesso.

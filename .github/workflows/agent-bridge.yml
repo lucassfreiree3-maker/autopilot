@@ -187,7 +187,7 @@ jobs:
           cd state_branch
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add state/bridges/agent-bridge-latest.json
+          git add -f state/bridges/agent-bridge-latest.json
           if git diff --cached --quiet; then
             echo "No state changes"
           else

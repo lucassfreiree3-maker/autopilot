@@ -2,16 +2,12 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "controller",
-  "lastReleasedSha": "cc58fb0653e12a9f5f985e965eb053b7128fe223",
-  "lastTag": "source-change",
-  "updatedAt": "2026-03-25T17:11:34Z",
-  "runId": "23553456885",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23553456885",
+  "lastReleasedSha": "06306089ceae4a620e69a958b60d4699ed7d8a26",
+  "lastTag": "3.6.4",
+  "lastVersion": "3.6.4",
+  "updatedAt": "2026-03-25T20:22:30Z",
+  "runId": "23561693791",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23561693791",
   "ciResult": "success",
-  "status": "ci-passed",
-  "changeType": "source-code",
-  "commitMessage": "fix(security): sanitizeForOutput XSS + remove validateTrustedUrl blocker + MAX_RESULTS DoS (3.6.3)",
-  "promoted": false,
-  "preExistingFailure": false,
-  "gateDecision": "pass"
+  "status": "promoted"
 }

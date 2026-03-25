@@ -3,8 +3,13 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.5.14",
+  "version": "3.6.1",
   "changes": [
+    {
+      "target_path": "src/controllers/oas-sre-controller.controller.ts",
+      "action": "replace-file",
+      "content_ref": "patches/oas-sre-controller.controller.ts"
+    },
     {
       "target_path": "src/controllers/oas-execute.controller.ts",
       "action": "replace-file",
@@ -18,24 +23,24 @@
     {
       "target_path": "package.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.13\"",
-      "replace": "\"version\": \"3.5.14\""
+      "search": "\"version\": \"3.6.0\"",
+      "replace": "\"version\": \"3.6.1\""
     },
     {
       "target_path": "package-lock.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.13\"",
-      "replace": "\"version\": \"3.5.14\""
+      "search": "\"version\": \"3.6.0\"",
+      "replace": "\"version\": \"3.6.1\""
     },
     {
       "target_path": "src/swagger/swagger.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.5.13\"",
-      "replace": "\"version\": \"3.5.14\""
+      "search": "\"version\": \"3.6.0\"",
+      "replace": "\"version\": \"3.6.1\""
     }
   ],
-  "commit_message": "fix(security): SSRF validation in oas-execute + DoS loop bound in agents-execute-logs (3.5.14)",
+  "commit_message": "fix(security): XSS + SSRF + DoS fixes across all controllers (3.6.1)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 48
+  "run": 49
 }

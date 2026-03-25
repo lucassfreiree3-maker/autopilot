@@ -709,9 +709,10 @@
   },
 
   "versioningRules": {
-    "currentVersion": "3.5.14",
-    "previousVersion": "3.5.13",
+    "currentVersion": "3.6.1",
+    "previousVersion": "3.6.0",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
+    "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
     "versionFiles": [
       { "file": "package.json", "line": 3, "field": "version" },
       { "file": "package-lock.json", "line": 3, "field": "version (top-level)" },
@@ -749,7 +750,7 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 48,
+    "lastTriggerRun": 49,
     "lastSuccessfulRun": 43,
     "lastDeployPR": 104,
     "pipelineStatus": "SUCCESS — run #43 (3.5.10) COMPLETO. Esteira corporativa #208 PASSOU. Imagem Docker 3.5.10 publicada. NOTA: CI Gate reportou ci-failed-preexisting INCORRETAMENTE — esteira real passou.",

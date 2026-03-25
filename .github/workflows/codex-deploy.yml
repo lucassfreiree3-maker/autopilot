@@ -1,0 +1,704 @@
+name: "[Agent] Codex Deploy: Full Pipeline"
+run-name: "Codex Deploy • run=${{ github.event.inputs.run || 'push' }} • ${{ github.event.inputs.task || 'trigger' }}"
+
+# Workflow que permite ao Codex (OpenAI) executar o MESMO fluxo de deploy que o Claude:
+# 1. Lê contexto completo (workspace, state, patches atuais, corporate files)
+# 2. Envia tudo ao Codex com task de deploy
+# 3. Codex retorna: patches + trigger config + version bump
+# 4. Aplica tudo, cria branch codex/deploy-*, PR, auto-merge
+# 5. Monitora apply-source-change e reporta resultado
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/codex-deploy.json']
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Deploy task description (what to change and why)"
+        required: true
+        type: string
+      component:
+        description: "Component to deploy"
+        required: false
+        default: "controller"
+        type: choice
+        options:
+          - controller
+          - agent
+      workspace_id:
+        description: "Workspace ID"
+        required: false
+        default: "ws-default"
+      model:
+        description: "OpenAI model"
+        required: false
+        default: "o3"
+      auto_merge:
+        description: "Auto-merge PR and trigger deploy pipeline"
+        required: false
+        type: boolean
+        default: false
+      run:
+        description: "Run number"
+        required: false
+        default: "manual"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: codex-deploy
+  cancel-in-progress: true
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  codex-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # ═══════════════════════════════════════════════════════
+      # STAGE 1: Load config
+      # ═══════════════════════════════════════════════════════
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Load config
+        id: cfg
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/codex-deploy.json ]; then
+            TASK=$(jq -r '.task // ""' trigger/codex-deploy.json)
+            MODEL=$(jq -r '.model // "o3"' trigger/codex-deploy.json)
+            COMPONENT=$(jq -r '.component // "controller"' trigger/codex-deploy.json)
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/codex-deploy.json)
+            AUTO_MERGE=$(jq -r '.auto_merge // false' trigger/codex-deploy.json)
+            RUN=$(jq -r '.run // 0' trigger/codex-deploy.json)
+            CORPORATE_FILES=$(jq -r '.corporate_files // ""' trigger/codex-deploy.json)
+          else
+            TASK="${{ github.event.inputs.task }}"
+            MODEL="${{ github.event.inputs.model || 'o3' }}"
+            COMPONENT="${{ github.event.inputs.component || 'controller' }}"
+            WS_ID="${{ github.event.inputs.workspace_id || 'ws-default' }}"
+            AUTO_MERGE="${{ github.event.inputs.auto_merge || 'false' }}"
+            RUN="${{ github.event.inputs.run || 'manual' }}"
+            CORPORATE_FILES=""
+          fi
+
+          echo "task<<TASKEOF" >> $GITHUB_OUTPUT
+          echo "$TASK" >> $GITHUB_OUTPUT
+          echo "TASKEOF" >> $GITHUB_OUTPUT
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+          echo "component=$COMPONENT" >> $GITHUB_OUTPUT
+          echo "workspace_id=$WS_ID" >> $GITHUB_OUTPUT
+          echo "auto_merge=$AUTO_MERGE" >> $GITHUB_OUTPUT
+          echo "run=$RUN" >> $GITHUB_OUTPUT
+          echo "corporate_files=$CORPORATE_FILES" >> $GITHUB_OUTPUT
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 2: Gather full context
+      # ═══════════════════════════════════════════════════════
+      - name: Checkout autopilot-state
+        uses: actions/checkout@v4
+        with:
+          ref: autopilot-state
+          path: _state
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Gather deploy context
+        id: context
+        run: |
+          set -euo pipefail
+          WS_ID="${{ steps.cfg.outputs.workspace_id }}"
+          COMPONENT="${{ steps.cfg.outputs.component }}"
+
+          # 1. Shared agent context
+          SHARED_CTX=""
+          if [ -f "contracts/shared-agent-context.md" ]; then
+            SHARED_CTX=$(cat contracts/shared-agent-context.md)
+          fi
+
+          # 2. Workspace config
+          WS_CONFIG=""
+          if [ -f "_state/state/workspaces/${WS_ID}/workspace.json" ]; then
+            WS_CONFIG=$(cat "_state/state/workspaces/${WS_ID}/workspace.json")
+          fi
+
+          # 3. Current release state
+          RELEASE_STATE=""
+          if [ -f "_state/state/workspaces/${WS_ID}/${COMPONENT}-release-state.json" ]; then
+            RELEASE_STATE=$(cat "_state/state/workspaces/${WS_ID}/${COMPONENT}-release-state.json")
+          fi
+
+          # 4. Current trigger config
+          TRIGGER_CONFIG=$(cat trigger/source-change.json 2>/dev/null || echo "{}")
+          CURRENT_RUN=$(echo "$TRIGGER_CONFIG" | jq -r '.run // 0')
+          CURRENT_VERSION=$(echo "$TRIGGER_CONFIG" | jq -r '.version // "unknown"')
+
+          # 5. Current patches list
+          PATCHES_LIST=$(ls -la patches/ 2>/dev/null || echo "No patches directory")
+
+          # 6. Current patch contents (first 200 lines each, max 5 files)
+          PATCHES_CONTENT=""
+          PATCH_COUNT=0
+          for f in patches/*.ts patches/*.json patches/*.patch 2>/dev/null; do
+            [ -f "$f" ] || continue
+            PATCH_COUNT=$((PATCH_COUNT + 1))
+            [ "$PATCH_COUNT" -gt 5 ] && break
+            FNAME=$(basename "$f")
+            CONTENT=$(head -200 "$f")
+            PATCHES_CONTENT="${PATCHES_CONTENT}
+--- PATCH: ${FNAME} (first 200 lines) ---
+${CONTENT}
+--- END PATCH ---
+"
+          done
+
+          # 7. Fetched corporate files from state (if available)
+          CORPORATE_CONTEXT=""
+          CORP_FILES="${{ steps.cfg.outputs.corporate_files }}"
+          if [ -n "$CORP_FILES" ]; then
+            IFS=',' read -ra CF <<< "$CORP_FILES"
+            for cfile in "${CF[@]}"; do
+              cfile=$(echo "$cfile" | xargs)
+              # Corporate files are stored as fetched-<component>-<path> in state
+              SAFE_NAME=$(echo "$cfile" | tr '/' '-')
+              STATE_FILE="_state/state/workspaces/${WS_ID}/fetched-${COMPONENT}-${SAFE_NAME}"
+              if [ -f "$STATE_FILE" ]; then
+                CCONTENT=$(head -300 "$STATE_FILE")
+                CORPORATE_CONTEXT="${CORPORATE_CONTEXT}
+--- CORPORATE FILE: ${cfile} ---
+${CCONTENT}
+--- END CORPORATE FILE ---
+"
+              fi
+            done
+          fi
+
+          # 8. CAP values.yaml
+          CAP_VALUES=""
+          if [ -f "references/controller-cap/values.yaml" ]; then
+            CAP_VALUES=$(cat references/controller-cap/values.yaml)
+          fi
+
+          # 9. Session memory (key fields only)
+          SESSION_VERSION=$(jq -r '.versioningRules.currentVersion // "unknown"' contracts/claude-session-memory.json 2>/dev/null)
+          SESSION_LAST_RUN=$(jq -r '.deployFlow.lastTriggerRun // 0' contracts/claude-session-memory.json 2>/dev/null)
+          SESSION_STATUS=$(jq -r '.deployFlow.pipelineStatus // "unknown"' contracts/claude-session-memory.json 2>/dev/null)
+
+          # Build full context file
+          cat > /tmp/deploy-context.txt << 'CTXEOF'
+## DEPLOY CONTEXT — Read this carefully before generating changes
+
+### Current State
+CTXEOF
+          cat >> /tmp/deploy-context.txt << EOF
+- Current version: ${CURRENT_VERSION}
+- Session memory version: ${SESSION_VERSION}
+- Last trigger run: ${CURRENT_RUN}
+- Session last run: ${SESSION_LAST_RUN}
+- Pipeline status: ${SESSION_STATUS}
+- Component: ${COMPONENT}
+- Workspace: ${WS_ID}
+
+### Workspace Config
+\`\`\`json
+${WS_CONFIG}
+\`\`\`
+
+### Release State
+\`\`\`json
+${RELEASE_STATE}
+\`\`\`
+
+### Current Trigger (trigger/source-change.json)
+\`\`\`json
+${TRIGGER_CONFIG}
+\`\`\`
+
+### Current Patches
+${PATCHES_LIST}
+
+${PATCHES_CONTENT}
+
+### CAP Values (references/controller-cap/values.yaml)
+\`\`\`yaml
+${CAP_VALUES}
+\`\`\`
+
+### Corporate Files (from autopilot-state)
+${CORPORATE_CONTEXT}
+
+EOF
+
+          echo "current_run=$CURRENT_RUN" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "::notice ::Context gathered: version=${CURRENT_VERSION}, run=${CURRENT_RUN}, component=${COMPONENT}"
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 3: Resolve model + Call OpenAI
+      # ═══════════════════════════════════════════════════════
+      - name: Resolve model
+        id: model
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REQUESTED_MODEL: ${{ steps.cfg.outputs.model }}
+        run: |
+          set -euo pipefail
+          CANDIDATES=("o3" "o3-mini" "o1" "gpt-4o" "gpt-4.1" "gpt-4-turbo" "gpt-3.5-turbo")
+          MODELS_JSON=$(curl -sS https://api.openai.com/v1/models \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" 2>/dev/null || echo '{}')
+          if ! echo "$MODELS_JSON" | jq -e '.data' >/dev/null 2>&1; then
+            echo "selected=$REQUESTED_MODEL" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          AVAILABLE=$(echo "$MODELS_JSON" | jq -r '.data[].id')
+          SELECTED=""
+          if echo "$AVAILABLE" | grep -Fxq "$REQUESTED_MODEL"; then
+            SELECTED="$REQUESTED_MODEL"
+          else
+            for m in "${CANDIDATES[@]}"; do
+              if echo "$AVAILABLE" | grep -Fxq "$m"; then
+                SELECTED="$m"
+                break
+              fi
+            done
+          fi
+          echo "selected=${SELECTED:-$REQUESTED_MODEL}" >> "$GITHUB_OUTPUT"
+
+      - name: Call OpenAI for deploy plan
+        id: codex
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ steps.model.outputs.selected }}
+          TASK: ${{ steps.cfg.outputs.task }}
+        run: |
+          set -euo pipefail
+
+          SHARED_CONTEXT=$(cat contracts/shared-agent-context.md 2>/dev/null || echo "")
+          DEPLOY_CONTEXT=$(cat /tmp/deploy-context.txt 2>/dev/null || echo "")
+          CURRENT_RUN="${{ steps.context.outputs.current_run }}"
+          CURRENT_VERSION="${{ steps.context.outputs.current_version }}"
+          NEXT_RUN=$((CURRENT_RUN + 1))
+
+          SYSTEM_PROMPT="You are Codex, an expert software engineer deploying changes to the Autopilot project.
+You have FULL context of the project, including current patches, versions, and corporate file state.
+
+PROJECT MEMORY:
+${SHARED_CONTEXT}
+
+${DEPLOY_CONTEXT}
+
+YOUR TASK: Generate a COMPLETE deploy package. Return ONLY valid JSON (no markdown fences).
+
+RESPONSE FORMAT:
+{
+  \"new_version\": \"X.Y.Z\",
+  \"branch_name\": \"codex/deploy-brief-description\",
+  \"commit_message\": \"feat/fix: description (vX.Y.Z)\",
+  \"pr_title\": \"Short PR title (under 70 chars)\",
+  \"pr_body\": \"## Summary\n- what changed and why\",
+  \"trigger_config\": {
+    \"_context\": \"GETRONICS | ws-default | BBVINET_TOKEN\",
+    \"workspace_id\": \"ws-default\",
+    \"component\": \"controller\",
+    \"change_type\": \"multi-file\",
+    \"version\": \"X.Y.Z\",
+    \"changes\": [
+      {\"action\": \"replace-file\", \"target_path\": \"src/path/file.ts\", \"content_ref\": \"patches/filename.ts\"},
+      {\"action\": \"search-replace\", \"target_path\": \"package.json\", \"search\": \"old\", \"replace\": \"new\"}
+    ],
+    \"commit_message\": \"description for corporate repo commit\",
+    \"skip_ci_wait\": false,
+    \"promote\": true,
+    \"run\": ${NEXT_RUN}
+  },
+  \"patch_files\": [
+    {\"path\": \"patches/filename.ts\", \"content\": \"full file content\"},
+    {\"path\": \"patches/other.ts\", \"content\": \"full file content\"}
+  ],
+  \"cap_values_image_tag\": \"X.Y.Z\"
+}
+
+RULES:
+- new_version: increment patch from ${CURRENT_VERSION}. After X.Y.9 goes to X.(Y+1).0
+- trigger_config.run MUST be ${NEXT_RUN} (current is ${CURRENT_RUN})
+- trigger_config.changes: use replace-file for .ts files (provide full content in patch_files), search-replace for version bumps
+- patch_files: full content of each file to deploy. Must be production-quality TypeScript
+- Version bump: ALWAYS include search-replace for package.json, package-lock.json, swagger.json
+- branch_name MUST start with codex/deploy-
+- NEVER include secrets, tokens, or corporate URLs in any content
+- Only modify files that are directly related to the task
+- Follow the security patterns: sanitizeForOutput for XSS, parseSafeIdentifier for SSRF, MAX_RESULTS for DoS
+- Return ONLY JSON, no explanations"
+
+          REQ=$(jq -n \
+            --arg model "$MODEL" \
+            --arg system "$SYSTEM_PROMPT" \
+            --arg task "$TASK" \
+            '{
+              model: $model,
+              input: [
+                {role: "system", content: $system},
+                {role: "user", content: $task}
+              ],
+              text: {format: {type: "text"}}
+            }')
+
+          HTTP_CODE=$(curl -sS -o /tmp/codex-response.json -w "%{http_code}" \
+            https://api.openai.com/v1/responses \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$REQ")
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error ::OpenAI API returned HTTP $HTTP_CODE"
+            cat /tmp/codex-response.json
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Extract text
+          RESPONSE_TEXT=$(jq -r '.output[]? | select(.type=="message") | .content[]? | select(.type=="output_text") | .text // empty' /tmp/codex-response.json 2>/dev/null || echo "")
+          if [ -z "$RESPONSE_TEXT" ]; then
+            RESPONSE_TEXT=$(jq -r '.choices[0].message.content // empty' /tmp/codex-response.json 2>/dev/null || echo "")
+          fi
+          if [ -z "$RESPONSE_TEXT" ]; then
+            echo "::error ::Could not extract response from OpenAI"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Clean markdown fences
+          CLEAN_JSON=$(echo "$RESPONSE_TEXT" | sed 's/^```json//;s/^```//;s/```$//' | sed '/^$/d')
+          echo "$CLEAN_JSON" > /tmp/codex-deploy-plan.json
+
+          # Validate structure
+          if ! jq -e '.trigger_config' /tmp/codex-deploy-plan.json >/dev/null 2>&1; then
+            echo "::error ::Invalid deploy plan — missing trigger_config"
+            echo "$CLEAN_JSON" | head -50
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          NEW_VERSION=$(jq -r '.new_version // "unknown"' /tmp/codex-deploy-plan.json)
+          BRANCH=$(jq -r '.branch_name // "codex/deploy-auto"' /tmp/codex-deploy-plan.json)
+          COMMIT_MSG=$(jq -r '.commit_message // "feat: codex deploy"' /tmp/codex-deploy-plan.json)
+          PR_TITLE=$(jq -r '.pr_title // "Codex Deploy"' /tmp/codex-deploy-plan.json)
+          NUM_PATCHES=$(jq '.patch_files | length' /tmp/codex-deploy-plan.json)
+          NUM_CHANGES=$(jq '.trigger_config.changes | length' /tmp/codex-deploy-plan.json)
+          CAP_TAG=$(jq -r '.cap_values_image_tag // ""' /tmp/codex-deploy-plan.json)
+
+          if [[ ! "$BRANCH" =~ ^codex/deploy- ]]; then
+            BRANCH="codex/deploy-${NEW_VERSION}"
+          fi
+
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "num_patches=$NUM_PATCHES" >> $GITHUB_OUTPUT
+          echo "num_changes=$NUM_CHANGES" >> $GITHUB_OUTPUT
+          echo "cap_tag=$CAP_TAG" >> $GITHUB_OUTPUT
+
+          jq -r '.pr_body // "Codex deploy"' /tmp/codex-deploy-plan.json > /tmp/pr-body.txt
+
+          echo "::notice ::Codex deploy plan: version=${NEW_VERSION}, patches=${NUM_PATCHES}, trigger changes=${NUM_CHANGES}"
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 4: Apply changes
+      # ═══════════════════════════════════════════════════════
+      - name: Apply deploy package
+        if: steps.codex.outputs.status == 'success'
+        id: apply
+        run: |
+          set -euo pipefail
+
+          BRANCH="${{ steps.codex.outputs.branch }}"
+          git checkout -B "$BRANCH"
+
+          # 4a. Write patch files
+          NUM_PATCHES=$(jq '.patch_files | length' /tmp/codex-deploy-plan.json)
+          for i in $(seq 0 $((NUM_PATCHES - 1))); do
+            PATCH_PATH=$(jq -r ".patch_files[$i].path" /tmp/codex-deploy-plan.json)
+            # Security: reject suspicious paths
+            if [[ "$PATCH_PATH" == /* ]] || [[ "$PATCH_PATH" == *..* ]]; then
+              echo "::warning ::Skipping suspicious patch path: $PATCH_PATH"
+              continue
+            fi
+            mkdir -p "$(dirname "$PATCH_PATH")"
+            jq -r ".patch_files[$i].content // \"\"" /tmp/codex-deploy-plan.json > "$PATCH_PATH"
+            echo "✅ Wrote patch: $PATCH_PATH"
+          done
+
+          # 4b. Write trigger config
+          jq '.trigger_config' /tmp/codex-deploy-plan.json > trigger/source-change.json
+          echo "✅ Updated trigger/source-change.json (run=$(jq '.trigger_config.run' /tmp/codex-deploy-plan.json))"
+
+          # 4c. Update CAP values.yaml image tag
+          CAP_TAG="${{ steps.codex.outputs.cap_tag }}"
+          if [ -n "$CAP_TAG" ] && [ -f "references/controller-cap/values.yaml" ]; then
+            CURRENT_TAG=$(grep -oP 'psc-sre-automacao-controller:\K[0-9.]+' references/controller-cap/values.yaml || echo "")
+            if [ -n "$CURRENT_TAG" ] && [ "$CURRENT_TAG" != "$CAP_TAG" ]; then
+              sed -i "s|psc-sre-automacao-controller:${CURRENT_TAG}|psc-sre-automacao-controller:${CAP_TAG}|g" references/controller-cap/values.yaml
+              echo "✅ Updated CAP values.yaml: ${CURRENT_TAG} → ${CAP_TAG}"
+            fi
+          fi
+
+          # 4d. Update session memory version
+          NEW_VERSION="${{ steps.codex.outputs.new_version }}"
+          if [ -f "contracts/claude-session-memory.json" ]; then
+            jq --arg v "$NEW_VERSION" '.versioningRules.currentVersion = $v' \
+              contracts/claude-session-memory.json > /tmp/memory-updated.json && \
+              mv /tmp/memory-updated.json contracts/claude-session-memory.json
+            echo "✅ Updated session memory version to ${NEW_VERSION}"
+          fi
+
+          # 4e. Stage and commit
+          git config user.name "codex-agent"
+          git config user.email "codex-agent@github.com"
+          git add patches/ trigger/source-change.json references/ contracts/claude-session-memory.json
+          git add -A  # catch any other changes
+
+          if git diff --cached --quiet; then
+            echo "::error ::No changes to commit"
+            echo "applied=0" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          COMMIT_MSG="${{ steps.codex.outputs.commit_msg }}"
+          git commit -m "${COMMIT_MSG}
+
+Co-authored-by: codex-agent <codex-agent@github.com>
+Triggered-by: codex-deploy workflow run ${{ steps.cfg.outputs.run }}"
+
+          git push -u origin "$BRANCH" --force
+          echo "applied=1" >> $GITHUB_OUTPUT
+          echo "::notice ::Deploy package applied and pushed to $BRANCH"
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 5: Create PR
+      # ═══════════════════════════════════════════════════════
+      - name: Create Pull Request
+        if: steps.apply.outputs.applied == '1'
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = '${{ steps.codex.outputs.branch }}';
+            const title = '${{ steps.codex.outputs.pr_title }}';
+            const prBodyFile = fs.readFileSync('/tmp/pr-body.txt', 'utf8');
+            const newVersion = '${{ steps.codex.outputs.new_version }}';
+
+            const body = `${prBodyFile}
+
+            ---
+            🤖 **Codex Deploy Pipeline**
+            - Model: \`${{ steps.model.outputs.selected }}\`
+            - Version: \`${newVersion}\`
+            - Patches: ${{ steps.codex.outputs.num_patches }}
+            - Trigger changes: ${{ steps.codex.outputs.num_changes }}
+            - Run: \`${{ steps.cfg.outputs.run }}\`
+            - Auto-merge: \`${{ steps.cfg.outputs.auto_merge }}\`
+
+            > After merge, \`apply-source-change.yml\` will auto-trigger to deploy to corporate repo.`;
+
+            const { data: pulls } = await github.rest.pulls.list({
+              owner, repo, state: 'open', head: `${owner}:${branch}`, base: 'main', per_page: 1
+            });
+
+            let pr;
+            if (pulls.length > 0) {
+              pr = pulls[0];
+              await github.rest.pulls.update({ owner, repo, pull_number: pr.number, title, body });
+            } else {
+              const created = await github.rest.pulls.create({
+                owner, repo, title, head: branch, base: 'main', body
+              });
+              pr = created.data;
+            }
+
+            try {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: pr.number, labels: ['codex', 'deploy']
+              });
+            } catch (e) { core.warning(`Labeling: ${e.message}`); }
+
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('pr_url', pr.html_url);
+            core.setOutput('pr_node_id', pr.node_id);
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 6: Auto-merge (if enabled)
+      # ═══════════════════════════════════════════════════════
+      - name: Auto-merge PR
+        if: steps.cfg.outputs.auto_merge == 'true' && steps.pr.outputs.pr_number != ''
+        id: merge
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = parseInt('${{ steps.pr.outputs.pr_number }}');
+
+            try {
+              await github.rest.pulls.merge({
+                owner, repo, pull_number: prNumber, merge_method: 'squash'
+              });
+              core.setOutput('merged', 'true');
+              core.notice(`PR #${prNumber} merged — apply-source-change will auto-trigger`);
+            } catch (e) {
+              core.warning(`Direct merge failed: ${e.message}`);
+              try {
+                const prNodeId = '${{ steps.pr.outputs.pr_node_id }}';
+                await github.graphql(`
+                  mutation($pullRequestId: ID!) {
+                    enablePullRequestAutoMerge(input: {
+                      pullRequestId: $pullRequestId, mergeMethod: SQUASH
+                    }) { pullRequest { number } }
+                  }
+                `, { pullRequestId: prNodeId });
+                core.setOutput('merged', 'auto-merge-enabled');
+              } catch (e2) {
+                core.warning(`Auto-merge also failed: ${e2.message}`);
+                core.setOutput('merged', 'false');
+              }
+            }
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 7: Monitor apply-source-change (if merged)
+      # ═══════════════════════════════════════════════════════
+      - name: Wait for apply-source-change
+        if: steps.merge.outputs.merged == 'true'
+        id: monitor
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Waiting 30s for apply-source-change to trigger..."
+          sleep 30
+
+          MAX_ATTEMPTS=20
+          POLL_INTERVAL=30
+          ATTEMPT=0
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Poll attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            RUNS=$(curl -sS \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ env.AUTOPILOT_REPO }}/actions/workflows/apply-source-change.yml/runs?per_page=1")
+
+            STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].status // "unknown"')
+            CONCLUSION=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion // "null"')
+            RUN_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id // "0"')
+
+            echo "  Status: $STATUS | Conclusion: $CONCLUSION | Run: $RUN_ID"
+
+            if [ "$STATUS" = "completed" ]; then
+              echo "deploy_status=$CONCLUSION" >> $GITHUB_OUTPUT
+              echo "deploy_run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "::notice ::apply-source-change SUCCEEDED (run $RUN_ID)"
+              else
+                echo "::error ::apply-source-change FAILED (run $RUN_ID, conclusion: $CONCLUSION)"
+              fi
+              break
+            fi
+
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              sleep $POLL_INTERVAL
+            fi
+          done
+
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ] && [ "$STATUS" != "completed" ]; then
+            echo "::warning ::Timed out waiting for apply-source-change (still $STATUS after $((MAX_ATTEMPTS * POLL_INTERVAL))s)"
+            echo "deploy_status=timeout" >> $GITHUB_OUTPUT
+          fi
+
+      # ═══════════════════════════════════════════════════════
+      # STAGE 8: Save results to state
+      # ═══════════════════════════════════════════════════════
+      - name: Save result to autopilot-state
+        if: always()
+        run: |
+          set -euo pipefail
+          RESULT=$(jq -n \
+            --arg status "${{ steps.codex.outputs.status || 'failed' }}" \
+            --arg model "${{ steps.model.outputs.selected || 'unknown' }}" \
+            --arg run "${{ steps.cfg.outputs.run }}" \
+            --arg task "${{ steps.cfg.outputs.task }}" \
+            --arg version "${{ steps.codex.outputs.new_version || 'none' }}" \
+            --arg branch "${{ steps.codex.outputs.branch || 'none' }}" \
+            --arg pr_url "${{ steps.pr.outputs.pr_url || 'none' }}" \
+            --arg merged "${{ steps.merge.outputs.merged || 'false' }}" \
+            --arg deploy_status "${{ steps.monitor.outputs.deploy_status || 'not-monitored' }}" \
+            --arg deploy_run_id "${{ steps.monitor.outputs.deploy_run_id || '0' }}" \
+            '{
+              status: $status,
+              model: $model,
+              run: $run,
+              task: $task,
+              version: $version,
+              branch: $branch,
+              pr_url: $pr_url,
+              merged: ($merged == "true"),
+              deploy: {
+                status: $deploy_status,
+                run_id: $deploy_run_id
+              },
+              updatedAt: (now | strftime("%Y-%m-%dT%H:%M:%SZ"))
+            }')
+
+          echo "$RESULT" > /tmp/codex-deploy-result.json
+
+          cd _state
+          mkdir -p state/bridges
+          cp /tmp/codex-deploy-result.json state/bridges/codex-deploy-latest.json
+          cp /tmp/codex-deploy-plan.json state/bridges/codex-deploy-plan.json 2>/dev/null || true
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          sed -i '/^state\//d' .gitignore 2>/dev/null || true
+          git add .gitignore state/bridges/ 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: codex-deploy result (run ${{ steps.cfg.outputs.run }}, v${{ steps.codex.outputs.new_version || 'unknown' }})"
+            git push origin autopilot-state
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Codex Deploy Pipeline Results"
+            echo ""
+            echo "| Stage | Result |"
+            echo "|-------|--------|"
+            echo "| OpenAI Call | \`${{ steps.codex.outputs.status || 'failed' }}\` |"
+            echo "| Model | \`${{ steps.model.outputs.selected || 'n/a' }}\` |"
+            echo "| Version | \`${{ steps.codex.outputs.new_version || 'n/a' }}\` |"
+            echo "| Patches | ${{ steps.codex.outputs.num_patches || '0' }} files |"
+            echo "| Branch | \`${{ steps.codex.outputs.branch || 'n/a' }}\` |"
+            echo "| PR | ${{ steps.pr.outputs.pr_url || 'not created' }} |"
+            echo "| Merged | \`${{ steps.merge.outputs.merged || 'false' }}\` |"
+            echo "| Deploy | \`${{ steps.monitor.outputs.deploy_status || 'not-monitored' }}\` |"
+            echo ""
+            echo "### Task"
+            echo "${{ steps.cfg.outputs.task }}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -63,7 +63,29 @@ O ambiente está em paridade operacional quando:
 4. Abrir PR com escopo pequeno e auditável.
 5. Não mesclar mudanças de refatoração ampla sem validação incremental.
 
-## 6) Referências canônicas
+## 6) Loop obrigatório de estabilização de PR
+
+Quando houver alteração de código/configuração, operar sempre em ciclo curto até estabilizar:
+
+1. Criar branch e abrir PR (sem criar esteira nova se já existir workflow oficial).
+2. Mapear checks esperados no PR (lint, testes, validações de workflow, deploy gates).
+3. Acompanhar execução dos builds/checks até concluírem.
+4. Resumir falhas de forma objetiva (causa provável, impacto e escopo).
+5. Aplicar correção mínima necessária mantendo o padrão do repositório.
+6. Repetir o ciclo (novo commit → novos checks) até todos os gates críticos ficarem verdes.
+7. Considerar a pipeline corporativa como validação final de release.
+
+### Template de status para fechamento
+
+- Resumo do problema
+- Mudanças realizadas
+- Status dos checks
+- Erros encontrados
+- Correções aplicadas
+- Riscos remanescentes
+- Plano de rollback
+
+## 7) Referências canônicas
 
 - `AGENTS.md`
 - `CLAUDE.md`

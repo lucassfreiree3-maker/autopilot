@@ -38,6 +38,7 @@ See CLAUDE.md for full workflow listing.
 | `DD_APP_KEY` | **Pending** | Monitoring workflows |
 | `GRAFANA_TOKEN` | **Pending** | Monitoring workflows |
 | `SLACK_WEBHOOK_URL` | **Pending** | Alert notifications |
+| `CLAUDE_API` | Active | Agent Bridge Claude API integration |
 
 ## Variables Required
 
@@ -92,21 +93,11 @@ Para evitar idas e vindas manuais, use o script:
 ./ops/scripts/git/auto-pr-merge.sh "<commit_message>" "<pr_title>" "<pr_body>"
 ```
 
-Variáveis opcionais:
-
-```bash
-export AUTO_PR_REMOTE_URL="https://github.com/<owner>/<repo>.git"  # se origin não existir
-export AUTO_PR_BASE_BRANCH="main"                                   # branch base do PR
-export CODEX_TOKEN="<token>"                                      # fallback API quando gh não estiver disponível
-```
-
 Ele executa, em sequência:
-1. Verifica pré-requisitos (branch não `main` + `origin` existente/configurável)
-2. `git diff --check` (sanidade)
-3. Commit automático (se houver mudanças)
-4. Push da branch atual
-5. Criação de PR da branch atual (se ainda não existir)
-6. Se `gh` estiver disponível: `gh pr merge <branch> --auto --squash --delete-branch`
-7. Se `gh` não estiver disponível: cria PR via API com `CODEX_TOKEN/GITHUB_TOKEN` (sem auto-merge)
+1. `git diff --check` (sanidade)
+2. Commit automático (se houver mudanças)
+3. Push da branch atual
+4. Criação de PR (se ainda não existir)
+5. `gh pr merge --auto --squash --delete-branch`
 
-> Observação: auto-merge total depende de `gh` (ou GraphQL equivalente) e das regras de branch protection.
+> Observação: o merge ocorre automaticamente quando os checks obrigatórios da branch protegida terminarem com sucesso.

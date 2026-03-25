@@ -95,3 +95,10 @@ Esse relatório mapeia, por workflow:
 - quantidade de jobs,
 - presença de `workspace_id` em `workflow_dispatch`,
 - ferramentas/integrações detectadas (ex.: Terraform, Kubernetes, AWS, Azure, GCP, Node, Python, GitHub CLI, etc.).
+
+
+## Memória Operacional Persistente
+
+- Arquivo: `ops/inventory/agent-operational-memory.md`
+- Uso: registrar estado do ambiente, decisões, restrições, comandos validados e backlog seguro entre sessões.
+- Prática: atualizar ao final de cada ciclo relevante para manter continuidade operacional.

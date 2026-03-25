@@ -1,4 +1,5 @@
 name: "[Corp] Fix: CI + Validate Full Flow"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
 
 on:
   push:

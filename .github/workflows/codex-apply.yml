@@ -208,37 +208,11 @@ jobs:
           FILE_CONTEXT=$(cat /tmp/file-context.txt 2>/dev/null || echo "")
           SHARED_CONTEXT=$(cat /tmp/shared-context.txt 2>/dev/null || echo "")
 
-          SYSTEM_PROMPT="You are Codex, an expert software engineer working on the Autopilot project. You have full context of the project history, architecture, and patterns.
-
-PROJECT CONTEXT (read carefully — this is your memory):
-${SHARED_CONTEXT}
-
-YOUR TASK: You receive implementation tasks and return ONLY valid JSON with file changes.
-
-RESPONSE FORMAT (strict JSON, no markdown, no explanation outside JSON):
-{
-  "branch_name": "codex/short-descriptive-name",
-  "commit_message": "type: short description",
-  "pr_title": "Short PR title (under 70 chars)",
-  "pr_body": "## Summary\n- bullet points of changes",
-  "changes": [
-    {
-      "action": "create|modify|delete",
-      "path": "relative/path/to/file",
-      "content": "full file content here (for create/modify)"
-    }
-  ]
-}
-
-RULES:
-- action "create": new file, provide full content
-- action "modify": existing file, provide FULL new content (not a diff)
-- action "delete": remove file, no content needed
-- branch_name MUST start with "codex/"
-- commit_message follows conventional commits (feat:, fix:, chore:, docs:, refactor:)
-- Return ONLY the JSON object, nothing else
-- Content must be valid for the file type
-- Never include secrets, tokens, or credentials in content'
+          SYSTEM_PROMPT=$(printf '%s\n%s\n%s\n%s' \
+            "You are Codex, an expert software engineer working on the Autopilot project." \
+            "PROJECT CONTEXT:" \
+            "${SHARED_CONTEXT}" \
+            "Return only strict JSON with: branch_name, commit_message, pr_title, pr_body, and changes[].")
 
           USER_PROMPT="TASK: ${TASK}"
           if [ -n "$FILE_CONTEXT" ]; then

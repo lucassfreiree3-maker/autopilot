@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "contractId": "codex-session-memory",
+  "description": "Memória operacional do Codex separada da memória do Claude. Usar para preferências e execução do Codex sem alterar o comportamento do Claude.",
+  "lastUpdated": "2026-03-25T22:10:00Z",
+  "sync": {
+    "sourceOfTruthShared": "contracts/shared-agent-context.md",
+    "sourceOfTruthClaude": "contracts/claude-session-memory.json",
+    "policy": [
+      "Não sobrescrever preferências/decisões específicas do Claude.",
+      "Sincronizar apenas fatos globais de estado (versão alvo, run, status de pipeline, lições operacionais).",
+      "Registrar no Codex a forma de execução local/web sem impactar fluxos funcionais do Claude."
+    ]
+  },
+  "codexExecutionMode": {
+    "preferredFlow": "branch -> PR -> checks -> merge oficial",
+    "executionScope": "Centralizado no ambiente web (sem dependência do ambiente local do usuário).",
+    "autonomyDirective": "Executar de forma proativa e autônoma; evitar depender de ações manuais do usuário sempre que houver contorno técnico possível.",
+    "webWithoutGhCli": {
+      "enabled": true,
+      "watchScript": "ops/scripts/github/watch-pr-checks.sh",
+      "autoFlowScript": "ops/scripts/github/auto-pr-stabilize.sh",
+      "autonomousRetryScript": "ops/scripts/github/autonomous-sync-loop.sh"
+    }
+  },
+  "currentStateMirror": {
+    "workspace": "ws-default",
+    "lastConfirmedControllerVersion": "3.6.3",
+    "targetPreparedVersion": "3.6.6",
+    "preparedRun": 54,
+    "pipelineStatus": "IN_PROGRESS"
+  }
+}

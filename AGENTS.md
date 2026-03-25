@@ -331,3 +331,12 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 
 ---
 *Last synced: 2026-03-25T20:10:45Z | Run: 23561735221*
+
+## OPERATIONAL GUARDRAILS (Codex web autonomy)
+
+- Preserve existing behavior and current pipelines unless task explicitly requires a change.
+- Never modify or expose secrets in files, commits, PR text, or logs.
+- Never push directly to protected branches; always prefer branch + PR flow.
+- Keep changes minimal, auditable, and scoped to the requested task.
+- Run lint/tests/checks when available and update docs/tests when change requires it.
+- Always include in PR summary: what changed, validation status, risks, and rollback path.

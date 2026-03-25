@@ -168,16 +168,33 @@ jobs:
           echo "$FILE_CONTEXT" > /tmp/file-context.txt
           echo "has_context=$([ -n "$TARGET_FILES" ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
+      - name: Load shared agent context
+        id: shared_context
+        run: |
+          set -euo pipefail
+          CONTEXT_FILE="contracts/shared-agent-context.md"
+          if [ ! -f "$CONTEXT_FILE" ]; then
+            echo "::error ::Shared context file not found: $CONTEXT_FILE"
+            exit 1
+          fi
+          {
+            echo "content<<CONTEXT_EOF"
+            cat "$CONTEXT_FILE"
+            echo "CONTEXT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Call OpenAI for code changes
         id: codex
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL: ${{ steps.model.outputs.selected }}
           TASK: ${{ steps.cfg.outputs.task }}
+          SHARED_AGENT_CONTEXT: ${{ steps.shared_context.outputs.content }}
         run: |
           set -euo pipefail
 
           FILE_CONTEXT=$(cat /tmp/file-context.txt 2>/dev/null || echo "")
+          SHARED_CONTEXT="${SHARED_AGENT_CONTEXT:-}"
 
           SYSTEM_PROMPT=$(cat <<'EOF'
           You are Codex, an expert software engineer. You receive tasks and return ONLY valid JSON with file changes.
@@ -208,6 +225,9 @@ jobs:
           - Never include secrets, tokens, or credentials in content
           EOF
           )
+          if [ -n "$SHARED_CONTEXT" ]; then
+            SYSTEM_PROMPT="${SYSTEM_PROMPT}\n\nSHARED AGENT CONTEXT:\n${SHARED_CONTEXT}"
+          fi
 
           USER_PROMPT="TASK: ${TASK}"
           if [ -n "$FILE_CONTEXT" ]; then

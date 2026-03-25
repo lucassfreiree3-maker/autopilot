@@ -93,65 +93,11 @@ Para evitar idas e vindas manuais, use o script:
 ./ops/scripts/git/auto-pr-merge.sh "<commit_message>" "<pr_title>" "<pr_body>"
 ```
 
-Variáveis opcionais:
-
-```bash
-export AUTO_PR_REMOTE_URL="https://github.com/<owner>/<repo>.git"  # se origin não existir
-export AUTO_PR_BASE_BRANCH="main"                                   # branch base do PR
-export CODEX_TOKEN="<token>"                                      # fallback API quando gh não estiver disponível
-```
-
 Ele executa, em sequência:
-1. Verifica pré-requisitos (branch não `main` + `origin` existente/configurável)
-2. `git diff --check` (sanidade)
-3. Commit automático (se houver mudanças)
-4. Push da branch atual
-5. Criação de PR da branch atual (se ainda não existir)
-6. Se `gh` estiver disponível: `gh pr merge <branch> --auto --squash --delete-branch`
-7. Se `gh` não estiver disponível: cria PR via API com `CODEX_TOKEN/GITHUB_TOKEN` (sem auto-merge)
+1. `git diff --check` (sanidade)
+2. Commit automático (se houver mudanças)
+3. Push da branch atual
+4. Criação de PR (se ainda não existir)
+5. `gh pr merge --auto --squash --delete-branch`
 
-> Observação: auto-merge total depende de `gh` (ou GraphQL equivalente) e das regras de branch protection.
-
-
-## Agent Bridge (Claude ↔ Codex)
-
-Fluxo declarado pelo operador para comunicação entre agentes:
-
-1. Claude edita `trigger/agent-bridge.json` e faz merge em `main`
-2. Workflow `agent-bridge.yml` executa com `OPENAI_API_KEY`
-3. Chama OpenAI API com contexto (session memory + patches + contract)
-4. Salva resposta no branch `autopilot-state` em `agent-bridge-latest.json`
-5. Claude lê a resposta via fetch no `autopilot-state`
-
-Exemplo de trigger:
-
-```json
-{
-  "task": "Review security patches and suggest improvements",
-  "model": "o3",
-  "include_session_memory": true,
-  "include_patches": true,
-  "run": 2
-}
-```
-
-Checklist de validação sugerido:
-- `trigger/agent-bridge.json` com `run` incrementado
-- workflow disparado no Actions
-- `agent-bridge-latest.json` atualizado no `autopilot-state`
-- correlação entre `task` enviada e resposta persistida
-
-
-## Auto PR + Auto-Merge (Codex)
-
-Workflow: `.github/workflows/auto-pr-codex.yml`
-
-Comportamento:
-- Trigger em `push` para branches de agente (`work` e `codex/*`).
-- Cria PR automaticamente para `main` se não existir.
-- Aplica labels `codex` e `auto-pr`.
-- Tenta habilitar `auto-merge` com método `squash`.
-
-Observações:
-- Se auto-merge não puder ser habilitado (branch protection/políticas), o workflow registra warning e mantém PR aberto para ação manual.
-- Não roda para `main`, `autopilot-state` e `autopilot-backups`.
+> Observação: o merge ocorre automaticamente quando os checks obrigatórios da branch protegida terminarem com sucesso.

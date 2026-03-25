@@ -68,5 +68,3 @@ Contexto informado pelo operador:
 Observação operacional:
 - Neste ambiente local atual, os artefatos do Agent Bridge ainda não estão presentes no working tree local (provável divergência por falta de sincronização remota).
 - Assim que houver sincronização com remoto, validar o fluxo com uma execução de trigger controlada.
-
-- Secret operacional informado: `CLAUDE_API` (disponível no GitHub Secrets para integração Agent Bridge).

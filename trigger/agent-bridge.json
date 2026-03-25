@@ -1,0 +1,10 @@
+{
+  "_context": "SHARED | all workspaces",
+  "workspace_id": "ws-default",
+  "task": "Analyze the security patches applied in version 3.6.3 of psc-sre-automacao-controller. The patches are in the patches/ directory. Review: 1) Is sanitizeForOutput() sufficient to prevent XSS in JSON API responses? 2) Is MAX_RESULTS=1000 an appropriate limit for the DoS fix in getAgentExecutionLogs? 3) Are there any remaining security concerns in the patched files? 4) Suggest any improvements for the next version.",
+  "context": "Checkmarx found 5 findings: 1 HIGH Reflected_XSS, 3 MEDIUM SSRF, 1 MEDIUM Server_DoS_by_Loop. All were fixed in deploy 3.6.3. The SSRF mitigation relies on parseSafeIdentifier (regex validation on input) rather than URL validation at fetch time, because URL validation broke unit tests that use mock URLs.",
+  "model": "o3",
+  "include_session_memory": true,
+  "include_patches": true,
+  "run": 6
+}

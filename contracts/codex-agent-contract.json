@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "contractId": "codex-agent-contract",
   "extends": "shared-agent-contract",
   "agent": "codex",
@@ -10,26 +10,126 @@
     "bulk-changes",
     "test-execution",
     "ci-monitoring",
-    "handoff-consumption"
+    "handoff-consumption",
+    "pre-deploy-validation",
+    "security-patching"
   ],
   "tools": {
     "primary": "codex-web",
     "github": "gh-cli",
-    "editor": "github.dev"
+    "editor": "github.dev",
+    "api": "GitHub REST API via gh api or curl with GITHUB_TOKEN"
+  },
+  "githubConnection": {
+    "description": "Como Codex se conecta ao GitHub para operacoes do autopilot",
+    "authentication": {
+      "autopilotRepo": "GITHUB_TOKEN (disponivel automaticamente no Codex quando rodando no repo lucassfreiree/autopilot)",
+      "corporateRepo": "BBVINET_TOKEN (secret do repo — so acessivel dentro de workflows GitHub Actions, NAO diretamente pelo Codex)",
+      "note": "Codex NAO tem acesso direto ao BBVINET_TOKEN. Para acessar repos corporativos, usar workflows (fetch-files.yml, ci-diagnose.yml, apply-source-change.yml)"
+    },
+    "readState": {
+      "description": "Ler estado do autopilot-state branch",
+      "commands": [
+        "gh api repos/lucassfreiree/autopilot/contents/state/workspaces/{ws_id}/workspace.json?ref=autopilot-state --jq '.content' | base64 -d",
+        "gh api repos/lucassfreiree/autopilot/contents/state/workspaces/{ws_id}/controller-release-state.json?ref=autopilot-state --jq '.content' | base64 -d",
+        "gh api repos/lucassfreiree/autopilot/contents/state/workspaces/{ws_id}/locks/session-lock.json?ref=autopilot-state --jq '.content' | base64 -d"
+      ]
+    },
+    "monitorWorkflows": {
+      "description": "Monitorar status de workflows do autopilot",
+      "listRuns": "gh api repos/lucassfreiree/autopilot/actions/workflows/{workflow_name}/runs?per_page=5",
+      "getRunDetails": "gh api repos/lucassfreiree/autopilot/actions/runs/{run_id}",
+      "getJobDetails": "gh api repos/lucassfreiree/autopilot/actions/runs/{run_id}/jobs",
+      "pollingStrategy": "Verificar a cada 30-60s. Esteira corporativa leva ~14 min quando passa, ~4 min quando falha."
+    },
+    "readCILogs": {
+      "description": "Ler logs da esteira corporativa salvos no autopilot-state",
+      "listLogs": "gh api repos/lucassfreiree/autopilot/git/trees/autopilot-state --jq '.tree[] | select(.path | startswith(\"state/workspaces/ws-default/ci-logs-controller\"))'",
+      "readLog": "gh api repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/{log_filename}?ref=autopilot-state --jq '.content' | base64 -d",
+      "latestLogPattern": "O arquivo com maior numero no nome (ci-logs-controller-NNNNN.txt) e o mais recente"
+    },
+    "readCorporateFiles": {
+      "description": "Ler arquivos do repo corporativo (via fetch-files workflow ou autopilot-state)",
+      "fetchedFiles": "gh api repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/fetched-controller-src-controllers-{filename}?ref=autopilot-state --jq '.content' | base64 -d",
+      "triggerFetch": "Editar trigger/fetch-files.json com files=lista,de,arquivos e bumpar run. Mergear em main."
+    },
+    "createPR": {
+      "description": "Criar PRs no autopilot",
+      "commands": [
+        "gh pr create --base main --head claude/{branch-name} --title 'titulo' --body 'descricao'",
+        "gh pr merge {pr_number} --squash"
+      ],
+      "rules": [
+        "Branch DEVE comecar com claude/ (protecao de branch)",
+        "SEMPRE squash merge",
+        "NUNCA push direto para main (403)"
+      ]
+    },
+    "dispatchWorkflow": {
+      "description": "Disparar workflows manualmente",
+      "command": "gh api repos/lucassfreiree/autopilot/actions/workflows/{workflow_name}/dispatches --method POST -f ref=main -f 'inputs[workspace_id]={ws_id}'",
+      "note": "Preferir trigger files (editar + bump run + merge) em vez de dispatch direto"
+    }
+  },
+  "deployFlow": {
+    "description": "FLUXO COMPLETO de deploy — Codex DEVE seguir estes passos na ordem",
+    "steps": [
+      "0. OBRIGATORIO: Buscar arquivos corporativos ATUAIS via fetch-files (base correta)",
+      "1. Verificar versao REAL no repo corporativo (nao confiar so em session memory)",
+      "2. Criar patches MINIMOS a partir da base corporativa ATUAL",
+      "3. OBRIGATORIO: Validar patches (diff vs corporativo, verificar testes, dead code)",
+      "4. Configurar trigger/source-change.json com run incrementado",
+      "5. Atualizar references + CLAUDE.md + session memory",
+      "6. Commit tudo em 1 commit, push branch claude/*, PR, squash merge",
+      "7. Monitorar workflow apply-source-change (polling 30-60s)",
+      "8. Monitorar esteira corporativa ate imagem Docker ser publicada",
+      "9. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
+    ],
+    "preDeployValidation": {
+      "workflow": "validate-patches.yml",
+      "triggeredBy": "PR com changes em patches/ ou trigger/source-change.json",
+      "whatItDoes": "Clona repo corporativo, aplica patches, roda npm ci + tsc + eslint + jest",
+      "rule": "NUNCA mergear PR de deploy se validate-patches falhar"
+    },
+    "versioningRules": {
+      "currentVersion": "3.6.3",
+      "pattern": "Apos X.Y.9 vai para X.(Y+1).0 — NUNCA X.Y.10",
+      "checkRegistry": "SEMPRE verificar se tag ja existe antes de bumpar",
+      "versionFiles": ["package.json", "package-lock.json", "src/swagger/swagger.json"]
+    }
+  },
+  "securityPatterns": {
+    "description": "Padroes de seguranca que DEVEM ser aplicados em todo codigo",
+    "xss": "NUNCA refletir input do usuario em responses sem sanitizeForOutput(). Checkmarx detecta Reflected_XSS.",
+    "ssrf": "SSRF mitigation via parseSafeIdentifier (regex no input). NUNCA bloquear URLs dentro de fetch/postJson (quebra testes mock).",
+    "dos": "NUNCA loop sem limite maximo. Usar MAX_RESULTS para queries. Checkmarx detecta Server_DoS_by_Loop.",
+    "errorLeak": "NUNCA retornar error.message direto no response. Usar sanitizeForOutput(msg).",
+    "deadCode": "Funcoes definidas mas nao usadas = ESLint reclamar. Remover antes de deploy."
+  },
+  "collaborationWithClaude": {
+    "description": "Como Codex e Claude trabalham juntos",
+    "sessionMemory": "contracts/claude-session-memory.json — ler SEMPRE no inicio da sessao. Contem estado atual, versoes, licoes aprendidas.",
+    "handoffProtocol": "Se precisa de algo que nao consegue fazer (ex: acesso MCP GitHub, WebFetch): criar handoff para Claude via enqueue-agent-handoff.yml",
+    "sharedState": "autopilot-state branch e a fonte de verdade. Ambos leem/escrevem la.",
+    "lockProtocol": "Se Claude tem session lock: NAO forcar. Criar handoff e esperar.",
+    "prReview": "Codex pode revisar PRs do Claude e vice-versa via gh pr review"
   },
   "instructions": {
-    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context. Check trigger file _context field and workspace_id. If ambiguous, verify with user. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
-    "stateAccess": "Use gh CLI to read/write state on autopilot-state branch",
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context. Check trigger file _context field and workspace_id. If ambiguous, verify with user. NEVER assume any workspace as default.",
+    "stateAccess": "Use gh CLI to read/write state on autopilot-state branch. See githubConnection.readState for commands.",
     "lockProtocol": "Check locks/ directory via gh api before starting operations. Always release locks on completion.",
-    "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by claude-code, ABORT and create a handoff instead. Never force override another agent's lock.",
-    "releaseProtocol": "Follow workspace.json config, use gh CLI for API operations",
+    "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by claude-code, ABORT and create a handoff instead.",
+    "releaseProtocol": "Follow workspace.json config, use gh CLI for API operations. Follow deployFlow steps exactly.",
     "handoffProtocol": "Read pending handoffs via gh api, update status on completion",
     "auditProtocol": "Record actions via gh api to audit directory after every state mutation",
-    "sourceCodeChanges": "Use apply-source-change.yml workflow or trigger file. Never push directly to corporate repos without session lock."
+    "sourceCodeChanges": "Use apply-source-change.yml workflow or trigger file. ALWAYS validate patches first. Never push directly to corporate repos.",
+    "monitoringProtocol": "ALWAYS monitor both autopilot workflow AND corporate esteira. Deploy is NOT complete until Docker image is published. Poll every 30-60s.",
+    "errorRecovery": "If deploy fails: read ci-logs-controller-*.txt from autopilot-state, diagnose, fix, re-deploy AUTOMATICALLY without asking user."
   },
   "contextFiles": [
     "AGENTS.md",
     "contracts/shared-agent-contract.json",
+    "contracts/claude-session-memory.json",
     "schemas/*.schema.json"
   ]
 }

@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (205 files)
+  audit/ (206 files)
   improvements/ (1 files)
   metrics/ (3 files)
   handoffs/ (1 files)
@@ -207,7 +207,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 
 | File | Name | Triggers |
 |---|---|---|
-| agent-bridge.yml | [Agent] Bridge: Claude ↔ Codex | trigger file, manual |
+| agent-bridge.yml | agent-bridge.yml | unknown |
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
@@ -252,7 +252,6 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 
 | Workflow | Inputs |
 |---|---|
-| agent-bridge.yml | task, model, include_session_memory, include_patches |
 | agent-sync.yml | workspace_id, task, context |
 | alert-notify.yml | severity, title, body |
 | apply-source-change.yml | workspace_id, component, change_type, target_path, file_content, commit_message, skip_ci_wait, promote |
@@ -329,4 +328,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-25T19:54:11Z | Run: 23561047807*
+*Last synced: 2026-03-25T19:58:19Z | Run: 23561216475*

@@ -26,7 +26,6 @@ Este repositório centraliza:
 3. `HANDOFF.md` — guia de handoff e arquitetura detalhada
 4. `ops/docs/agent-operational-parity.md` — checklist prático para operar com o mesmo fluxo do Claude
    - inclui o loop de estabilização de PR (checks/builds/correções até verde) e template de reporte final
-   - inclui comandos práticos para descobrir/acompanhar checks e acionar workflows oficiais de diagnóstico/correção
 
 ## Segurança e isolamento
 

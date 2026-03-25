@@ -75,23 +75,6 @@ Quando houver alteração de código/configuração, operar sempre em ciclo curt
 6. Repetir o ciclo (novo commit → novos checks) até todos os gates críticos ficarem verdes.
 7. Considerar a pipeline corporativa como validação final de release.
 
-### Execução prática no Autopilot (já existente hoje)
-
-Sem criar nova esteira, o próprio fluxo atual já permite executar e acompanhar:
-
-1. Descobrir checks do PR:
-   - `gh pr checks <PR_NUMBER>`
-2. Acompanhar builds em tempo real:
-   - `gh pr checks <PR_NUMBER> --watch`
-3. Diagnosticar falhas de CI com workflow oficial:
-   - atualizar `trigger/ci-diagnose.json` e incrementar `run`
-4. Aplicar correção de CI/lint com workflow oficial:
-   - atualizar `trigger/fix-ci.json` e incrementar `run`
-5. Rodar validação ampla novamente:
-   - atualizar `trigger/full-test.json` e incrementar `run`
-
-> Regra operacional: corrigir em commits pequenos, reexecutar checks e só encerrar quando os gates críticos estiverem verdes.
-
 ### Template de status para fechamento
 
 - Resumo do problema

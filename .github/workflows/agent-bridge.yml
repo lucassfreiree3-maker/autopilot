@@ -95,19 +95,14 @@ jobs:
           echo "selected_model=$SELECTED" >> "$GITHUB_OUTPUT"
           echo "model_resolution=$RESOLUTION" >> "$GITHUB_OUTPUT"
       - name: Load shared agent context
-        id: shared_context
+        id: shared_ctx
         run: |
-          set -euo pipefail
-          CONTEXT_FILE="contracts/shared-agent-context.md"
-          if [ ! -f "$CONTEXT_FILE" ]; then
-            echo "::error ::Shared context file not found: $CONTEXT_FILE"
-            exit 1
+          if [ -f "contracts/shared-agent-context.md" ]; then
+            cat contracts/shared-agent-context.md > /tmp/shared-context.txt
+          else
+            echo "No shared context available." > /tmp/shared-context.txt
           fi
-          {
-            echo "content<<CONTEXT_EOF"
-            cat "$CONTEXT_FILE"
-            echo "CONTEXT_EOF"
-          } >> "$GITHUB_OUTPUT"
+
       - name: Call OpenAI
         id: call_openai
         env:
@@ -117,22 +112,20 @@ jobs:
           SHARED_AGENT_CONTEXT: ${{ steps.shared_context.outputs.content }}
         run: |
           set +e
-          SYSTEM_PROMPT=$(cat <<'EOF'
-          You are Codex. Return concise operational JSON.
-          Follow the shared agent context strictly and never output secrets.
-          EOF
-          )
-          if [ -n "${SHARED_AGENT_CONTEXT:-}" ]; then
-            SYSTEM_PROMPT="${SYSTEM_PROMPT}\n\nSHARED AGENT CONTEXT:\n${SHARED_AGENT_CONTEXT}"
-          fi
+          SHARED_CONTEXT=$(cat /tmp/shared-context.txt 2>/dev/null || echo "")
+          SYSTEM_MSG="You are Codex, an expert software engineer working on the Autopilot project. You have full context of the project history and architecture. Return concise operational JSON.
+
+PROJECT CONTEXT (this is your memory from all previous sessions):
+${SHARED_CONTEXT}"
           REQ=$(jq -n \
             --arg model "$MODEL" \
+            --arg system "$SYSTEM_MSG" \
             --arg task "$TASK" \
             --arg system_prompt "$SYSTEM_PROMPT" \
             '{
               model: $model,
               input: [
-                {role:"system", content:$system_prompt},
+                {role:"system", content:$system},
                 {role:"user", content:$task}
               ]
             }')

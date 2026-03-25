@@ -1,0 +1,687 @@
+[
+  {
+    "file": ".github/workflows/agent-sync.yml",
+    "name": "[Corp] Agent Sync: Claude + ChatGPT",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Clone + Fix + Push"
+    ],
+    "tools": [
+      "github",
+      "node",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/alert-notify.yml",
+    "name": "[Infra] Alert & Notify",
+    "category": "[Infra]",
+    "triggers": [
+      "workflow_dispatch",
+      "workflow_run"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "notify"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/apply-source-change.yml",
+    "name": "[Corp] Deploy: Apply Source Change",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 7,
+    "job_names": [
+      "1. Setup",
+      "1.5 Session Guard",
+      "2. Apply & Push (${{ matrix.component }})",
+      "3. CI Gate (${{ matrix.component }})",
+      "4. Promote to CAP (${{ matrix.component }})",
+      "5. Save State (${{ matrix.component }})",
+      "6. Audit & Release Lock"
+    ],
+    "tools": [
+      "github",
+      "node",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/auto-pr-codex.yml",
+    "name": "[Agent] Auto PR + Auto-Merge (Codex)",
+    "category": "[Agent]",
+    "triggers": [
+      "push"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Create/Update PR and enable auto-merge"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/backup-state.yml",
+    "name": "[Core] Backup: State Snapshot",
+    "category": "[Core]",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Snapshot to autopilot-backups"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/bootstrap.yml",
+    "name": "[Core] Bootstrap: Full Setup",
+    "category": "[Core]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "bootstrap"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/check-repo-access.yml",
+    "name": "[Corp] Check: Repo Access",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Validate Token Access"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/ci-diagnose.yml",
+    "name": "[Corp] CI: Diagnose Error Logs",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Diagnose CI Failure"
+    ],
+    "tools": [
+      "github",
+      "node",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/ci-failure-analysis.yml",
+    "name": "[Agent] CI Failure Analysis",
+    "category": "[Agent]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "analyze"
+    ],
+    "tools": [
+      "github",
+      "node"
+    ]
+  },
+  {
+    "file": ".github/workflows/cleanup-branches.yml",
+    "name": "[Infra] Cleanup: Stale Branches",
+    "category": "[Infra]",
+    "triggers": [
+      "pull_request",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 2,
+    "job_names": [
+      "Delete head branch after merge",
+      "Delete stale branches"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/continuous-improvement.yml",
+    "name": "[Infra] Continuous Improvement",
+    "category": "[Infra]",
+    "triggers": [
+      "push",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 6,
+    "job_names": [
+      "1. Setup",
+      "2. Analyze",
+      "3. Auto-Fix",
+      "4. Learn & Record",
+      "5. Alert",
+      "6. Audit"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/deploy-panel.yml",
+    "name": "[Infra] Deploy Panel (GitHub Pages)",
+    "category": "[Infra]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Deploy to GitHub Pages"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/drift-correction.yml",
+    "name": "[Corp] Drift Correction",
+    "category": "[Corp]",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Detect & Correct Drift"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/enqueue-agent-handoff.yml",
+    "name": "[Agent] Enqueue Handoff",
+    "category": "[Agent]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "enqueue"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/fetch-files.yml",
+    "name": "[Corp] Fetch: Source Files",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "fetch"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/fix-and-validate.yml",
+    "name": "[Corp] Fix: CI + Validate Full Flow",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 3,
+    "job_names": [
+      "Fix lint errors in both repos",
+      "Wait for CI green on both repos",
+      "Trigger full flow validation"
+    ],
+    "tools": [
+      "github",
+      "node",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/fix-corporate-ci.yml",
+    "name": "[Corp] Fix: CI Lint Errors",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Clone \u2192 Fix lint \u2192 Push \u2192 Verify CI"
+    ],
+    "tools": [
+      "github",
+      "node",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/health-check.yml",
+    "name": "[Core] Health Check",
+    "category": "[Core]",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Run Health Checks"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/langchain-orchestrator.yml",
+    "name": "[Agent] LangChain Orchestrator",
+    "category": "[Agent]",
+    "triggers": [
+      "workflow_call",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "LangChain Agent"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-cloud-diagnose.yml",
+    "name": "Ops: Cloud Diagnostics",
+    "category": "Ops",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "diagnose"
+    ],
+    "tools": [
+      "cloud-aws",
+      "cloud-azure",
+      "cloud-gcp",
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-k8s-health.yml",
+    "name": "Ops: K8s Cluster Health",
+    "category": "Ops",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "health-check"
+    ],
+    "tools": [
+      "cloud-aws",
+      "cloud-azure",
+      "cloud-gcp",
+      "github",
+      "kubernetes"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-monitor-alerts.yml",
+    "name": "Ops: Check Active Alerts",
+    "category": "Ops",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "check-alerts"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-pipeline-diagnose.yml",
+    "name": "Ops: Pipeline Diagnostics",
+    "category": "Ops",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "diagnose"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-tf-plan.yml",
+    "name": "Ops: Terraform Plan",
+    "category": "Ops",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "terraform"
+    ],
+    "tools": [
+      "github",
+      "terraform"
+    ]
+  },
+  {
+    "file": ".github/workflows/ops-workflow-observability.yml",
+    "name": "Ops: Workflow Observability Report",
+    "category": "Ops",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Generate workflow topology report"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/record-improvement.yml",
+    "name": "[Agent] Record Improvement",
+    "category": "[Agent]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "record"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/release-agent.yml",
+    "name": "[Release] Agent",
+    "category": "[Release]",
+    "triggers": [
+      "workflow_dispatch",
+      "workflow_run"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 2,
+    "job_names": [
+      "CI gate",
+      "Promote deploy + CAP"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/release-approval.yml",
+    "name": "[Release] Approval Gate",
+    "category": "[Release]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Approval Gate"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/release-controller.yml",
+    "name": "[Release] Controller",
+    "category": "[Release]",
+    "triggers": [
+      "workflow_dispatch",
+      "workflow_run"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 2,
+    "job_names": [
+      "CI gate",
+      "Promote deploy"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/release-freeze.yml",
+    "name": "[Release] Freeze / Unfreeze",
+    "category": "[Release]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Freeze or Unfreeze Releases"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/release-metrics.yml",
+    "name": "[Release] Metrics",
+    "category": "[Release]",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Collect Daily Metrics"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/restore-state.yml",
+    "name": "[Core] Restore: State Rollback",
+    "category": "[Core]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Restore from Backup"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/seed-workspace.yml",
+    "name": "[Core] Seed Workspace",
+    "category": "[Core]",
+    "triggers": [
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "Create Workspace State"
+    ],
+    "tools": [
+      "github"
+    ]
+  },
+  {
+    "file": ".github/workflows/session-guard.yml",
+    "name": "[Core] Session Guard",
+    "category": "[Core]",
+    "triggers": [
+      "workflow_call"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Session Guard"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/sync-codex-prompt.yml",
+    "name": "[Infra] Sync Codex Prompt",
+    "category": "[Infra]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 2,
+    "job_names": [
+      "1. Collect \u2192 Generate \u2192 Commit",
+      "2. Audit"
+    ],
+    "tools": [
+      "github",
+      "kubernetes",
+      "python",
+      "terraform"
+    ]
+  },
+  {
+    "file": ".github/workflows/test-corporate-flow.yml",
+    "name": "[Corp] Test: Corporate E2E Flow",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 1,
+    "job_names": [
+      "clone \u2192 bump \u2192 push main \u2192 CI \u2192 promote CAP"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/test-full-flow.yml",
+    "name": "[Corp] Test: Full Flow (Controller + Agent)",
+    "category": "[Corp]",
+    "triggers": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": true,
+    "jobs_total": 4,
+    "job_names": [
+      "Read config",
+      "Controller flow",
+      "Agent flow",
+      "Record audit"
+    ],
+    "tools": [
+      "github",
+      "python"
+    ]
+  },
+  {
+    "file": ".github/workflows/workspace-lock-gc.yml",
+    "name": "[Core] Lock GC",
+    "category": "[Core]",
+    "triggers": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "workspace_aware": false,
+    "jobs_total": 1,
+    "job_names": [
+      "Cleanup Expired Locks"
+    ],
+    "tools": [
+      "github"
+    ]
+  }
+]

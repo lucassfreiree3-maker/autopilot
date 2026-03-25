@@ -154,11 +154,7 @@ jobs:
             [ "$PATCH_COUNT" -gt 5 ] && break
             FNAME=$(basename "$f")
             CONTENT=$(head -200 "$f")
-            PATCHES_CONTENT="${PATCHES_CONTENT}
---- PATCH: ${FNAME} (first 200 lines) ---
-${CONTENT}
---- END PATCH ---
-"
+            PATCHES_CONTENT="${PATCHES_CONTENT}\n--- PATCH: ${FNAME} (first 200 lines) ---\n${CONTENT}\n--- END PATCH ---\n"
           done
 
           # 7. Fetched corporate files from state (if available)
@@ -173,11 +169,7 @@ ${CONTENT}
               STATE_FILE="_state/state/workspaces/${WS_ID}/fetched-${COMPONENT}-${SAFE_NAME}"
               if [ -f "$STATE_FILE" ]; then
                 CCONTENT=$(head -300 "$STATE_FILE")
-                CORPORATE_CONTEXT="${CORPORATE_CONTEXT}
---- CORPORATE FILE: ${cfile} ---
-${CCONTENT}
---- END CORPORATE FILE ---
-"
+                CORPORATE_CONTEXT="${CORPORATE_CONTEXT}\n--- CORPORATE FILE: ${cfile} ---\n${CCONTENT}\n--- END CORPORATE FILE ---\n"
               fi
             done
           fi
@@ -194,49 +186,24 @@ ${CCONTENT}
           SESSION_STATUS=$(jq -r '.deployFlow.pipelineStatus // "unknown"' contracts/claude-session-memory.json 2>/dev/null)
 
           # Build full context file
-          cat > /tmp/deploy-context.txt << 'CTXEOF'
-## DEPLOY CONTEXT — Read this carefully before generating changes
-
-### Current State
-CTXEOF
-          cat >> /tmp/deploy-context.txt << EOF
-- Current version: ${CURRENT_VERSION}
-- Session memory version: ${SESSION_VERSION}
-- Last trigger run: ${CURRENT_RUN}
-- Session last run: ${SESSION_LAST_RUN}
-- Pipeline status: ${SESSION_STATUS}
-- Component: ${COMPONENT}
-- Workspace: ${WS_ID}
-
-### Workspace Config
-\`\`\`json
-${WS_CONFIG}
-\`\`\`
-
-### Release State
-\`\`\`json
-${RELEASE_STATE}
-\`\`\`
-
-### Current Trigger (trigger/source-change.json)
-\`\`\`json
-${TRIGGER_CONFIG}
-\`\`\`
-
-### Current Patches
-${PATCHES_LIST}
-
-${PATCHES_CONTENT}
-
-### CAP Values (references/controller-cap/values.yaml)
-\`\`\`yaml
-${CAP_VALUES}
-\`\`\`
-
-### Corporate Files (from autopilot-state)
-${CORPORATE_CONTEXT}
-
-EOF
+          {
+            printf '%s\n' "## DEPLOY CONTEXT — Read this carefully before generating changes"
+            printf '\n'
+            printf '%s\n' "### Current State"
+            printf '%s\n' "- Current version: ${CURRENT_VERSION}"
+            printf '%s\n' "- Session memory version: ${SESSION_VERSION}"
+            printf '%s\n' "- Last trigger run: ${CURRENT_RUN}"
+            printf '%s\n' "- Session last run: ${SESSION_LAST_RUN}"
+            printf '%s\n' "- Pipeline status: ${SESSION_STATUS}"
+            printf '%s\n' "- Component: ${COMPONENT}"
+            printf '%s\n' "- Workspace: ${WS_ID}"
+            printf '\n### Workspace Config\n```json\n%s\n```\n' "${WS_CONFIG}"
+            printf '\n### Release State\n```json\n%s\n```\n' "${RELEASE_STATE}"
+            printf '\n### Current Trigger (trigger/source-change.json)\n```json\n%s\n```\n' "${TRIGGER_CONFIG}"
+            printf '\n### Current Patches\n%s\n\n%s\n' "${PATCHES_LIST}" "${PATCHES_CONTENT}"
+            printf '\n### CAP Values (references/controller-cap/values.yaml)\n```yaml\n%s\n```\n' "${CAP_VALUES}"
+            printf '\n### Corporate Files (from autopilot-state)\n%s\n' "${CORPORATE_CONTEXT}"
+          } > /tmp/deploy-context.txt
 
           echo "current_run=$CURRENT_RUN" >> $GITHUB_OUTPUT
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
@@ -289,56 +256,14 @@ EOF
           CURRENT_VERSION="${{ steps.context.outputs.current_version }}"
           NEXT_RUN=$((CURRENT_RUN + 1))
 
-          SYSTEM_PROMPT="You are Codex, an expert software engineer deploying changes to the Autopilot project.
-You have FULL context of the project, including current patches, versions, and corporate file state.
-
-PROJECT MEMORY:
-${SHARED_CONTEXT}
-
-${DEPLOY_CONTEXT}
-
-YOUR TASK: Generate a COMPLETE deploy package. Return ONLY valid JSON (no markdown fences).
-
-RESPONSE FORMAT:
-{
-  \"new_version\": \"X.Y.Z\",
-  \"branch_name\": \"codex/deploy-brief-description\",
-  \"commit_message\": \"feat/fix: description (vX.Y.Z)\",
-  \"pr_title\": \"Short PR title (under 70 chars)\",
-  \"pr_body\": \"## Summary\n- what changed and why\",
-  \"trigger_config\": {
-    \"_context\": \"GETRONICS | ws-default | BBVINET_TOKEN\",
-    \"workspace_id\": \"ws-default\",
-    \"component\": \"controller\",
-    \"change_type\": \"multi-file\",
-    \"version\": \"X.Y.Z\",
-    \"changes\": [
-      {\"action\": \"replace-file\", \"target_path\": \"src/path/file.ts\", \"content_ref\": \"patches/filename.ts\"},
-      {\"action\": \"search-replace\", \"target_path\": \"package.json\", \"search\": \"old\", \"replace\": \"new\"}
-    ],
-    \"commit_message\": \"description for corporate repo commit\",
-    \"skip_ci_wait\": false,
-    \"promote\": true,
-    \"run\": ${NEXT_RUN}
-  },
-  \"patch_files\": [
-    {\"path\": \"patches/filename.ts\", \"content\": \"full file content\"},
-    {\"path\": \"patches/other.ts\", \"content\": \"full file content\"}
-  ],
-  \"cap_values_image_tag\": \"X.Y.Z\"
-}
-
-RULES:
-- new_version: increment patch from ${CURRENT_VERSION}. After X.Y.9 goes to X.(Y+1).0
-- trigger_config.run MUST be ${NEXT_RUN} (current is ${CURRENT_RUN})
-- trigger_config.changes: use replace-file for .ts files (provide full content in patch_files), search-replace for version bumps
-- patch_files: full content of each file to deploy. Must be production-quality TypeScript
-- Version bump: ALWAYS include search-replace for package.json, package-lock.json, swagger.json
-- branch_name MUST start with codex/deploy-
-- NEVER include secrets, tokens, or corporate URLs in any content
-- Only modify files that are directly related to the task
-- Follow the security patterns: sanitizeForOutput for XSS, parseSafeIdentifier for SSRF, MAX_RESULTS for DoS
-- Return ONLY JSON, no explanations"
+          SYSTEM_PROMPT=$(printf '%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+            "You are Codex, an expert software engineer deploying changes to the Autopilot project." \
+            "You have full context, including patch files, trigger state, and workspace metadata." \
+            "PROJECT MEMORY:" \
+            "${SHARED_CONTEXT}" \
+            "${DEPLOY_CONTEXT}" \
+            "Rules: increment patch version from ${CURRENT_VERSION}; set trigger_config.run to ${NEXT_RUN} (current ${CURRENT_RUN}); output only strict JSON." \
+            "JSON must include new_version, branch_name, commit_message, pr_title, pr_body, trigger_config, patch_files, and cap_values_image_tag.")
 
           REQ=$(jq -n \
             --arg model "$MODEL" \
@@ -476,10 +401,9 @@ RULES:
           fi
 
           COMMIT_MSG="${{ steps.codex.outputs.commit_msg }}"
-          git commit -m "${COMMIT_MSG}
-
-Co-authored-by: codex-agent <codex-agent@github.com>
-Triggered-by: codex-deploy workflow run ${{ steps.cfg.outputs.run }}"
+          git commit -m "${COMMIT_MSG}" \
+            -m "Co-authored-by: codex-agent <codex-agent@github.com>" \
+            -m "Triggered-by: codex-deploy workflow run ${{ steps.cfg.outputs.run }}"
 
           git push -u origin "$BRANCH" --force
           echo "applied=1" >> $GITHUB_OUTPUT

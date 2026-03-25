@@ -92,6 +92,13 @@ Codex can commit via `codex-apply.yml` workflow:
 - **Trusted caller**: namespace=sgh-oaas-playbook-jobs, serviceAccount=default
 - **OaaS integration**: Validated end-to-end. POST /oas/sre-controller?mode=sync > 200 OK
 
+## Web Session Auth (Codex/Copilot/Claude in browser terminals)
+- If `gh` CLI is unavailable, use GitHub REST API via `curl` with `Authorization: Bearer <TOKEN>`.
+- Use token only in runtime environment variables (`GH_TOKEN`/`GITHUB_TOKEN`) for the active session.
+- NEVER persist tokens in tracked files, trigger JSONs, patches, or state snapshots.
+- If a token is accidentally exposed in chat/logs, revoke and rotate immediately before continuing.
+- Session memory may store the **process** (how to authenticate), never the secret value.
+
 ## Security Patterns (Mandatory)
 - XSS: Use sanitizeForOutput() on all user input before response
 - SSRF: Use parseSafeIdentifier on input, NEVER validateTrustedUrl inside fetch

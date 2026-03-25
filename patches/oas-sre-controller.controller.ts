@@ -59,7 +59,7 @@ type AllowedImage = {
 };
 
 const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
-const DEFAULT_AGENT_CALL_TIMEOUT_MS = 30_000;
+const DEFAULT_AGENT_CALL_TIMEOUT_MS = 35_000;
 
 function asRecord(value: unknown): JsonRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

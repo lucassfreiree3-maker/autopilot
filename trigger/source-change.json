@@ -3,7 +3,7 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.6.3",
+  "version": "3.6.4",
   "changes": [
     {
       "target_path": "src/controllers/oas-sre-controller.controller.ts",
@@ -28,24 +28,24 @@
     {
       "target_path": "package.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.6.2\"",
-      "replace": "\"version\": \"3.6.3\""
+      "search": "\"version\": \"3.6.3\"",
+      "replace": "\"version\": \"3.6.4\""
     },
     {
       "target_path": "package-lock.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.6.2\"",
-      "replace": "\"version\": \"3.6.3\""
+      "search": "\"version\": \"3.6.3\"",
+      "replace": "\"version\": \"3.6.4\""
     },
     {
       "target_path": "src/swagger/swagger.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.6.2\"",
-      "replace": "\"version\": \"3.6.3\""
+      "search": "\"version\": \"3.6.3\"",
+      "replace": "\"version\": \"3.6.4\""
     }
   ],
-  "commit_message": "fix(security): sanitizeForOutput XSS + remove validateTrustedUrl blocker + MAX_RESULTS DoS (3.6.3)",
+  "commit_message": "fix(controller): ajuste timeout padrão de chamada do agent (3.6.4)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 52
+  "run": 53
 }

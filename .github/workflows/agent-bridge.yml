@@ -113,15 +113,14 @@ jobs:
         run: |
           set +e
           SHARED_CONTEXT=$(cat /tmp/shared-context.txt 2>/dev/null || echo "")
-          SYSTEM_MSG="You are Codex, an expert software engineer working on the Autopilot project. You have full context of the project history and architecture. Return concise operational JSON.
-
-PROJECT CONTEXT (this is your memory from all previous sessions):
-${SHARED_CONTEXT}"
+          SYSTEM_MSG=$(printf '%s\n%s\n%s' \
+            "You are Codex, an expert software engineer working on the Autopilot project." \
+            "PROJECT CONTEXT (memory from previous sessions):" \
+            "${SHARED_CONTEXT}")
           REQ=$(jq -n \
             --arg model "$MODEL" \
             --arg system "$SYSTEM_MSG" \
             --arg task "$TASK" \
-            --arg system_prompt "$SYSTEM_PROMPT" \
             '{
               model: $model,
               input: [

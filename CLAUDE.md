@@ -362,8 +362,30 @@ Note: Some directories (`locks/`, `approvals/`, `metrics/`, `release-freeze.json
 ### Testing & Validation
 | Workflow | Purpose |
 |----------|---------|
+| validate-patches.yml | **PRE-DEPLOY** — Clona repo corporativo, aplica patches, roda npm ci + tsc + eslint + jest. Bloqueia deploy se falhar. |
 | test-full-flow.yml | Full integration test (controller + agent + CAP) |
 | test-corporate-flow.yml | Corporate flow test |
+
+### Pre-Deploy Validation (OBRIGATORIO)
+**NUNCA deployar sem validar primeiro.** O workflow `validate-patches.yml` roda automaticamente em PRs que alteram `patches/` ou `trigger/source-change.json`.
+
+| Step | O que faz | Falha = |
+|------|-----------|---------|
+| Clone corporate repo | Clona repo com BBVINET_TOKEN | Token invalido |
+| Apply patches | Aplica replace-file + search-replace | Patch file nao encontrado |
+| npm ci | Instala dependencias reais | Dependencia faltando |
+| tsc --noEmit | TypeScript build check | Erro de compilacao |
+| eslint | Lint nos arquivos alterados | Regra ESLint violada |
+| jest --ci | Roda TODOS os testes | Teste quebrado pelo patch |
+
+**Script local**: `ops/scripts/ci/validate-patches-local.sh` — validacao rapida sem npm (diff, dead code, test refs)
+
+**Regras**:
+1. SEMPRE partir da base corporativa ATUAL (buscar via fetch-files)
+2. SEMPRE diff patch vs corporativo — mudancas devem ser MINIMAS
+3. NUNCA adicionar validateTrustedUrl dentro de fetch/postJson (quebra testes mock)
+4. NUNCA mudar assinaturas de funcoes existentes sem atualizar testes
+5. Dead code (funcoes definidas mas nao usadas) = ESLint vai reclamar
 
 ### Continuous Improvement
 | Workflow | Purpose |

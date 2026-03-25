@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T14:55:36Z",
+  "runId": "23547329646",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23547329646",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): XSS sanitizeForOutput + DoS MAX_RESULTS + remove validateTrustedUrl from fetch (3.6.2)",
+  "commitSha": "a02a3057ab9d538ade5cdf5dbb5ef70b1eea6d37",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

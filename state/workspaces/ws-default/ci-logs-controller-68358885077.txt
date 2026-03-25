@@ -1,0 +1,500 @@
+2026-03-24T13:09:16.9655029Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:16.9655755Z           at Array.map (<anonymous>)
+2026-03-24T13:09:16.9656103Z 
+2026-03-24T13:09:16.9668681Z   console.info
+2026-03-24T13:09:16.9669741Z     [oas-sre-controller] dispatch execId=7d267b05-9de5-4587-9de5-2cdb8c02a982 cluster=cluster-b url=http://agent.local/agent/execute
+2026-03-24T13:09:16.9670471Z 
+2026-03-24T13:09:16.9670872Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:16.9671581Z           at Array.map (<anonymous>)
+2026-03-24T13:09:16.9671927Z 
+2026-03-24T13:09:16.9673981Z   console.info
+2026-03-24T13:09:16.9674737Z     [oas-sre-controller] accepted execId=7d267b05-9de5-4587-9de5-2cdb8c02a982 clusters=2
+2026-03-24T13:09:16.9675307Z 
+2026-03-24T13:09:16.9675770Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:16.9676331Z 
+2026-03-24T13:09:17.1018214Z PASS src/__tests__/unit/jwt.middleware.test.ts
+2026-03-24T13:09:17.1018916Z   JWT middleware
+2026-03-24T13:09:17.1019808Z     ✓ rejects when Authorization header is missing (10 ms)
+2026-03-24T13:09:17.1020572Z     ✓ rejects when token is invalid (10 ms)
+2026-03-24T13:09:17.1021412Z     ✓ accepts when token is valid and attaches decoded payload (9 ms)
+2026-03-24T13:09:17.1022332Z     ✓ getIncomingAuthorization returns header value when present (8 ms)
+2026-03-24T13:09:17.1023268Z     ✓ getIncomingAuthorization returns undefined when missing (8 ms)
+2026-03-24T13:09:17.1023835Z 
+2026-03-24T13:09:17.1873503Z   console.info
+2026-03-24T13:09:17.1875251Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:17.1876182Z 
+2026-03-24T13:09:17.1876728Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:17.1877471Z 
+2026-03-24T13:09:17.1903569Z   console.info
+2026-03-24T13:09:17.1905286Z     [oas-sre-controller] start execId=11c60dbc-8be2-49ca-8538-318b361ee55b image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:17.1906418Z 
+2026-03-24T13:09:17.1907032Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:17.1907767Z 
+2026-03-24T13:09:17.1928002Z   console.info
+2026-03-24T13:09:17.1930305Z     [oas-sre-controller] dispatch execId=11c60dbc-8be2-49ca-8538-318b361ee55b cluster=cluster-origem url=http://agent.cluster-origem.svc.local/agent/execute
+2026-03-24T13:09:17.1931781Z 
+2026-03-24T13:09:17.1932406Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:17.1933717Z           at Array.map (<anonymous>)
+2026-03-24T13:09:17.1934249Z 
+2026-03-24T13:09:17.1934810Z   console.info
+2026-03-24T13:09:17.1936137Z     [oas-sre-controller] accepted execId=11c60dbc-8be2-49ca-8538-318b361ee55b clusters=1
+2026-03-24T13:09:17.1937201Z 
+2026-03-24T13:09:17.1937955Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:17.1938790Z 
+2026-03-24T13:09:17.4032232Z   console.info
+2026-03-24T13:09:17.4033161Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:17.4033830Z 
+2026-03-24T13:09:17.4034240Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:17.4034646Z 
+2026-03-24T13:09:17.6221969Z   console.info
+2026-03-24T13:09:17.6222897Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:17.6223778Z 
+2026-03-24T13:09:17.6224110Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:17.6224526Z 
+2026-03-24T13:09:17.7871951Z   console.info
+2026-03-24T13:09:17.7872890Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:17.7874026Z 
+2026-03-24T13:09:17.7874350Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:17.7874750Z 
+2026-03-24T13:09:18.0065165Z   console.info
+2026-03-24T13:09:18.0066310Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:18.0067011Z 
+2026-03-24T13:09:18.0067980Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.0068460Z 
+2026-03-24T13:09:18.0089429Z   console.info
+2026-03-24T13:09:18.0090495Z     [oas-sre-controller] start execId=d5642fe0-b6c1-4716-89e2-610a67492685 image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.0091261Z 
+2026-03-24T13:09:18.0091671Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.0092135Z 
+2026-03-24T13:09:18.0109676Z   console.info
+2026-03-24T13:09:18.0112362Z     [oas-sre-controller] dispatch execId=d5642fe0-b6c1-4716-89e2-610a67492685 cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.0113317Z 
+2026-03-24T13:09:18.0114020Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.0114915Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.0115365Z 
+2026-03-24T13:09:18.0239559Z   console.error
+2026-03-24T13:09:18.0240762Z     [oas-sre-controller] agent-error execId=d5642fe0-b6c1-4716-89e2-610a67492685 cluster=k8scluster01 status=503
+2026-03-24T13:09:18.0241496Z 
+2026-03-24T13:09:18.0242700Z     [0m [90m 484 |[39m     [36mconst[39m failedDispatch [33m=[39m dispatches[33m.[39mfind((dispatch) [33m=>[39m [33m![39mdispatch[33m.[39mok)[33m;[39m
+2026-03-24T13:09:18.0244172Z      [90m 485 |[39m     [36mif[39m (failedDispatch) {
+2026-03-24T13:09:18.0245086Z     [31m[1m>[22m[39m[90m 486 |[39m       console[33m.[39merror(
+2026-03-24T13:09:18.0245944Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-24T13:09:18.0247129Z      [90m 487 |[39m         [32m"[oas-sre-controller] agent-error execId=%s cluster=%s status=%d"[39m[33m,[39m
+2026-03-24T13:09:18.0248184Z      [90m 488 |[39m         safeLogValue(execId)[33m,[39m
+2026-03-24T13:09:18.0249209Z      [90m 489 |[39m         safeLogValue(failedDispatch[33m.[39mcluster)[33m,[39m[0m
+2026-03-24T13:09:18.0249797Z 
+2026-03-24T13:09:18.0250262Z       at error (src/controllers/oas-sre-controller.controller.ts:486:15)
+2026-03-24T13:09:18.0250813Z 
+2026-03-24T13:09:18.1120055Z   console.warn
+2026-03-24T13:09:18.1122022Z     [auth] unable to load scopes from Kubernetes Secret; falling back to environment detail=Missing SCOPES_SECRET_NAMESPACE and unable to detect in-cluster namespace
+2026-03-24T13:09:18.1123061Z 
+2026-03-24T13:09:18.1124945Z     [0m [90m 229 |[39m     } [36mcatch[39m (error) {
+2026-03-24T13:09:18.1126601Z      [90m 230 |[39m       [36mconst[39m detail [33m=[39m error [36minstanceof[39m [33mError[39m [33m?[39m error[33m.[39mmessage [33m:[39m [33mString[39m(error)[33m;[39m
+2026-03-24T13:09:18.1127936Z     [31m[1m>[22m[39m[90m 231 |[39m       console[33m.[39mwarn(
+2026-03-24T13:09:18.1128831Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-24T13:09:18.1130079Z      [90m 232 |[39m         [32m"[auth] unable to load scopes from Kubernetes Secret; falling back to environment detail=%s"[39m[33m,[39m
+2026-03-24T13:09:18.1131165Z      [90m 233 |[39m         detail[33m,[39m
+2026-03-24T13:09:18.1131868Z      [90m 234 |[39m       )[33m;[39m[0m
+2026-03-24T13:09:18.1132289Z 
+2026-03-24T13:09:18.1260401Z PASS src/__tests__/unit/auth.required-scopes.test.ts
+2026-03-24T13:09:18.1261343Z   auth required scopes
+2026-03-24T13:09:18.1262146Z     ✓ rejects when api key is missing (496 ms)
+2026-03-24T13:09:18.1263058Z     ✓ returns required scopes for protected routes using environment fallback (43 ms)
+2026-03-24T13:09:18.1264230Z     ✓ falls back to environment when secret lookup is configured but unavailable (54 ms)
+2026-03-24T13:09:18.1264765Z 
+2026-03-24T13:09:18.1265092Z       at warn (src/auth/runtime-scope-source.ts:231:15)
+2026-03-24T13:09:18.1266841Z       at getRequiredRouteScopes (src/controllers/auth-required-scopes.controller.ts:11:24)
+2026-03-24T13:09:18.1267564Z 
+2026-03-24T13:09:18.1599397Z   console.info
+2026-03-24T13:09:18.1600340Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:18.1600911Z 
+2026-03-24T13:09:18.1601231Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.1601644Z 
+2026-03-24T13:09:18.1614681Z   console.info
+2026-03-24T13:09:18.1615681Z     [oas-sre-controller] start execId=c9ade8e2-42b1-4ac5-ad7f-46c34e4287db image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.1616428Z 
+2026-03-24T13:09:18.1616814Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.1617287Z 
+2026-03-24T13:09:18.1634154Z   console.info
+2026-03-24T13:09:18.1635641Z     [oas-sre-controller] dispatch execId=c9ade8e2-42b1-4ac5-ad7f-46c34e4287db cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.1636629Z 
+2026-03-24T13:09:18.1637196Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.1638044Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.1638510Z 
+2026-03-24T13:09:18.1744565Z   console.error
+2026-03-24T13:09:18.1745480Z     [oas-sre-controller] timeout execId=c9ade8e2-42b1-4ac5-ad7f-46c34e4287db timeoutMs=1234
+2026-03-24T13:09:18.1746044Z 
+2026-03-24T13:09:18.1746603Z     [0m [90m 574 |[39m     [36mif[39m (isAbort) {
+2026-03-24T13:09:18.1747561Z      [90m 575 |[39m       [36mconst[39m timeoutMs [33m=[39m readAgentCallTimeoutMs()[33m;[39m
+2026-03-24T13:09:18.1748499Z     [31m[1m>[22m[39m[90m 576 |[39m       console[33m.[39merror(
+2026-03-24T13:09:18.1749261Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-24T13:09:18.1750222Z      [90m 577 |[39m         [32m"[oas-sre-controller] timeout execId=%s timeoutMs=%d"[39m[33m,[39m
+2026-03-24T13:09:18.1751137Z      [90m 578 |[39m         safeLogValue(execId)[33m,[39m
+2026-03-24T13:09:18.1751870Z      [90m 579 |[39m         timeoutMs[33m,[39m[0m
+2026-03-24T13:09:18.1752256Z 
+2026-03-24T13:09:18.1752660Z       at error (src/controllers/oas-sre-controller.controller.ts:576:15)
+2026-03-24T13:09:18.1753117Z 
+2026-03-24T13:09:18.2725155Z PASS src/__tests__/unit/auth.scopes.test.ts
+2026-03-24T13:09:18.2726250Z   auth token scopes
+2026-03-24T13:09:18.2727417Z     ✓ rejects when no scopes are requested (929 ms)
+2026-03-24T13:09:18.2735685Z     ✓ rejects invalid scopes (39 ms)
+2026-03-24T13:09:18.2736547Z     ✓ accepts valid scopes via 'scope' (83 ms)
+2026-03-24T13:09:18.2737309Z     ✓ accepts valid scopes via 'scopes' (43 ms)
+2026-03-24T13:09:18.2738173Z     ✓ rejects requesting a scope not allowed for the api key (39 ms)
+2026-03-24T13:09:18.2738686Z 
+2026-03-24T13:09:18.2938245Z (node:2257412) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 beforeExit listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+2026-03-24T13:09:18.2939760Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-03-24T13:09:18.2941279Z (node:2257412) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGINT listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+2026-03-24T13:09:18.2943258Z (node:2257412) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+2026-03-24T13:09:18.2990574Z   console.info
+2026-03-24T13:09:18.2991757Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller
+2026-03-24T13:09:18.2992470Z 
+2026-03-24T13:09:18.2993935Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.2994423Z 
+2026-03-24T13:09:18.3018683Z   console.info
+2026-03-24T13:09:18.3020024Z     [oas-sre-controller] start execId=da13d0f1-cf6c-4241-b4af-8ac1e0158e65 image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.3020764Z 
+2026-03-24T13:09:18.3021166Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.3021642Z 
+2026-03-24T13:09:18.3044763Z   console.info
+2026-03-24T13:09:18.3045822Z     [oas-sre-controller] dispatch execId=da13d0f1-cf6c-4241-b4af-8ac1e0158e65 cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.3046577Z 
+2026-03-24T13:09:18.3046978Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.3047683Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.3048027Z 
+2026-03-24T13:09:18.3048279Z   console.info
+2026-03-24T13:09:18.3049014Z     [oas-sre-controller] accepted execId=da13d0f1-cf6c-4241-b4af-8ac1e0158e65 clusters=1
+2026-03-24T13:09:18.3049555Z 
+2026-03-24T13:09:18.3049945Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:18.3050416Z 
+2026-03-24T13:09:18.4379690Z   console.info
+2026-03-24T13:09:18.4381592Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller?mode=sync
+2026-03-24T13:09:18.4382901Z 
+2026-03-24T13:09:18.4383765Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.4384689Z 
+2026-03-24T13:09:18.4403156Z   console.info
+2026-03-24T13:09:18.4405074Z     [oas-sre-controller] start execId=9267a88b-26fb-4e73-8265-864562ddc152 image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.4406402Z 
+2026-03-24T13:09:18.4407099Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.4408154Z 
+2026-03-24T13:09:18.4421986Z   console.info
+2026-03-24T13:09:18.4424605Z     [oas-sre-controller] dispatch execId=9267a88b-26fb-4e73-8265-864562ddc152 cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.4425932Z 
+2026-03-24T13:09:18.4426640Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.4427925Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.4428522Z 
+2026-03-24T13:09:18.4585652Z   console.log
+2026-03-24T13:09:18.4587269Z     [24/03/2026 10:09:18 BRT] SRC=agent FROM=agent agent-exec execId=9267a88b-26fb-4e73-8265-864562ddc152 ts=2026-03-19T10:00:00-03:00 reqId= method= path= status=DONE durationMs=- execStatus=DONE level=INFO step= message=completed dataType=undefined source=agent from=agent
+2026-03-24T13:09:18.4588480Z 
+2026-03-24T13:09:18.4589080Z       at log (src/util/logger.ts:111:13)
+2026-03-24T13:09:18.4589693Z           at Array.forEach (<anonymous>)
+2026-03-24T13:09:18.4590298Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.4590623Z 
+2026-03-24T13:09:18.4599989Z   console.info
+2026-03-24T13:09:18.4600811Z     [oas-sre-controller] accepted execId=9267a88b-26fb-4e73-8265-864562ddc152 clusters=1
+2026-03-24T13:09:18.4601379Z 
+2026-03-24T13:09:18.4601787Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:18.4602270Z 
+2026-03-24T13:09:18.4676977Z PASS src/__tests__/unit/agentsRepo.test.ts
+2026-03-24T13:09:18.4677628Z   AgentsRepo (sqlite)
+2026-03-24T13:09:18.4678447Z     ✓ upsertAgent and getAgent (28 ms)
+2026-03-24T13:09:18.4679177Z     ✓ listAgentsByEnv filters by environment (40 ms)
+2026-03-24T13:09:18.4680039Z     ✓ getAgentByClusterAndNamespace returns a registered agent (20 ms)
+2026-03-24T13:09:18.4680807Z     ✓ list respects limit (59 ms)
+2026-03-24T13:09:18.4681119Z 
+2026-03-24T13:09:18.5341126Z PASS src/__tests__/unit/agents-execute-logs.shared-trace.test.ts
+2026-03-24T13:09:18.5342157Z   waitForFinalExecution with shared trace state
+2026-03-24T13:09:18.5343473Z     ✓ resolves from the trace file when the final callback lands on another pod (27 ms)
+2026-03-24T13:09:18.5344143Z 
+2026-03-24T13:09:18.6098398Z   console.info
+2026-03-24T13:09:18.6099556Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller?mode=sync
+2026-03-24T13:09:18.6100645Z 
+2026-03-24T13:09:18.6101152Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.6101638Z 
+2026-03-24T13:09:18.6120946Z   console.info
+2026-03-24T13:09:18.6122187Z     [oas-sre-controller] start execId=1390b87d-3b05-456b-81f1-908ace442fe7 image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.6123002Z 
+2026-03-24T13:09:18.6123580Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.6124170Z 
+2026-03-24T13:09:18.6138713Z   console.info
+2026-03-24T13:09:18.6139787Z     [oas-sre-controller] dispatch execId=1390b87d-3b05-456b-81f1-908ace442fe7 cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.6140621Z 
+2026-03-24T13:09:18.6141143Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.6141956Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.6142380Z 
+2026-03-24T13:09:18.6163447Z   console.log
+2026-03-24T13:09:18.6165162Z     [24/03/2026 10:09:18 BRT] SRC=agent FROM=agent agent-exec execId=1390b87d-3b05-456b-81f1-908ace442fe7 ts=2026-03-19T10:05:00-03:00 reqId= method= path= status=ERROR durationMs=- execStatus=ERROR level=ERROR step= message=automation failed dataType=undefined source=agent from=agent
+2026-03-24T13:09:18.6166745Z 
+2026-03-24T13:09:18.6167122Z       at log (src/util/logger.ts:111:13)
+2026-03-24T13:09:18.6167859Z           at Array.forEach (<anonymous>)
+2026-03-24T13:09:18.6168545Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.6168977Z 
+2026-03-24T13:09:18.6182717Z   console.info
+2026-03-24T13:09:18.6183706Z     [oas-sre-controller] accepted execId=1390b87d-3b05-456b-81f1-908ace442fe7 clusters=1
+2026-03-24T13:09:18.6184410Z 
+2026-03-24T13:09:18.6184905Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:18.6185585Z 
+2026-03-24T13:09:18.8354141Z   console.info
+2026-03-24T13:09:18.8355253Z     [oas-auth] mode=jwt trusted=false namespace=- serviceAccount=- reqId=- path=/oas/sre-controller?mode=sync
+2026-03-24T13:09:18.8355954Z 
+2026-03-24T13:09:18.8356513Z       at info (src/middleware/oas-origin-auth.ts:124:13)
+2026-03-24T13:09:18.8356976Z 
+2026-03-24T13:09:18.8416429Z   console.info
+2026-03-24T13:09:18.8417597Z     [oas-sre-controller] start execId=1d486833-05ae-40b8-8ec7-ad612e1398d4 image=psc-sre-ns-migration-preflight clusters=1 authMode=jwt
+2026-03-24T13:09:18.8418384Z 
+2026-03-24T13:09:18.8418876Z       at info (src/controllers/oas-sre-controller.controller.ts:411:11)
+2026-03-24T13:09:18.8419643Z 
+2026-03-24T13:09:18.8444347Z   console.info
+2026-03-24T13:09:18.8445529Z     [oas-sre-controller] dispatch execId=1d486833-05ae-40b8-8ec7-ad612e1398d4 cluster=k8scluster01 url=http://agent.local/agent/execute
+2026-03-24T13:09:18.8446328Z 
+2026-03-24T13:09:18.8446971Z       at info (src/controllers/oas-sre-controller.controller.ts:465:17)
+2026-03-24T13:09:18.8447726Z           at Array.map (<anonymous>)
+2026-03-24T13:09:18.8448060Z 
+2026-03-24T13:09:18.8448310Z   console.info
+2026-03-24T13:09:18.8449031Z     [oas-sre-controller] accepted execId=1d486833-05ae-40b8-8ec7-ad612e1398d4 clusters=1
+2026-03-24T13:09:18.8449578Z 
+2026-03-24T13:09:18.8449972Z       at info (src/controllers/oas-sre-controller.controller.ts:507:13)
+2026-03-24T13:09:18.8450428Z 
+2026-03-24T13:09:18.8715042Z PASS src/__tests__/unit/register.controller.test.ts
+2026-03-24T13:09:18.8787345Z   registerAgent controller
+2026-03-24T13:09:18.8788429Z     ✓ rejects unsafe cluster or namespace values (60 ms)
+2026-03-24T13:09:18.8789303Z     ✓ registers a safe agent payload (82 ms)
+2026-03-24T13:09:18.8789713Z 
+2026-03-24T13:09:19.0572622Z PASS src/__tests__/unit/logrotate.util.test.ts
+2026-03-24T13:09:19.0573302Z   log rotation
+2026-03-24T13:09:19.0574385Z     ✓ rotates files with Brazilian date format and reports upload stats (426 ms)
+2026-03-24T13:09:19.0574891Z 
+2026-03-24T13:09:19.0998009Z PASS src/__tests__/unit/oas-sre-controller.route.test.ts (8.882 s)
+2026-03-24T13:09:19.0998791Z   POST /oas/sre-controller
+2026-03-24T13:09:19.1000165Z     ✓ requires JWT when request is not from trusted internal origin (2191 ms)
+2026-03-24T13:09:19.1001118Z     ✓ accepts request without JWT for trusted internal origin headers (184 ms)
+2026-03-24T13:09:19.1002060Z     ✓ requires execute scope when JWT is provided for external origin (173 ms)
+2026-03-24T13:09:19.1003024Z     ✓ accepts JWT with execute scope and dispatches to all clusters (181 ms)
+2026-03-24T13:09:19.1004107Z     ✓ dispatches to a single cluster with custom envs via template URL (221 ms)
+2026-03-24T13:09:19.1004970Z     ✓ rejects payload when image is not in allowlist (208 ms)
+2026-03-24T13:09:19.1005755Z     ✓ rejects payload when envs field is missing (219 ms)
+2026-03-24T13:09:19.1006545Z     ✓ rejects payload when CLUSTERS_NAMES is missing (166 ms)
+2026-03-24T13:09:19.1007316Z     ✓ returns 502 when agent rejects one cluster (236 ms)
+2026-03-24T13:09:19.1008078Z     ✓ returns 504 when agent dispatch times out (161 ms)
+2026-03-24T13:09:19.1008874Z     ✓ accepts envs passed under legacy 'variables' key (122 ms)
+2026-03-24T13:09:19.1009746Z     ✓ supports sync mode and waits for final execution state (153 ms)
+2026-03-24T13:09:19.1010642Z     ✓ returns 502 in sync mode when the callback finishes with ERROR (184 ms)
+2026-03-24T13:09:19.1011616Z     ✓ returns 504 in sync mode when execution does not finish before timeout (291 ms)
+2026-03-24T13:09:19.1012112Z 
+2026-03-24T13:09:19.1644344Z PASS src/__tests__/unit/agents.store.test.ts
+2026-03-24T13:09:19.2972083Z   AgentsStore
+2026-03-24T13:09:19.2972977Z     ✓ list starts empty (42 ms)
+2026-03-24T13:09:19.2973780Z     ✓ add persists and exists returns true (3 ms)
+2026-03-24T13:09:19.2974537Z     ✓ exists returns false for non-matching key (3 ms)
+2026-03-24T13:09:19.2975006Z 
+2026-03-24T13:09:19.2975417Z PASS src/__tests__/unit/trusted-agent.test.ts
+2026-03-24T13:09:19.2976428Z   trusted agent resolution
+2026-03-24T13:09:19.2977310Z     ✓ returns null when cluster/namespace is not registered (26 ms)
+2026-03-24T13:09:19.2978366Z     ✓ resolves agent URL only for registered cluster/namespace (21 ms)
+2026-03-24T13:09:19.2978953Z 
+2026-03-24T13:09:19.4263601Z PASS src/__tests__/unit/automation-log.service.test.ts
+2026-03-24T13:09:19.4264851Z   automation-log.service
+2026-03-24T13:09:19.4266009Z     ✓ recognizes appendTraceLine-style execStatus as a final success (11 ms)
+2026-03-24T13:09:19.4266674Z 
+2026-03-24T13:09:19.4848182Z PASS src/__tests__/unit/sync-poll-interval.util.test.ts
+2026-03-24T13:09:19.4849201Z   sync-poll-interval util
+2026-03-24T13:09:19.4850477Z     ✓ returns default for invalid values (1 ms)
+2026-03-24T13:09:19.4851568Z     ✓ clamps values inside the supported interval window
+2026-03-24T13:09:19.4852509Z     ✓ normalizes decimal values down to an integer
+2026-03-24T13:09:19.4853004Z 
+2026-03-24T13:09:19.5905556Z PASS src/__tests__/unit/utils.test.ts
+2026-03-24T13:09:19.5906258Z   Utility Functions
+2026-03-24T13:09:19.5906742Z     convertNumber
+2026-03-24T13:09:19.5907565Z       ✓ should convert a valid string to a number (1 ms)
+2026-03-24T13:09:19.5908498Z       ✓ should return the fallback value if the input is invalid (7 ms)
+2026-03-24T13:09:19.5909487Z       ✓ should throw an error if the input is invalid and no fallback value is set (4 ms)
+2026-03-24T13:09:19.5910210Z     diffTimeInSeconds
+2026-03-24T13:09:19.5910874Z       ✓ should calculate the time difference in seconds
+2026-03-24T13:09:19.5911262Z 
+2026-03-24T13:09:19.7057907Z PASS src/__tests__/unit/sync-timeout.util.test.ts
+2026-03-24T13:09:19.7059267Z   sync-timeout util
+2026-03-24T13:09:19.7060545Z     ✓ returns configured positive timeout (1 ms)
+2026-03-24T13:09:19.7061690Z     ✓ falls back to default timeout for invalid values
+2026-03-24T13:09:19.7062964Z     ✓ normalizes decimal values down to an integer (1 ms)
+2026-03-24T13:09:19.7063764Z 
+2026-03-24T13:09:19.8287478Z PASS src/__tests__/unit/sample.ut.test.ts
+2026-03-24T13:09:19.8288487Z   Sample scenario
+2026-03-24T13:09:19.8289377Z     ✓ adds 1 + 2 equals 3
+2026-03-24T13:09:19.8290193Z 
+2026-03-24T13:09:20.4341351Z   console.info
+2026-03-24T13:09:20.4342279Z     [24/03/2026 10:09:20 BRT] INFO ns="server" [swagger] loaded bundled spec from src/swagger/swagger.json
+2026-03-24T13:09:20.4342831Z 
+2026-03-24T13:09:20.4343119Z       at console.info (src/util/logger.ts:192:40)
+2026-03-24T13:09:20.4343612Z 
+2026-03-24T13:09:20.4466303Z   console.info
+2026-03-24T13:09:20.4467230Z     [24/03/2026 10:09:20 BRT] INFO ns="server" [swagger] loaded bundled spec from src/swagger/swagger.json
+2026-03-24T13:09:20.4467797Z 
+2026-03-24T13:09:20.4468129Z       at console.info (src/util/logger.ts:192:40)
+2026-03-24T13:09:20.4468515Z 
+2026-03-24T13:09:20.4541067Z [24/03/2026 10:09:20 BRT] ACCESS status=404 method=GET path=/icons/invalid.png took=1ms ip=::ffff:127.0.0.1 ua="-" env=- reqId=1129a69b-1166-4a48-a7e1-ac1dd4f2ae4a execId=-
+2026-03-24T13:09:20.4580457Z   console.log
+2026-03-24T13:09:20.4581235Z     [24/03/2026 10:09:20 BRT] LOG ns="server" [server] running on http://localhost:0
+2026-03-24T13:09:20.4581789Z 
+2026-03-24T13:09:20.4582085Z       at console.log (src/util/logger.ts:195:23)
+2026-03-24T13:09:20.4582449Z 
+2026-03-24T13:09:20.5370045Z PASS src/__tests__/unit/icons.routes.test.ts
+2026-03-24T13:09:20.5370986Z   icons routes
+2026-03-24T13:09:20.5372064Z     ✓ GET /icons/favicon-32x32.png returns png without auth (13 ms)
+2026-03-24T13:09:20.5373046Z     ✓ GET /icons/invalid.png returns 404 (7 ms)
+2026-03-24T13:09:20.5373647Z 
+2026-03-24T13:09:20.5650006Z PASS src/__tests__/unit/server.test.ts
+2026-03-24T13:09:20.5651042Z   Express server tests
+2026-03-24T13:09:20.5652011Z     ✓ Health endpoint should return UP (9 ms)
+2026-03-24T13:09:20.5666926Z     ✓ Ready endpoint should return UP (2 ms)
+2026-03-24T13:09:20.5667375Z 
+2026-03-24T13:09:20.8981995Z Summary of all failing tests
+2026-03-24T13:09:20.8986352Z FAIL src/__tests__/unit/agentsRouter.test.ts (5.319 s)
+2026-03-24T13:09:20.8992995Z   ● agentsRouter auth + scopes enforcement › POST /agent/execute/logs rejects when missing ***
+2026-03-24T13:09:20.8993928Z 
+2026-03-24T13:09:20.8995722Z     expect(received).toEqual(expected) // deep equality
+2026-03-24T13:09:20.8996258Z 
+2026-03-24T13:09:20.8996934Z     - Expected  - 1
+2026-03-24T13:09:20.8998035Z     + Received  + 1
+2026-03-24T13:09:20.8998383Z 
+2026-03-24T13:09:20.8999068Z       Object {
+2026-03-24T13:09:20.9001160Z     -   "error": "Unauthorized",
+2026-03-24T13:09:20.9003689Z     +   "error": "Missing ***",
+2026-03-24T13:09:20.9004347Z       }
+2026-03-24T13:09:20.9004660Z 
+2026-03-24T13:09:20.9012951Z     [0m [90m 189 |[39m       [33m.[39msend({ execId[33m:[39m [32m"exec-123"[39m[33m,[39m entries[33m:[39m [] })[33m;[39m
+2026-03-24T13:09:20.9017731Z      [90m 190 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m401[39m)[33m;[39m
+2026-03-24T13:09:20.9026224Z     [31m[1m>[22m[39m[90m 191 |[39m     expect(res[33m.[39mbody)[33m.[39mtoEqual({ error[33m:[39m [32m"Unauthorized"[39m })[33m;[39m
+2026-03-24T13:09:20.9029374Z      [90m     |[39m                      [31m[1m^[22m[39m
+2026-03-24T13:09:20.9031582Z      [90m 192 |[39m   })[33m;[39m
+2026-03-24T13:09:20.9032838Z      [90m 193 |[39m
+2026-03-24T13:09:20.9044172Z      [90m 194 |[39m   test([32m"POST /agent/execute/logs rejects when callback token lacks required scope"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+2026-03-24T13:09:20.9045587Z 
+2026-03-24T13:09:20.9046467Z       at Object.<anonymous> (src/__tests__/unit/agentsRouter.test.ts:191:22)
+2026-03-24T13:09:20.9047113Z 
+2026-03-24T13:09:20.9052820Z   ● agentsRouter auth + scopes enforcement › POST /agent/register rejects when missing ***
+2026-03-24T13:09:20.9053677Z 
+2026-03-24T13:09:20.9055668Z     expect(received).toEqual(expected) // deep equality
+2026-03-24T13:09:20.9056214Z 
+2026-03-24T13:09:20.9056763Z     - Expected  - 1
+2026-03-24T13:09:20.9057890Z     + Received  + 1
+2026-03-24T13:09:20.9058226Z 
+2026-03-24T13:09:20.9058919Z       Object {
+2026-03-24T13:09:20.9061659Z     -   "error": "Unauthorized",
+2026-03-24T13:09:20.9064164Z     +   "error": "Missing ***",
+2026-03-24T13:09:20.9064835Z       }
+2026-03-24T13:09:20.9065149Z 
+2026-03-24T13:09:20.9071050Z     [0m [90m 225 |[39m       [33m.[39msend({ any[33m:[39m [32m"payload"[39m })[33m;[39m
+2026-03-24T13:09:20.9076370Z      [90m 226 |[39m     expect(res[33m.[39mstatus)[33m.[39mtoBe([35m401[39m)[33m;[39m
+2026-03-24T13:09:20.9085321Z     [31m[1m>[22m[39m[90m 227 |[39m     expect(res[33m.[39mbody)[33m.[39mtoEqual({ error[33m:[39m [32m"Unauthorized"[39m })[33m;[39m
+2026-03-24T13:09:20.9088341Z      [90m     |[39m                      [31m[1m^[22m[39m
+2026-03-24T13:09:20.9090541Z      [90m 228 |[39m   })[33m;[39m
+2026-03-24T13:09:20.9091696Z      [90m 229 |[39m
+2026-03-24T13:09:20.9101538Z      [90m 230 |[39m   test([32m"POST /agent/register rejects when callback token lacks required scope"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+2026-03-24T13:09:20.9102539Z 
+2026-03-24T13:09:20.9105095Z       at Object.<anonymous> (src/__tests__/unit/agentsRouter.test.ts:227:22)
+2026-03-24T13:09:20.9105771Z 
+2026-03-24T13:09:20.9105780Z 
+2026-03-24T13:09:20.9117829Z Test Suites: 1 failed, 21 passed, 22 total
+2026-03-24T13:09:20.9118758Z Tests:       2 failed, 84 passed, 86 total
+2026-03-24T13:09:20.9119513Z Snapshots:   0 total
+2026-03-24T13:09:20.9120137Z Time:        11.056 s
+2026-03-24T13:09:20.9120753Z Ran all test suites.
+2026-03-24T13:09:20.9344470Z ##[error]Process completed with exit code 1.
+2026-03-24T13:09:20.9418768Z ##[group]Run echo "## Resultado dos Testes Unitários" >> $GITHUB_STEP_SUMMARY
+2026-03-24T13:09:20.9420605Z [36;1mecho "## Resultado dos Testes Unitários" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-24T13:09:20.9422060Z [36;1mif [[ failure == "success" ]];[0m
+2026-03-24T13:09:20.9423159Z [36;1mthen[0m
+2026-03-24T13:09:20.9424808Z [36;1m  echo ":white_check_mark: Testes Unitários realizados com sucesso" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-24T13:09:20.9426417Z [36;1melse[0m
+2026-03-24T13:09:20.9428251Z [36;1m  echo -e ":x: Erro durante execução de testes unitários. O "npm run test" detectou falhas a serem corrigidas." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-24T13:09:20.9431270Z [36;1m  echo -e "> [!IMPORTANT]\n> Por favor, verifique a seção de Annotations logo abaixo para consultar o log completo." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-24T13:09:20.9433475Z [36;1m  exit 1[0m
+2026-03-24T13:09:20.9434463Z [36;1mfi[0m
+2026-03-24T13:09:20.9440694Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-24T13:09:20.9442015Z env:
+2026-03-24T13:09:20.9443217Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-24T13:09:20.9444519Z   TECNOLOGIA: npm
+2026-03-24T13:09:20.9445437Z   BRANCH_NAME: main
+2026-03-24T13:09:20.9446797Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-24T13:09:20.9448854Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-24T13:09:20.9451004Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-24T13:09:20.9452762Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-24T13:09:20.9454982Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-24T13:09:20.9456799Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-24T13:09:20.9458479Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-24T13:09:20.9459882Z   CI_READER: aic-actions-user-temp
+2026-03-24T13:09:20.9461017Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-24T13:09:20.9462216Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-24T13:09:20.9463315Z   GIT_LFS: false
+2026-03-24T13:09:20.9464488Z   AUTO_VERSIONAMENTO: false
+2026-03-24T13:09:20.9465472Z   VERSAO: 3.5.8
+2026-03-24T13:09:20.9466326Z   TIPO_VERSAO: fechada
+2026-03-24T13:09:20.9467297Z   EXIST_TAG: false
+2026-03-24T13:09:20.9468233Z   SIGLA: psc
+2026-03-24T13:09:20.9469182Z   VERSAO_NODE: 22 <23
+2026-03-24T13:09:20.9470191Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-24T13:09:20.9471908Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-24T13:09:20.9474739Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-24T13:09:20.9477032Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-24T13:09:20.9479253Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-24T13:09:20.9481719Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-24T13:09:20.9484575Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-24T13:09:20.9486350Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-24T13:09:20.9487351Z   HUSKY: 0
+2026-03-24T13:09:20.9489000Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-24T13:09:20.9491509Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-24T13:09:20.9494286Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-24T13:09:20.9497037Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-24T13:09:20.9499633Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-24T13:09:20.9502118Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-24T13:09:20.9504127Z   NG_CLI_ANALYTICS: ci
+2026-03-24T13:09:20.9505926Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-24T13:09:20.9508452Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-24T13:09:20.9510740Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-24T13:09:20.9513067Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-24T13:09:20.9515502Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-24T13:09:20.9517739Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-24T13:09:20.9519913Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-24T13:09:20.9522497Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-24T13:09:20.9524729Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-24T13:09:20.9526237Z   NODE_AUTH_TOKEN: XXXXX-XXXXX-XXXXX-XXXXX
+2026-03-24T13:09:20.9527422Z ##[endgroup]
+2026-03-24T13:09:20.9590512Z ##[error]Process completed with exit code 1.
+2026-03-24T13:09:20.9988959Z Post job cleanup.
+2026-03-24T13:09:21.0057578Z Post job cleanup.
+2026-03-24T13:09:21.0124968Z Post job cleanup.
+2026-03-24T13:09:21.1791545Z [command]/usr/bin/git version
+2026-03-24T13:09:21.1851475Z git version 2.47.3
+2026-03-24T13:09:21.1906154Z Copying '/opt/github/runner/.gitconfig' to '/opt/github/actions-runner/_work/_temp/78bbd649-dd0a-45ad-9980-0ac2c49b42e5/.gitconfig'
+2026-03-24T13:09:21.1919915Z Temporarily overriding HOME='/opt/github/actions-runner/_work/_temp/78bbd649-dd0a-45ad-9980-0ac2c49b42e5' before making global git config changes
+2026-03-24T13:09:21.1921213Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-24T13:09:21.1950862Z [command]/usr/bin/git config --global --add safe.directory /opt/github/actions-runner/_work/psc-sre-automacao-controller/psc-sre-automacao-controller
+2026-03-24T13:09:21.2029854Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-24T13:09:21.2084089Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-24T13:09:21.2676488Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-24T13:09:21.2727929Z http.https://github.com/.extraheader
+2026-03-24T13:09:21.2750585Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-24T13:09:21.2812728Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-24T13:09:21.3448770Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-24T13:09:21.3553740Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-24T13:09:21.4358463Z A job completed hook has been configured by the self-hosted runner administrator
+2026-03-24T13:09:21.4381341Z ##[group]Run '/opt/github/post-job.sh'
+2026-03-24T13:09:21.4385840Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-24T13:09:21.4386664Z ##[endgroup]
+2026-03-24T13:09:21.4449559Z Running post-job cleanup v1.0.2
+2026-03-24T13:09:21.4450398Z Removing checked-out code directories...
+2026-03-24T13:09:21.4518610Z Deleting directory: /opt/github/actions-runner/_work/psc-sre-automacao-controller
+2026-03-24T13:09:22.9878888Z Stopping and removing Docker containers...
+2026-03-24T13:09:23.0256949Z Post-job cleanup completed
+2026-03-24T13:09:23.0340816Z Evaluate and set job outputs
+2026-03-24T13:09:23.0348671Z Set output 'versao_projeto'
+2026-03-24T13:09:23.0350822Z Set output 'sigla_projeto'
+2026-03-24T13:09:23.0351961Z Set output 'tipo_versao'
+2026-03-24T13:09:23.0352693Z Set output 'matricula_solicitante'
+2026-03-24T13:09:23.0353553Z Set output 'publicar_docker'
+2026-03-24T13:09:23.0354271Z Set output 'versao_node'
+2026-03-24T13:09:23.0354959Z Set output 'publicar_versao'
+2026-03-24T13:09:23.0355704Z Set output 'gerenciador_pacotes'
+2026-03-24T13:09:23.0356420Z Set output 'ref'
+2026-03-24T13:09:23.0357558Z Cleaning up orphan processes
+2026-03-24T13:09:23.0885174Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

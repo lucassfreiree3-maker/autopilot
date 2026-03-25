@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-24T00:16:31Z",
+  "runId": "23466261639",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23466261639",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: move readAuthDecision before usage (ESLint no-use-before-define)",
+  "commitSha": "02f0585486b4b93e5085831a011d7a3cb64dd037",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

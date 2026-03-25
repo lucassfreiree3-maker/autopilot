@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T22:09:18Z",
+  "runId": "23462069853",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23462069853",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "feat: complete swagger with all 18 routes, version bump 3.5.5",
+  "commitSha": "62c03b17b4ee97f52abb01c8d6653d02579c98b9",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

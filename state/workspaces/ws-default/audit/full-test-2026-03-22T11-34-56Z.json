@@ -1,0 +1,9 @@
+{
+  "operation": "full-flow-test",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T11:34:56Z",
+  "runId": "23402089111",
+  "testType": "both",
+  "controllerResult": "success",
+  "agentResult": "success"
+}

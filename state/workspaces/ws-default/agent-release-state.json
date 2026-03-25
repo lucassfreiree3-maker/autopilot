@@ -2,23 +2,24 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "agent",
-  "lastReleasedSha": "3a58260a27b76c6f6dbc00da917a824f7e88fc0a",
-  "lastTag": "2.1.1-3a58260",
-  "lastVersion": "2.1.1",
-  "updatedAt": "2026-03-22T01:22:54Z",
-  "runId": "23392896000",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23392896000",
+  "lastReleasedSha": "7dac1092949cef20897ec523e0a1f39f37834d82",
+  "lastTag": "2.2.6",
+  "lastVersion": "2.2.6",
+  "updatedAt": "2026-03-25T20:21:34Z",
+  "runId": "23561693791",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23561693791",
   "promotions": [
     {
       "target": "cap",
       "repo": "bbvinet/psc_releases_cap_sre-aut-agent",
       "branch": "main",
       "path": "releases/openshift/hml/deploy/values.yaml",
-      "tag": "2.1.1-3a58260",
-      "sha": "3a58260a27b76c6f6dbc00da917a824f7e88fc0a",
-      "timestamp": "2026-03-22T01:22:54Z",
+      "tag": "2.2.6",
+      "sha": "7dac1092949cef20897ec523e0a1f39f37834d82",
+      "timestamp": "2026-03-25T20:21:34Z",
       "status": "success"
     }
   ],
+  "ciResult": "success",
   "status": "promoted"
 }

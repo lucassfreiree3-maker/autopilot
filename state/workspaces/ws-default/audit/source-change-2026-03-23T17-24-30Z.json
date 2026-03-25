@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T17:24:30Z",
+  "runId": "23450585649",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23450585649",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "package.json",
+  "commitMessage": "fix: bump version 3.5.2 → 3.5.3 to unblock CI pipeline",
+  "commitSha": "d52fa731bbb74f0cdd2a721715ba9933aeb4f095",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

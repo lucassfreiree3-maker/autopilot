@@ -1,0 +1,19 @@
+{
+  "workspaceId": "ws-default",
+  "component": "agent",
+  "sourceRepo": "bbvinet/psc-sre-automacao-agent",
+  "commitSha": "45be691caea08a948950adce22871a1d9c9c4ae9",
+  "commitMessage": "feat: add autopilot info utility as TypeScript",
+  "commitAuthor": "github-actions",
+  "diagnosedAt": "2026-03-22T20:07:35Z",
+  "runId": "23411410735",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23411410735",
+  "reproduction": {
+    "scripts": "  build: tsc && tsoa spec\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  dev: tsc && tsoa spec && nodemon\n  test: jest\n  test:watch: jest --watch\n  test:coverage: jest --coverage\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --forceExit --passWithNoTests\n",
+    "lintErrors": [],
+    "buildSuccess": false,
+    "buildLog": "  The file is in the program because:\n    Entry point for implicit type library 'stack-utils'\nerror TS2688: Cannot find type definition file for 'stream-buffers'.\n  The file is in the program because:\n    Entry point for implicit type library 'stream-buffers'\nerror TS2688: Cannot find type definition file for 'superagent'.\n  The file is in the program because:\n    Entry point for implicit type library 'superagent'\nerror TS2688: Cannot find type definition file for 'supertest'.\n  The file is in the program because:\n    Entry point for implicit type library 'supertest'\nerror TS2688: Cannot find type definition file for 'swagger-jsdoc'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-jsdoc'\nerror TS2688: Cannot find type definition file for 'swagger-ui-express'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-ui-express'\nerror TS2688: Cannot find type definition file for 'uuid'.\n  The file is in the program because:\n    Entry point for implicit type library 'uuid'\nerror TS2688: Cannot find type definition file for 'validator'.\n  The file is in the program because:\n    Entry point for implicit type library 'validator'\nerror TS2688: Cannot find type definition file for 'yargs'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs'\nerror TS2688: Cannot find type definition file for 'yargs-parser'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs-parser'\nBuild failed or not available\n",
+    "testSuccess": false,
+    "testLog": "\n> psc-sre-automacao-agent@2.2.2 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
+  }
+}

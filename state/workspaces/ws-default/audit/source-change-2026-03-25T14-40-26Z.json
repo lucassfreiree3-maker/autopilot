@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T14:40:26Z",
+  "runId": "23546609694",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23546609694",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): SSRF via parseSafeIdentifier + XSS sanitizeForOutput + DoS MAX_RESULTS - test-safe (3.6.2)",
+  "commitSha": "f4b03387fff4e830edac1302eda17f915d04d420",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

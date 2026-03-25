@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T18:37:26Z",
+  "runId": "23409647275",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23409647275",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/controllers/execute.controller.ts",
+  "commitMessage": "fix: include execId in timeout and error responses (resolve failing tests)",
+  "commitSha": "177e4d0a92ce9bceecc78f82cc91ac32db2e2c1b",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

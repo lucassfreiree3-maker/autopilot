@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T17:38:46Z",
+  "runId": "23451139153",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23451139153",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+  "commitMessage": "fix: resolve ESLint no-await-in-loop and no-promise-executor-return in test helper",
+  "commitSha": "c7520a439604bff59dab1d76f475b14bb6bac917",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

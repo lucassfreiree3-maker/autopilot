@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T20:01:36Z",
+  "runId": "23411254520",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23411254520",
+  "component": "agent",
+  "changeType": "add-file",
+  "targetPath": "src/utils/autopilotInfo.ts",
+  "commitMessage": "feat: add autopilot info utility as TypeScript",
+  "commitSha": "45be691caea08a948950adce22871a1d9c9c4ae9",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

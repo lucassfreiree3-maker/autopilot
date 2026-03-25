@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T13:54:22Z",
+  "runId": "23404436763",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23404436763",
+  "component": "agent",
+  "changeType": "add-file",
+  "targetPath": "src/utils/autopilotInfo.js",
+  "commitMessage": "feat: add autopilot info utility (source change validation)",
+  "commitSha": "",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "skipped",
+    "promote": "success",
+    "state": "skipped"
+  }
+}

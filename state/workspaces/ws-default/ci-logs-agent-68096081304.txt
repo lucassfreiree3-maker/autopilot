@@ -1,0 +1,500 @@
+2026-03-22T19:05:12.3575784Z [36;1melse[0m
+2026-03-22T19:05:12.3576219Z [36;1m  package_lock=false[0m
+2026-03-22T19:05:12.3576683Z [36;1mfi[0m
+2026-03-22T19:05:12.3577096Z [36;1m[0m
+2026-03-22T19:05:12.3577852Z [36;1mif [[ $yarn_lock == 'true' && $package_lock == 'true' ]]; then[0m
+2026-03-22T19:05:12.3578771Z [36;1m  echo -e ":speaker: yarn.lock e package-lock.json detectados no projeto." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:12.3580076Z [36;1m  echo "<p>:speech_balloon: Utilizando yarn como gerenciador de pacotes.</p><p>Caso precise mudar esse comportamento, exclua o yarn.lock do projeto.</p>" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:12.3581140Z [36;1m  package_lock=false[0m
+2026-03-22T19:05:12.3581610Z [36;1mfi[0m
+2026-03-22T19:05:12.3582104Z [36;1m[0m
+2026-03-22T19:05:12.3582660Z [36;1mif [[ $yarn_lock == 'false' && $package_lock == 'false' ]]; then[0m
+2026-03-22T19:05:12.3583493Z [36;1m  echo -e ":x: O checkup de Dependências falhou." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:12.3584701Z [36;1m  echo ":x: Erro: Não localizamos arquivo package-lock.json, nem yarn.lock no projeto. Regularize essa situação para continuar com a esteira de build." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:12.3603047Z [36;1m  exit 1[0m
+2026-03-22T19:05:12.3603791Z [36;1mfi[0m
+2026-03-22T19:05:12.3604352Z [36;1m[0m
+2026-03-22T19:05:12.3604935Z [36;1mif [[ $yarn_lock == 'true' ]]; then[0m
+2026-03-22T19:05:12.3605755Z [36;1m  echo 'gerenciador_pacotes=yarn' >> $GITHUB_OUTPUT[0m
+2026-03-22T19:05:12.3606558Z [36;1m  gerenciador_pacotes=yarn[0m
+2026-03-22T19:05:12.3607216Z [36;1melse[0m
+2026-03-22T19:05:12.3607868Z [36;1m  echo 'gerenciador_pacotes=npm' >> $GITHUB_OUTPUT[0m
+2026-03-22T19:05:12.3608652Z [36;1m  gerenciador_pacotes=npm[0m
+2026-03-22T19:05:12.3609306Z [36;1mfi[0m
+2026-03-22T19:05:12.3609829Z [36;1m[0m
+2026-03-22T19:05:12.3610470Z [36;1mecho "Gerenciador de pacotes: $gerenciador_pacotes"[0m
+2026-03-22T19:05:12.3614536Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:12.3615307Z env:
+2026-03-22T19:05:12.3615880Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:12.3616554Z   TECNOLOGIA: npm
+2026-03-22T19:05:12.3617153Z   BRANCH_NAME: main
+2026-03-22T19:05:12.3617950Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:12.3619320Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:12.3620523Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:12.3621498Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3622498Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3623564Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3624804Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3625630Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:12.3626319Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:12.3627015Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:12.3627651Z   GIT_LFS: false
+2026-03-22T19:05:12.3628216Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:12.3628802Z   VERSAO: 2.2.2
+2026-03-22T19:05:12.3629359Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:12.3629981Z   EXIST_TAG: false
+2026-03-22T19:05:12.3630518Z   SIGLA: psc
+2026-03-22T19:05:12.3631039Z   VERSAO_NODE: 22
+2026-03-22T19:05:12.3631603Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:12.3632759Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:12.3634053Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:12.3635333Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3636593Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3637945Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3639550Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:12.3640573Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:12.3641188Z   HUSKY: 0
+2026-03-22T19:05:12.3642237Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:12.3643643Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:12.3645077Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:12.3646585Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:12.3648014Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:12.3649395Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:12.3650878Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:12.3651961Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:12.3653376Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3654669Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3655955Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3657273Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:12.3658551Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:12.3659772Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:12.3661052Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:12.3662112Z ##[endgroup]
+2026-03-22T19:05:12.3723349Z Gerenciador de pacotes: npm
+2026-03-22T19:05:12.3806204Z ##[group]Run actions/setup-node@v4
+2026-03-22T19:05:12.3806740Z with:
+2026-03-22T19:05:12.3807151Z   node-version: 22
+2026-03-22T19:05:12.3807783Z   registry-url: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:12.3808464Z   always-auth: true
+2026-03-22T19:05:12.3808915Z   check-latest: false
+2026-03-22T19:05:12.3809494Z   token: ***
+2026-03-22T19:05:12.3810001Z env:
+2026-03-22T19:05:12.3810453Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:12.3810995Z   TECNOLOGIA: npm
+2026-03-22T19:05:12.3811429Z   BRANCH_NAME: main
+2026-03-22T19:05:12.3812165Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:12.3813082Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:12.3814039Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:12.3814796Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3815514Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3816309Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3817039Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:12.3817733Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:12.3818296Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:12.3818854Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:12.3819360Z   GIT_LFS: false
+2026-03-22T19:05:12.3819796Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:12.3820272Z   VERSAO: 2.2.2
+2026-03-22T19:05:12.3820710Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:12.3821153Z   EXIST_TAG: false
+2026-03-22T19:05:12.3821581Z   SIGLA: psc
+2026-03-22T19:05:12.3822072Z   VERSAO_NODE: 22
+2026-03-22T19:05:12.3822556Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:12.3823691Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:12.3825125Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:12.3826154Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3827124Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3828200Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:12.3829264Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:12.3830062Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:12.3830587Z   HUSKY: 0
+2026-03-22T19:05:12.3831325Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:12.3832524Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:12.3833693Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:12.3834836Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:12.3836024Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:12.3837145Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:12.3837933Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:12.3838723Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:12.3839872Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3840883Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3842010Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:12.3843244Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:12.3844285Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:12.3845458Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:12.3846426Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:12.3847181Z ##[endgroup]
+2026-03-22T19:05:12.6313290Z Found in cache @ /opt/github/actions-runner/_work/_tool/node/22.21.1/x64
+2026-03-22T19:05:12.6320462Z ##[group]Environment details
+2026-03-22T19:05:13.2949138Z node: v22.21.1
+2026-03-22T19:05:13.2950907Z npm: 10.9.4
+2026-03-22T19:05:13.2952237Z yarn: 1.22.22
+2026-03-22T19:05:13.2954347Z ##[endgroup]
+2026-03-22T19:05:13.3061967Z ##[group]Run # Instalar Aplicação
+2026-03-22T19:05:13.3062607Z [36;1m# Instalar Aplicação[0m
+2026-03-22T19:05:13.3063080Z [36;1m[0m
+2026-03-22T19:05:13.3063510Z [36;1m# Limpeza de no proxy[0m
+2026-03-22T19:05:13.3064110Z [36;1mwhile read -r varname; do unset "$varname"; done < <([0m
+2026-03-22T19:05:13.3064798Z [36;1m  env |  grep -E "_(proxy|PROXY)" | cut -d "=" -f1[0m
+2026-03-22T19:05:13.3065374Z [36;1m)[0m
+2026-03-22T19:05:13.3065937Z [36;1mecho "## Instalação de Dependências" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:13.3066608Z [36;1mecho "## Instalação de Dependências"[0m
+2026-03-22T19:05:13.3067154Z [36;1m[0m
+2026-03-22T19:05:13.3067583Z [36;1mINSTALL_CMD=npm[0m
+2026-03-22T19:05:13.3068067Z [36;1mif [[ npm == "yarn" ]]; then[0m
+2026-03-22T19:05:13.3068812Z [36;1m  echo ":hourglass: Executando instalação com yarn install..." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:13.3069898Z [36;1m  echo ":hourglass: Executando instalação com yarn install..."[0m
+2026-03-22T19:05:13.3070537Z [36;1m[0m
+2026-03-22T19:05:13.3071058Z [36;1m  # Criar condições para instalar com / sem corepack[0m
+2026-03-22T19:05:13.3071717Z [36;1m  # Verifica se o corepack está habilitado no node[0m
+2026-03-22T19:05:13.3072409Z [36;1m  INSTALL_CMD=yarn[0m
+2026-03-22T19:05:13.3073006Z [36;1m  COMPARE_VERSION=$(echo "22" | cut -d'.' -f1 | sed 's/[\^~]*//')[0m
+2026-03-22T19:05:13.3074414Z [36;1m  if [[ "$COMPARE_VERSION" -ge 16 && $(jq -r '.packageManager // empty' package.json) =~ ^yarn && $(command -v corepack >/dev/null 2>&1; echo $?) -eq 0 ]]; then[0m
+2026-03-22T19:05:13.3075742Z [36;1m    echo ":hourglass: Executando instalação com corepack..." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:13.3076653Z [36;1m    echo ":hourglass: Executando instalação com corepack..."[0m
+2026-03-22T19:05:13.3090739Z [36;1m    corepack enable[0m
+2026-03-22T19:05:13.3091309Z [36;1m  else[0m
+2026-03-22T19:05:13.3092028Z [36;1m    echo ":hourglass: Executando instalação com npm install -g yarn"[0m
+2026-03-22T19:05:13.3092696Z [36;1m    npm install -g yarn[0m
+2026-03-22T19:05:13.3093216Z [36;1m  fi[0m
+2026-03-22T19:05:13.3093654Z [36;1m[0m
+2026-03-22T19:05:13.3094090Z [36;1m  echo "Configurando o yarn..."[0m
+2026-03-22T19:05:13.3094659Z [36;1m  yarn -v[0m
+2026-03-22T19:05:13.3095410Z [36;1m  yarn config set npmRegistryServer https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/[0m
+2026-03-22T19:05:13.3096215Z [36;1m  yarn config set npmAlwaysAuth true[0m
+2026-03-22T19:05:13.3097353Z [36;1m  yarn config set npmAuthToken ***[0m
+2026-03-22T19:05:13.3097934Z [36;1m[0m
+2026-03-22T19:05:13.3098883Z [36;1m  # Verificando se o yarn é versão 1.x[0m
+2026-03-22T19:05:13.3099487Z [36;1m  if [[ $(yarn -v | cut -d. -f1) -eq 1 ]]; then[0m
+2026-03-22T19:05:13.3100088Z [36;1m    echo "yarn install --ignore-engines"[0m
+2026-03-22T19:05:13.3100672Z [36;1m    yarn install --ignore-engines[0m
+2026-03-22T19:05:13.3101194Z [36;1m  else[0m
+2026-03-22T19:05:13.3101632Z [36;1m    echo "yarn install --immutable"[0m
+2026-03-22T19:05:13.3102277Z [36;1m    yarn install --immutable[0m
+2026-03-22T19:05:13.3103024Z [36;1m  fi[0m
+2026-03-22T19:05:13.3103425Z [36;1mfi[0m
+2026-03-22T19:05:13.3103826Z [36;1m[0m
+2026-03-22T19:05:13.3104250Z [36;1mif [[ $INSTALL_CMD == "npm" ]]; then[0m
+2026-03-22T19:05:13.3105004Z [36;1m  echo ":hourglass: Executando instalação com npm install..." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:13.3105845Z [36;1m  echo ":hourglass: Executando instalação com npm install..."[0m
+2026-03-22T19:05:13.3106457Z [36;1m  npm ci[0m
+2026-03-22T19:05:13.3106868Z [36;1mfi[0m
+2026-03-22T19:05:13.3135249Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:13.3135875Z env:
+2026-03-22T19:05:13.3136306Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:13.3136821Z   TECNOLOGIA: npm
+2026-03-22T19:05:13.3137250Z   BRANCH_NAME: main
+2026-03-22T19:05:13.3137868Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:13.3139362Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:13.3140331Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:13.3141081Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:13.3141861Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:13.3142666Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:13.3143428Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:13.3144065Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:13.3144592Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:13.3145130Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:13.3145644Z   GIT_LFS: false
+2026-03-22T19:05:13.3146080Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:13.3146526Z   VERSAO: 2.2.2
+2026-03-22T19:05:13.3146936Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:13.3147592Z   EXIST_TAG: false
+2026-03-22T19:05:13.3148010Z   SIGLA: psc
+2026-03-22T19:05:13.3148423Z   VERSAO_NODE: 22
+2026-03-22T19:05:13.3148852Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:13.3149687Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:13.3151160Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:13.3152237Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:13.3153206Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:13.3154258Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:13.3155307Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:13.3156078Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:13.3156574Z   HUSKY: 0
+2026-03-22T19:05:13.3157301Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:13.3158398Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:13.3159496Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:13.3161099Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:13.3162345Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:13.3163433Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:13.3164239Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:13.3165041Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:13.3166124Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:13.3167359Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:13.3168355Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:13.3169383Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:13.3170368Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:13.3171314Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:13.3172348Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:13.3173254Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-22T19:05:13.3174252Z   NODE_AUTH_TOKEN: ***
+2026-03-22T19:05:13.3174767Z   TMPDIR: /opt/github/actions-runner/_work/_temp
+2026-03-22T19:05:13.3175591Z   COREPACK_NPM_TOKEN: ***
+2026-03-22T19:05:13.3176135Z   NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-bundle.crt
+2026-03-22T19:05:13.3176906Z   AIC_PYENV_REPO_URL: https://publico.fontes.intranet.bb.com.br/github/pyenv/pyenv.git
+2026-03-22T19:05:13.3177946Z   AIC_PYENV_PLUGIN_VIRTUALENV_REPO_URL: https://publico.fontes.intranet.bb.com.br/github/pyenv/pyenv-virtualenv.git
+2026-03-22T19:05:13.3178776Z ##[endgroup]
+2026-03-22T19:05:13.3279049Z ## Instalação de Dependências
+2026-03-22T19:05:13.3280469Z :hourglass: Executando instalação com npm install...
+2026-03-22T19:05:16.9723730Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-03-22T19:05:17.1273109Z npm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead
+2026-03-22T19:05:17.1573150Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-03-22T19:05:17.2951948Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+2026-03-22T19:05:17.2987082Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-03-22T19:05:17.3239777Z npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+2026-03-22T19:05:17.8340173Z npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+2026-03-22T19:05:18.3667206Z npm warn deprecated glob@7.2.0: Glob versions prior to v9 are no longer supported
+2026-03-22T19:05:18.4684153Z npm warn deprecated glob@7.1.6: Glob versions prior to v9 are no longer supported
+2026-03-22T19:05:30.7252673Z 
+2026-03-22T19:05:30.7255889Z added 993 packages, and audited 994 packages in 17s
+2026-03-22T19:05:30.7256442Z 
+2026-03-22T19:05:30.7256767Z 177 packages are looking for funding
+2026-03-22T19:05:30.7257384Z   run `npm fund` for details
+2026-03-22T19:05:30.7609396Z 
+2026-03-22T19:05:30.7610377Z 22 vulnerabilities (6 low, 7 moderate, 9 high)
+2026-03-22T19:05:30.7610842Z 
+2026-03-22T19:05:30.7611195Z To address issues that do not require attention, run:
+2026-03-22T19:05:30.7611904Z   npm audit fix
+2026-03-22T19:05:30.7612171Z 
+2026-03-22T19:05:30.7612579Z To address all issues possible (including breaking changes), run:
+2026-03-22T19:05:30.7613235Z   npm audit fix --force
+2026-03-22T19:05:30.7613517Z 
+2026-03-22T19:05:30.7613824Z Some issues need review, and may require choosing
+2026-03-22T19:05:30.7614418Z a different dependency.
+2026-03-22T19:05:30.7614695Z 
+2026-03-22T19:05:30.7614934Z Run `npm audit` for details.
+2026-03-22T19:05:30.8443130Z ##[group]Run if [[ "success" == "success" ]];
+2026-03-22T19:05:30.8443791Z [36;1mif [[ "success" == "success" ]];[0m
+2026-03-22T19:05:30.8444326Z [36;1mthen[0m
+2026-03-22T19:05:30.8498062Z [36;1m  echo ":white_check_mark: Instalação das dependências realizado com sucesso!" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:30.8498866Z [36;1melse[0m
+2026-03-22T19:05:30.8499466Z [36;1m  echo -e ":x: Instalação de Dependências falhou." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:30.8500610Z [36;1m  echo -e "> [!IMPORTANT]\n> Por favor, verifique a seção de Annotations logo abaixo para consultar o log completo." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:30.8501500Z [36;1m  exit 1[0m
+2026-03-22T19:05:30.8502011Z [36;1mfi[0m
+2026-03-22T19:05:30.8506091Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:30.8506703Z env:
+2026-03-22T19:05:30.8507147Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:30.8507674Z   TECNOLOGIA: npm
+2026-03-22T19:05:30.8508128Z   BRANCH_NAME: main
+2026-03-22T19:05:30.8508789Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:30.8509893Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:30.8511060Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:30.8511922Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8512633Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8513452Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8514193Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8514830Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:30.8515364Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:30.8515906Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:30.8516418Z   GIT_LFS: false
+2026-03-22T19:05:30.8516875Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:30.8517335Z   VERSAO: 2.2.2
+2026-03-22T19:05:30.8517758Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:30.8518482Z   EXIST_TAG: false
+2026-03-22T19:05:30.8518948Z   SIGLA: psc
+2026-03-22T19:05:30.8519458Z   VERSAO_NODE: 22
+2026-03-22T19:05:30.8519931Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:30.8520715Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:30.8521752Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:30.8523305Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8524298Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8525358Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8526436Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:30.8527217Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:30.8527701Z   HUSKY: 0
+2026-03-22T19:05:30.8528440Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8529532Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:30.8530798Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:30.8532073Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:30.8533202Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8534268Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8535046Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:30.8535848Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:30.8536925Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8538599Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8539619Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8540636Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8541615Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:30.8542791Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:30.8543780Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:30.8544667Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-22T19:05:30.8545342Z   NODE_AUTH_TOKEN: XXXXX-XXXXX-XXXXX-XXXXX
+2026-03-22T19:05:30.8545888Z ##[endgroup]
+2026-03-22T19:05:30.8653458Z ##[group]Run echo "Iniciando chamada do processo de Lint..."
+2026-03-22T19:05:30.8654395Z [36;1mecho "Iniciando chamada do processo de Lint..."[0m
+2026-03-22T19:05:30.8655196Z [36;1mif [[ "npm" == "npm" ]]; then[0m
+2026-03-22T19:05:30.8656116Z [36;1m  echo "## Executando Lint com npm" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:30.8656977Z [36;1m  command="npm run lint --if-present"[0m
+2026-03-22T19:05:30.8657684Z [36;1melse[0m
+2026-03-22T19:05:30.8658560Z [36;1m  if jq -e '.scripts.lint' package.json > /dev/null; then[0m
+2026-03-22T19:05:30.8659529Z [36;1m    echo "## Executando Lint com yarn" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-22T19:05:30.8660391Z [36;1m    command="yarn run lint"[0m
+2026-03-22T19:05:30.8678933Z [36;1m  fi[0m
+2026-03-22T19:05:30.8679520Z [36;1mfi[0m
+2026-03-22T19:05:30.8680133Z [36;1mecho "command=$command" >> $GITHUB_OUTPUT[0m
+2026-03-22T19:05:30.8684828Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:30.8685630Z env:
+2026-03-22T19:05:30.8686182Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:30.8686856Z   TECNOLOGIA: npm
+2026-03-22T19:05:30.8687409Z   BRANCH_NAME: main
+2026-03-22T19:05:30.8688199Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:30.8689389Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:30.8690622Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:30.8691597Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8692990Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8694038Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8695009Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8695833Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:30.8696485Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:30.8697176Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:30.8697818Z   GIT_LFS: false
+2026-03-22T19:05:30.8698365Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:30.8698942Z   VERSAO: 2.2.2
+2026-03-22T19:05:30.8699483Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:30.8700057Z   EXIST_TAG: false
+2026-03-22T19:05:30.8700749Z   SIGLA: psc
+2026-03-22T19:05:30.8701281Z   VERSAO_NODE: 22
+2026-03-22T19:05:30.8702007Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:30.8703016Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:30.8704588Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:30.8705899Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8707169Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8708521Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8710126Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:30.8711117Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:30.8711697Z   HUSKY: 0
+2026-03-22T19:05:30.8712802Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8714195Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:30.8715618Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:30.8717126Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:30.8718593Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8719990Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8721035Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:30.8722111Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:30.8723612Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8725104Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8726422Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8727738Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8729014Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:30.8730469Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:30.8731767Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:30.8733405Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-22T19:05:30.8734272Z   NODE_AUTH_TOKEN: XXXXX-XXXXX-XXXXX-XXXXX
+2026-03-22T19:05:30.8734975Z ##[endgroup]
+2026-03-22T19:05:30.8817786Z Iniciando chamada do processo de Lint...
+2026-03-22T19:05:30.8888697Z ##[group]Run result=$(eval npm run lint --if-present) && if ! [ -z "$result" ]; then
+2026-03-22T19:05:30.8889592Z [36;1mresult=$(eval npm run lint --if-present) && if ! [ -z "$result" ]; then[0m
+2026-03-22T19:05:30.8890428Z [36;1m  echo "## Validação Estática do Código" >> $GITHUB_STEP_SUMMARY &&[0m
+2026-03-22T19:05:30.8891366Z [36;1m  echo ":white_check_mark: Validação Estática do Código realizada com sucesso" >> $GITHUB_STEP_SUMMARY;[0m
+2026-03-22T19:05:30.8892247Z [36;1mfi || ([0m
+2026-03-22T19:05:30.8892700Z [36;1m  echo -e "$result" &&[0m
+2026-03-22T19:05:30.8893376Z [36;1m  echo "## Validação Estática do Código" >> $GITHUB_STEP_SUMMARY &&[0m
+2026-03-22T19:05:30.8894221Z [36;1m  echo ":x: Validação estática do código (npm run lint) falhou." >> $GITHUB_STEP_SUMMARY &&[0m
+2026-03-22T19:05:30.8896449Z [36;1m  echo -e "> [!IMPORTANT]\n> Por favor, verifique a seção de Annotations logo abaixo para consultar o log completo." >> $GITHUB_STEP_SUMMARY &&[0m
+2026-03-22T19:05:30.8897674Z [36;1m  exit 1[0m
+2026-03-22T19:05:30.8898237Z [36;1m)[0m
+2026-03-22T19:05:30.8903316Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:30.8904105Z env:
+2026-03-22T19:05:30.8904665Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-22T19:05:30.8905348Z   TECNOLOGIA: npm
+2026-03-22T19:05:30.8905915Z   BRANCH_NAME: main
+2026-03-22T19:05:30.8906753Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-22T19:05:30.8907986Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-22T19:05:30.8909427Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-22T19:05:30.8910503Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8911485Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8912765Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8913745Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-22T19:05:30.8914591Z   CI_READER: aic-actions-user-temp
+2026-03-22T19:05:30.8915274Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-22T19:05:30.8915995Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-22T19:05:30.8916656Z   GIT_LFS: false
+2026-03-22T19:05:30.8917226Z   AUTO_VERSIONAMENTO: false
+2026-03-22T19:05:30.8917839Z   VERSAO: 2.2.2
+2026-03-22T19:05:30.8918389Z   TIPO_VERSAO: fechada
+2026-03-22T19:05:30.8918968Z   EXIST_TAG: false
+2026-03-22T19:05:30.8919533Z   SIGLA: psc
+2026-03-22T19:05:30.8920092Z   VERSAO_NODE: 22
+2026-03-22T19:05:30.8920780Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-22T19:05:30.8921894Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-22T19:05:30.8923546Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-22T19:05:30.8924886Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8926159Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8927535Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-22T19:05:30.8929165Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-22T19:05:30.8930260Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-22T19:05:30.8930872Z   HUSKY: 0
+2026-03-22T19:05:30.8932198Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8933684Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-22T19:05:30.8935148Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-22T19:05:30.8936790Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-22T19:05:30.8938299Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8940019Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-22T19:05:30.8941067Z   NG_CLI_ANALYTICS: ci
+2026-03-22T19:05:30.8942323Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-22T19:05:30.8943812Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8945563Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8946601Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-22T19:05:30.8947626Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-22T19:05:30.8948598Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-22T19:05:30.8949536Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-22T19:05:30.8951451Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-22T19:05:30.8952505Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-22T19:05:30.8953822Z   NODE_AUTH_TOKEN: ***
+2026-03-22T19:05:30.8954357Z   NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-bundle.crt
+2026-03-22T19:05:30.8955154Z ##[endgroup]
+2026-03-22T19:05:38.0980632Z 
+2026-03-22T19:05:38.0981708Z > psc-sre-automacao-agent@2.2.2 lint
+2026-03-22T19:05:38.0982807Z > tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .
+2026-03-22T19:05:38.0983382Z 
+2026-03-22T19:05:38.0983390Z 
+2026-03-22T19:05:38.0984270Z /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-http.service.ts
+2026-03-22T19:05:38.1023513Z ##[error]  80:9  error  Do not nest ternary expressions  no-nested-ternary
+2026-03-22T19:05:38.1024310Z 
+2026-03-22T19:05:38.1025043Z /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/utils/agentHealth.js
+2026-03-22T19:05:38.1027063Z ##[error]  6:12  error  Unexpected require()                     global-require
+2026-03-22T19:05:38.1028408Z ##[error]  6:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-03-22T19:05:38.1028995Z 
+2026-03-22T19:05:38.1029780Z /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/utils/autopilotInfo.js
+2026-03-22T19:05:38.1031295Z ##[error]  1:21  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+2026-03-22T19:05:38.1032341Z 
+2026-03-22T19:05:38.1032904Z ✖ 4 problems (4 errors, 0 warnings)
+2026-03-22T19:05:38.1035987Z ##[error]Process completed with exit code 1.
+2026-03-22T19:05:38.1465622Z Post job cleanup.
+2026-03-22T19:05:38.1531970Z Post job cleanup.
+2026-03-22T19:05:38.1596578Z Post job cleanup.
+2026-03-22T19:05:38.2991148Z [command]/usr/bin/git version
+2026-03-22T19:05:38.3088008Z git version 2.47.3
+2026-03-22T19:05:38.3129429Z Copying '/opt/github/runner/.gitconfig' to '/opt/github/actions-runner/_work/_temp/4cdff27b-7e3b-4428-b88e-667a9580bdd6/.gitconfig'
+2026-03-22T19:05:38.3143448Z Temporarily overriding HOME='/opt/github/actions-runner/_work/_temp/4cdff27b-7e3b-4428-b88e-667a9580bdd6' before making global git config changes
+2026-03-22T19:05:38.3154811Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-22T19:05:38.3159684Z [command]/usr/bin/git config --global --add safe.directory /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent
+2026-03-22T19:05:38.3238379Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-22T19:05:38.3302260Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-22T19:05:38.4129627Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-22T19:05:38.4183066Z http.https://github.com/.extraheader
+2026-03-22T19:05:38.4203128Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-22T19:05:38.4272678Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-22T19:05:38.4906484Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-22T19:05:38.4968728Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-22T19:05:38.5684131Z A job completed hook has been configured by the self-hosted runner administrator
+2026-03-22T19:05:38.5726161Z ##[group]Run '/opt/github/post-job.sh'
+2026-03-22T19:05:38.5730055Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-22T19:05:38.5730937Z ##[endgroup]
+2026-03-22T19:05:38.5820377Z Running post-job cleanup v1.0.2
+2026-03-22T19:05:38.5821260Z Removing checked-out code directories...
+2026-03-22T19:05:38.5954513Z Deleting directory: /opt/github/actions-runner/_work/psc-sre-automacao-agent
+2026-03-22T19:05:39.8325269Z Stopping and removing Docker containers...
+2026-03-22T19:05:39.8692120Z Post-job cleanup completed
+2026-03-22T19:05:39.8777427Z Evaluate and set job outputs
+2026-03-22T19:05:39.8787162Z Set output 'versao_projeto'
+2026-03-22T19:05:39.8789852Z Set output 'sigla_projeto'
+2026-03-22T19:05:39.8791260Z Set output 'tipo_versao'
+2026-03-22T19:05:39.8792518Z Set output 'matricula_solicitante'
+2026-03-22T19:05:39.8794683Z Set output 'publicar_docker'
+2026-03-22T19:05:39.8795590Z Set output 'versao_node'
+2026-03-22T19:05:39.8796443Z Set output 'publicar_versao'
+2026-03-22T19:05:39.8797300Z Set output 'gerenciador_pacotes'
+2026-03-22T19:05:39.8798185Z Set output 'ref'
+2026-03-22T19:05:39.8799999Z Cleaning up orphan processes
+2026-03-22T19:05:39.9447220Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

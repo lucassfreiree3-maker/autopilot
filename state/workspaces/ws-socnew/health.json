@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "workspaceId": "ws-socnew",
+  "checkedAt": "2026-03-25T20:59:12Z",
+  "overall": "degraded",
+  "checks": {
+    "workspace": {
+      "status": "pass",
+      "message": "OK"
+    },
+    "controllerRelease": {
+      "status": "warn",
+      "message": "Never released"
+    },
+    "agentRelease": {
+      "status": "warn",
+      "message": "Never released"
+    },
+    "stuckRuns": {
+      "status": "pass",
+      "message": "None"
+    },
+    "locks": {
+      "status": "warn",
+      "message": "1 active locks"
+    }
+  },
+  "summary": "degraded at 2026-03-25T20:59:12Z"
+}

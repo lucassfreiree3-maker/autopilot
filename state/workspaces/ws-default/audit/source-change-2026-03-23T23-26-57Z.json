@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T23:26:57Z",
+  "runId": "23465071335",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23465071335",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: mint JWT for internal-origin requests to agent, version bump 3.5.6",
+  "commitSha": "4a9b1a69ad6b5ea40da275def7b7135a841ca8e2",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

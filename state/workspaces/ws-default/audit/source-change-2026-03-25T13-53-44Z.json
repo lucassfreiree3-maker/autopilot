@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T13:53:44Z",
+  "runId": "23544525767",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23544525767",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): SSRF validation in oas-execute + DoS loop bound in agents-execute-logs (3.5.14)",
+  "commitSha": "bd0e821c16f9850c8ab1efb4f905d9449edf4e13",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

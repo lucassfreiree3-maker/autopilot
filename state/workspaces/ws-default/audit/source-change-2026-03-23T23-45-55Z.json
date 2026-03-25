@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T23:45:55Z",
+  "runId": "23465664557",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23465664557",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: correct TypeScript types for jwt.sign expiresIn parameter",
+  "commitSha": "02a17896bd9facf1a3a65e99cc01359332823d94",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

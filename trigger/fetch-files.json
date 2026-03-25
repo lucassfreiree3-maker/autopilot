@@ -2,6 +2,6 @@
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
   "component": "controller",
-  "files": "src/__tests__/unit/jwt-callback.middleware.test.ts",
-  "run": 15
+  "files": "src/controllers/execute.controller.ts,src/controllers/oas-execute.controller.ts,src/controllers/agents-execute-logs.controller.ts",
+  "run": 16
 }

@@ -23,17 +23,6 @@ type LocalsExec = {
 
 const SAFE_IDENTIFIER_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 const DEFAULT_AGENT_CALL_TIMEOUT_MS = 30_000;
-const TRUSTED_AGENT_URL_PATTERN = /^https:\/\/[A-Za-z0-9._-]+\.bb\.com\.br\//;
-
-function validateTrustedUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "https:") return false;
-    return TRUSTED_AGENT_URL_PATTERN.test(url);
-  } catch {
-    return false;
-  }
-}
 
 function sanitizeForOutput(value: unknown): string {
   return String(value ?? "")
@@ -95,10 +84,6 @@ async function postJson(
   headers: Record<string, string>,
   body: unknown,
 ): Promise<FetchJsonResult> {
-  if (!validateTrustedUrl(url)) {
-    return { ok: false, status: 403, text: "Blocked: untrusted agent URL" };
-  }
-
   const timeoutMs = readAgentCallTimeoutMs();
   const abort = new AbortController();
   const timeoutId = setTimeout(() => abort.abort(), timeoutMs);

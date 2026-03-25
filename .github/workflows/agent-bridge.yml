@@ -94,21 +94,45 @@ jobs:
           fi
           echo "selected_model=$SELECTED" >> "$GITHUB_OUTPUT"
           echo "model_resolution=$RESOLUTION" >> "$GITHUB_OUTPUT"
+      - name: Load shared agent context
+        id: shared_context
+        run: |
+          set -euo pipefail
+          CONTEXT_FILE="contracts/shared-agent-context.md"
+          if [ ! -f "$CONTEXT_FILE" ]; then
+            echo "::error ::Shared context file not found: $CONTEXT_FILE"
+            exit 1
+          fi
+          {
+            echo "content<<CONTEXT_EOF"
+            cat "$CONTEXT_FILE"
+            echo "CONTEXT_EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Call OpenAI
         id: call_openai
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL: ${{ steps.model.outputs.selected_model }}
           TASK: ${{ steps.cfg.outputs.task }}
+          SHARED_AGENT_CONTEXT: ${{ steps.shared_context.outputs.content }}
         run: |
           set +e
+          SYSTEM_PROMPT=$(cat <<'EOF'
+          You are Codex. Return concise operational JSON.
+          Follow the shared agent context strictly and never output secrets.
+          EOF
+          )
+          if [ -n "${SHARED_AGENT_CONTEXT:-}" ]; then
+            SYSTEM_PROMPT="${SYSTEM_PROMPT}\n\nSHARED AGENT CONTEXT:\n${SHARED_AGENT_CONTEXT}"
+          fi
           REQ=$(jq -n \
             --arg model "$MODEL" \
             --arg task "$TASK" \
+            --arg system_prompt "$SYSTEM_PROMPT" \
             '{
               model: $model,
               input: [
-                {role:"system", content:"You are Codex. Return concise operational JSON."},
+                {role:"system", content:$system_prompt},
                 {role:"user", content:$task}
               ]
             }')

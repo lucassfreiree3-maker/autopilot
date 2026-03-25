@@ -24,6 +24,15 @@ on:
         required: false
         type: boolean
         default: false
+      workspace_id:
+        description: "Workspace identifier (required)"
+        required: true
+        type: choice
+        options:
+          - ws-cit
+          - ws-corp-1
+          - ws-default
+          - ws-socnew
       run:
         description: "Run number (for tracking)"
         required: false
@@ -62,6 +71,7 @@ jobs:
             AUTO_MERGE=$(jq -r '.auto_merge // false' trigger/codex-commit.json)
             RUN=$(jq -r '.run // 0' trigger/codex-commit.json)
             BRANCH_SUFFIX=$(jq -r '.branch_suffix // ""' trigger/codex-commit.json)
+            WORKSPACE_ID=$(jq -r '.workspace_id // ""' trigger/codex-commit.json)
           else
             TASK="${{ github.event.inputs.task }}"
             MODEL="${{ github.event.inputs.model || 'o3' }}"
@@ -69,7 +79,21 @@ jobs:
             AUTO_MERGE="${{ github.event.inputs.auto_merge || 'false' }}"
             RUN="${{ github.event.inputs.run || 'manual' }}"
             BRANCH_SUFFIX=""
+            WORKSPACE_ID="${{ github.event.inputs.workspace_id }}"
           fi
+
+          if [ -z "$TASK" ]; then
+            echo "::error ::Task must not be empty"
+            exit 1
+          fi
+
+          case "$WORKSPACE_ID" in
+            ws-cit|ws-corp-1|ws-default|ws-socnew) ;;
+            *)
+              echo "::error ::Invalid workspace_id: '$WORKSPACE_ID'. Expected one of ws-cit, ws-corp-1, ws-default, ws-socnew"
+              exit 1
+              ;;
+          esac
 
           if [ -z "$BRANCH_SUFFIX" ]; then
             BRANCH_SUFFIX="task-$(date +%Y%m%d-%H%M%S)"
@@ -83,6 +107,7 @@ jobs:
           echo "auto_merge=$AUTO_MERGE" >> $GITHUB_OUTPUT
           echo "run=$RUN" >> $GITHUB_OUTPUT
           echo "branch_suffix=$BRANCH_SUFFIX" >> $GITHUB_OUTPUT
+          echo "workspace_id=$WORKSPACE_ID" >> $GITHUB_OUTPUT
 
       - name: Resolve model
         id: model
@@ -91,6 +116,10 @@ jobs:
           REQUESTED_MODEL: ${{ steps.cfg.outputs.model }}
         run: |
           set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "::error ::Missing OPENAI_API_KEY secret"
+            exit 1
+          fi
           CANDIDATES=("o3" "o3-mini" "o1" "gpt-4o" "gpt-4.1" "gpt-4-turbo" "gpt-3.5-turbo")
           MODELS_JSON=$(curl -sS https://api.openai.com/v1/models \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -128,16 +157,9 @@ jobs:
               f=$(echo "$f" | xargs)  # trim whitespace
               if [ -f "$f" ]; then
                 CONTENT=$(cat "$f")
-                FILE_CONTEXT="${FILE_CONTEXT}
---- FILE: ${f} ---
-${CONTENT}
---- END FILE: ${f} ---
-"
+                FILE_CONTEXT="${FILE_CONTEXT}\n--- FILE: ${f} ---\n${CONTENT}\n--- END FILE: ${f} ---\n"
               else
-                FILE_CONTEXT="${FILE_CONTEXT}
---- FILE: ${f} (NEW FILE — does not exist yet) ---
---- END FILE: ${f} ---
-"
+                FILE_CONTEXT="${FILE_CONTEXT}\n--- FILE: ${f} (NEW FILE — does not exist yet) ---\n--- END FILE: ${f} ---\n"
               fi
             done
           fi
@@ -146,50 +168,70 @@ ${CONTENT}
           echo "$FILE_CONTEXT" > /tmp/file-context.txt
           echo "has_context=$([ -n "$TARGET_FILES" ] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
+      - name: Load shared agent context
+        id: shared_context
+        run: |
+          set -euo pipefail
+          CONTEXT_FILE="contracts/shared-agent-context.md"
+          if [ ! -f "$CONTEXT_FILE" ]; then
+            echo "::error ::Shared context file not found: $CONTEXT_FILE"
+            exit 1
+          fi
+          {
+            echo "content<<CONTEXT_EOF"
+            cat "$CONTEXT_FILE"
+            echo "CONTEXT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Call OpenAI for code changes
         id: codex
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL: ${{ steps.model.outputs.selected }}
           TASK: ${{ steps.cfg.outputs.task }}
+          SHARED_AGENT_CONTEXT: ${{ steps.shared_context.outputs.content }}
         run: |
           set -euo pipefail
 
           FILE_CONTEXT=$(cat /tmp/file-context.txt 2>/dev/null || echo "")
+          SHARED_CONTEXT="${SHARED_AGENT_CONTEXT:-}"
 
-          SYSTEM_PROMPT='You are Codex, an expert software engineer. You receive tasks and return ONLY valid JSON with file changes.
+          SYSTEM_PROMPT=$(cat <<'EOF'
+          You are Codex, an expert software engineer. You receive tasks and return ONLY valid JSON with file changes.
 
-RESPONSE FORMAT (strict JSON, no markdown, no explanation outside JSON):
-{
-  "branch_name": "codex/short-descriptive-name",
-  "commit_message": "type: short description",
-  "pr_title": "Short PR title (under 70 chars)",
-  "pr_body": "## Summary\n- bullet points of changes",
-  "changes": [
-    {
-      "action": "create|modify|delete",
-      "path": "relative/path/to/file",
-      "content": "full file content here (for create/modify)"
-    }
-  ]
-}
+          RESPONSE FORMAT (strict JSON, no markdown, no explanation outside JSON):
+          {
+            "branch_name": "codex/short-descriptive-name",
+            "commit_message": "type: short description",
+            "pr_title": "Short PR title (under 70 chars)",
+            "pr_body": "## Summary\n- bullet points of changes",
+            "changes": [
+              {
+                "action": "create|modify|delete",
+                "path": "relative/path/to/file",
+                "content": "full file content here (for create/modify)"
+              }
+            ]
+          }
 
-RULES:
-- action "create": new file, provide full content
-- action "modify": existing file, provide FULL new content (not a diff)
-- action "delete": remove file, no content needed
-- branch_name MUST start with "codex/"
-- commit_message follows conventional commits (feat:, fix:, chore:, docs:, refactor:)
-- Return ONLY the JSON object, nothing else
-- Content must be valid for the file type
-- Never include secrets, tokens, or credentials in content'
+          RULES:
+          - action "create": new file, provide full content
+          - action "modify": existing file, provide FULL new content (not a diff)
+          - action "delete": remove file, no content needed
+          - branch_name MUST start with "codex/"
+          - commit_message follows conventional commits (feat:, fix:, chore:, docs:, refactor:)
+          - Return ONLY the JSON object, nothing else
+          - Content must be valid for the file type
+          - Never include secrets, tokens, or credentials in content
+          EOF
+          )
+          if [ -n "$SHARED_CONTEXT" ]; then
+            SYSTEM_PROMPT="${SYSTEM_PROMPT}\n\nSHARED AGENT CONTEXT:\n${SHARED_CONTEXT}"
+          fi
 
           USER_PROMPT="TASK: ${TASK}"
           if [ -n "$FILE_CONTEXT" ]; then
-            USER_PROMPT="${USER_PROMPT}
-
-CURRENT FILE CONTENTS:
-${FILE_CONTEXT}"
+            USER_PROMPT="${USER_PROMPT}\n\nCURRENT FILE CONTENTS:\n${FILE_CONTEXT}"
           fi
 
           # Build request JSON safely using jq
@@ -214,6 +256,10 @@ ${FILE_CONTEXT}"
 
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
             echo "::error ::OpenAI API returned HTTP $HTTP_CODE"
+            ERROR_MSG=$(jq -r '.error.message // empty' /tmp/codex-response.json 2>/dev/null || true)
+            if [ -n "$ERROR_MSG" ]; then
+              echo "::error ::$ERROR_MSG"
+            fi
             cat /tmp/codex-response.json
             echo "status=failed" >> $GITHUB_OUTPUT
             echo "error=OpenAI API returned HTTP $HTTP_CODE" >> $GITHUB_OUTPUT
@@ -327,10 +373,14 @@ ${FILE_CONTEXT}"
           # Commit
           git config user.name "codex-agent"
           git config user.email "codex-agent@github.com"
-          git commit -m "$COMMIT_MSG
+          COMMIT_BODY=$(cat <<EOF
+          ${COMMIT_MSG}
 
-Co-authored-by: codex-agent <codex-agent@github.com>
-Triggered-by: codex-apply workflow run ${{ steps.cfg.outputs.run }}"
+          Co-authored-by: codex-agent <codex-agent@github.com>
+          Triggered-by: codex-apply workflow run ${{ steps.cfg.outputs.run }}
+          EOF
+          )
+          git commit -m "$COMMIT_BODY"
 
           # Push
           git push -u origin "$BRANCH" --force
@@ -441,6 +491,7 @@ Triggered-by: codex-apply workflow run ${{ steps.cfg.outputs.run }}"
             --arg status "$STATUS" \
             --arg model "${{ steps.model.outputs.selected }}" \
             --arg run "${{ steps.cfg.outputs.run }}" \
+            --arg workspace_id "${{ steps.cfg.outputs.workspace_id }}" \
             --arg task "${{ steps.cfg.outputs.task }}" \
             --arg branch "${{ steps.codex.outputs.branch || 'none' }}" \
             --arg pr_url "$PR_URL" \
@@ -451,6 +502,7 @@ Triggered-by: codex-apply workflow run ${{ steps.cfg.outputs.run }}"
               status: $status,
               model: $model,
               run: $run,
+              workspace_id: $workspace_id,
               task: $task,
               branch: $branch,
               pr_url: $pr_url,
@@ -498,6 +550,7 @@ Triggered-by: codex-apply workflow run ${{ steps.cfg.outputs.run }}"
             echo "| Field | Value |"
             echo "|-------|-------|"
             echo "| Run | \`${{ steps.cfg.outputs.run }}\` |"
+            echo "| Workspace | \`${{ steps.cfg.outputs.workspace_id }}\` |"
             echo "| Model | \`${{ steps.model.outputs.selected }}\` |"
             echo "| Status | \`${{ steps.codex.outputs.status || 'failed' }}\` |"
             echo "| Branch | \`${{ steps.codex.outputs.branch || 'n/a' }}\` |"

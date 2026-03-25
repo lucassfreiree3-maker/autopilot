@@ -115,6 +115,18 @@ jobs:
           fi
           echo "selected=${SELECTED:-$REQUESTED_MODEL}" >> "$GITHUB_OUTPUT"
 
+      - name: Load shared agent context
+        id: shared_ctx
+        run: |
+          set -euo pipefail
+          if [ -f "contracts/shared-agent-context.md" ]; then
+            cat contracts/shared-agent-context.md > /tmp/shared-context.txt
+            echo "loaded=true" >> $GITHUB_OUTPUT
+          else
+            echo "" > /tmp/shared-context.txt
+            echo "loaded=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Read target files content
         id: context
         run: |
@@ -156,8 +168,14 @@ ${CONTENT}
           set -euo pipefail
 
           FILE_CONTEXT=$(cat /tmp/file-context.txt 2>/dev/null || echo "")
+          SHARED_CONTEXT=$(cat /tmp/shared-context.txt 2>/dev/null || echo "")
 
-          SYSTEM_PROMPT='You are Codex, an expert software engineer. You receive tasks and return ONLY valid JSON with file changes.
+          SYSTEM_PROMPT="You are Codex, an expert software engineer working on the Autopilot project. You have full context of the project history, architecture, and patterns.
+
+PROJECT CONTEXT (read carefully — this is your memory):
+${SHARED_CONTEXT}
+
+YOUR TASK: You receive implementation tasks and return ONLY valid JSON with file changes.
 
 RESPONSE FORMAT (strict JSON, no markdown, no explanation outside JSON):
 {

@@ -94,6 +94,15 @@ jobs:
           fi
           echo "selected_model=$SELECTED" >> "$GITHUB_OUTPUT"
           echo "model_resolution=$RESOLUTION" >> "$GITHUB_OUTPUT"
+      - name: Load shared agent context
+        id: shared_ctx
+        run: |
+          if [ -f "contracts/shared-agent-context.md" ]; then
+            cat contracts/shared-agent-context.md > /tmp/shared-context.txt
+          else
+            echo "No shared context available." > /tmp/shared-context.txt
+          fi
+
       - name: Call OpenAI
         id: call_openai
         env:
@@ -102,13 +111,19 @@ jobs:
           TASK: ${{ steps.cfg.outputs.task }}
         run: |
           set +e
+          SHARED_CONTEXT=$(cat /tmp/shared-context.txt 2>/dev/null || echo "")
+          SYSTEM_MSG="You are Codex, an expert software engineer working on the Autopilot project. You have full context of the project history and architecture. Return concise operational JSON.
+
+PROJECT CONTEXT (this is your memory from all previous sessions):
+${SHARED_CONTEXT}"
           REQ=$(jq -n \
             --arg model "$MODEL" \
+            --arg system "$SYSTEM_MSG" \
             --arg task "$TASK" \
             '{
               model: $model,
               input: [
-                {role:"system", content:"You are Codex. Return concise operational JSON."},
+                {role:"system", content:$system},
                 {role:"user", content:$task}
               ]
             }')

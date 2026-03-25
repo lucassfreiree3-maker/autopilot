@@ -38,6 +38,7 @@ See CLAUDE.md for full workflow listing.
 | `DD_APP_KEY` | **Pending** | Monitoring workflows |
 | `GRAFANA_TOKEN` | **Pending** | Monitoring workflows |
 | `SLACK_WEBHOOK_URL` | **Pending** | Alert notifications |
+| `CLAUDE_API` | Active | Agent Bridge Claude API integration |
 
 ## Variables Required
 

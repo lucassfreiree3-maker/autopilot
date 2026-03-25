@@ -53,6 +53,7 @@ See CLAUDE.md for full workflow listing.
 - Always declare `permissions:` block
 - Always use `concurrency:` with `cancel-in-progress: true`
 - Use `workflow_dispatch` for manual operational tasks
+- Use `run-name` with workspace/event/ref context for better GitHub Actions timeline visibility
 - Upload artifacts for all diagnostic output
 - Use `continue-on-error: true` for non-critical diagnostic steps
 

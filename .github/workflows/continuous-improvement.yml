@@ -1,4 +1,5 @@
 name: "[Infra] Continuous Improvement"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
 
 # Self-improving pipeline that analyzes the project for issues,
 # applies auto-fixes, records learnings, and tracks improvement trends.

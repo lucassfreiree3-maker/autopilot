@@ -70,3 +70,28 @@ const response = await apiRequest('https://api.example.com/health');
 All scripts write to `ops/logs/ops-log.jsonl` (gitignored).
 Format: JSON Lines — one JSON object per line.
 Fields: `timestamp`, `workspace`, `agent`, `action`, `description`, `result`, `details`.
+
+
+## Workflow Observability Inventory
+
+Para aumentar rastreabilidade e visualização do fluxo existente sem alterar comportamento:
+
+- Script: `ops/scripts/ci/workflow-observability-report.py`
+- Workflow: `.github/workflows/ops-workflow-observability.yml`
+- Saídas:
+  - `ops/inventory/workflow-topology.md`
+  - `ops/inventory/workflow-topology.json`
+  - Artifact `workflow-observability-report` no GitHub Actions
+
+Execução local:
+
+```bash
+python ops/scripts/ci/workflow-observability-report.py
+```
+
+Esse relatório mapeia, por workflow:
+- categoria (`[Corp]`, `[Core]`, `[Release]`, `Ops`, etc.),
+- gatilhos,
+- quantidade de jobs,
+- presença de `workspace_id` em `workflow_dispatch`,
+- ferramentas/integrações detectadas (ex.: Terraform, Kubernetes, AWS, Azure, GCP, Node, Python, GitHub CLI, etc.).

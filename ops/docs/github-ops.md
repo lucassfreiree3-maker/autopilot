@@ -53,6 +53,7 @@ See CLAUDE.md for full workflow listing.
 - Always declare `permissions:` block
 - Always use `concurrency:` with `cancel-in-progress: true`
 - Use `workflow_dispatch` for manual operational tasks
+- Use `run-name` with workspace/event/ref context for better GitHub Actions timeline visibility
 - Upload artifacts for all diagnostic output
 - Use `continue-on-error: true` for non-critical diagnostic steps
 
@@ -82,3 +83,28 @@ See CLAUDE.md for full workflow listing.
     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
     service_account: ${{ secrets.GCP_SA_EMAIL }}
 ```
+
+## Automatic PR + Merge (Codex-safe)
+
+Para evitar idas e vindas manuais, use o script:
+
+```bash
+./ops/scripts/git/auto-pr-merge.sh "<commit_message>" "<pr_title>" "<pr_body>"
+```
+
+Variáveis opcionais:
+
+```bash
+export AUTO_PR_REMOTE_URL="https://github.com/<owner>/<repo>.git"  # se origin não existir
+export AUTO_PR_BASE_BRANCH="main"                                   # branch base do PR
+```
+
+Ele executa, em sequência:
+1. Verifica pré-requisitos (`gh` instalado + branch não `main` + `origin` existente/configurável)
+2. `git diff --check` (sanidade)
+3. Commit automático (se houver mudanças)
+4. Push da branch atual
+5. Criação de PR da branch atual (se ainda não existir)
+6. `gh pr merge <branch> --auto --squash --delete-branch`
+
+> Observação: o merge ocorre automaticamente quando os checks obrigatórios da branch protegida terminarem com sucesso.

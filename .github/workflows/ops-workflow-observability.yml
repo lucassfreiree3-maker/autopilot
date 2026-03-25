@@ -1,0 +1,60 @@
+name: "Ops: Workflow Observability Report"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace context for report labeling"
+        required: false
+        default: "ws-default"
+  schedule:
+    - cron: '0 */12 * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ops-workflow-observability
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: "Generate workflow topology report"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Generate report
+        run: |
+          python ops/scripts/ci/workflow-observability-report.py
+
+      - name: Publish summary
+        run: |
+          {
+            echo "## Workflow Observability Report"
+            echo ""
+            echo "Workspace context: **${{ github.event.inputs.workspace_id || 'n/a' }}**"
+            echo ""
+            cat ops/inventory/workflow-topology.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-observability-report
+          path: |
+            ops/inventory/workflow-topology.md
+            ops/inventory/workflow-topology.json

@@ -70,6 +70,14 @@ function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function sanitizeForOutput(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[<>"'&]/g, "")
+    .replace(/[\r\n\t]+/g, " ")
+    .trim()
+    .slice(0, 256);
+}
+
 function safeLogValue(value: unknown): string {
   return String(value ?? "")
     .replace(/[\r\n\t]+/g, " ")
@@ -232,7 +240,7 @@ function validateSreControllerPayload(body: unknown): ValidationResult {
   if (!allowedImage) {
     const allowed = allowedImages().map((img) => img.key);
     errors.push(
-      `Image '${imageRaw}' is not allowed. Allowed images: ${allowed.join(", ")}.`,
+      `Image '${sanitizeForOutput(imageRaw)}' is not allowed. Allowed images: ${allowed.join(", ")}.`,
     );
     return { ok: false, errors };
   }
@@ -548,9 +556,9 @@ export async function postOasSreController(
     res.status(500).json({
       ok: false,
       error: "Internal error while dispatching OAS automation",
-      detail: msg,
+      detail: sanitizeForOutput(msg),
       execId,
-      dispatches,
+      dispatches: summarizeDispatches(dispatches),
     });
   }
 }

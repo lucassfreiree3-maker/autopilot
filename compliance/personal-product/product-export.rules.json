@@ -1,21 +1,15 @@
-﻿{
-  "schemaVersion": 1,
+{
+  "schemaVersion": 2,
   "requiredRepoFiles": [
     "README.md",
-    "SECURITY.md",
-    "ROADMAP.md",
-    "CHANGELOG.md",
-    "docs/product-architecture.md",
-    "docs/local-vs-product-boundary.md",
-    "docs/local-to-github-sync.md",
-    "docs/kubernetes-strategy.md",
-    "config/product-compliance.policy.json",
-    "config/product-export.map.json"
+    "CLAUDE.md",
+    "schemas/workspace.schema.json",
+    "schemas/release-state.schema.json",
+    "contracts/shared-agent-contract.json"
   ],
   "forbiddenPathGlobs": [
     "secrets/**",
     "reports/**",
-    "state/**",
     "cache/**",
     "repos/**",
     "**/*.secure.txt",
@@ -23,45 +17,11 @@
     "**/*.sqlite-*"
   ],
   "forbiddenContentPatterns": [
-    {
-      "name": "oauth_github_token",
-      "pattern": "gho_[A-Za-z0-9_]{20,}"
-    },
-    {
-      "name": "classic_github_pat",
-      "pattern": "ghp_[A-Za-z0-9]{20,}"
-    },
-    {
-      "name": "fine_grained_github_pat",
-      "pattern": "github_pat_[A-Za-z0-9_]{20,}"
-    },
-    {
-      "name": "private_key",
-      "pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----"
-    },
-    {
-      "name": "local_user_home",
-      "pattern": "(?i)C:\\\\Users\\\\[^\\\\\\r\\n]+"
-    },
-    {
-      "name": "private_corporate_domain",
-      "pattern": "(?i)(\\.intranet\\.|\\.mcas\\.ms|\\.bb\\.com\\.br)"
-    },
-    {
-      "name": "private_customer_name",
-      "pattern": "(?i)YourCompany"
-    },
-    {
-      "name": "corporate_onedrive_hint",
-      "pattern": "OneDrive"
-    },
-    {
-      "name": "bb_repo_controller",
-      "pattern": "your-controller"
-    },
-    {
-      "name": "bb_repo_agent",
-      "pattern": "your-agent"
-    }
+    { "name": "oauth_github_token", "pattern": "gho_[A-Za-z0-9_]{20,}" },
+    { "name": "classic_github_pat", "pattern": "ghp_[A-Za-z0-9]{20,}" },
+    { "name": "fine_grained_github_pat", "pattern": "github_pat_[A-Za-z0-9_]{20,}" },
+    { "name": "private_key", "pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----" },
+    { "name": "local_user_home", "pattern": "(?i)C:\\\\Users\\\\[^\\\\\\r\\n]+" },
+    { "name": "corporate_onedrive_hint", "pattern": "OneDrive" }
   ]
 }

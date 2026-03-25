@@ -1,0 +1,79 @@
+name: "Setup: Init State Branch"
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite CONFIRMAR para criar o branch'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  init:
+    if: github.event.inputs.confirm == 'CONFIRMAR'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verificar se branch ja existe
+        run: |
+          if git ls-remote --exit-code --heads origin autopilot-state 2>/dev/null; then
+            echo "::error ::Branch autopilot-state ja existe."
+            exit 1
+          fi
+
+      - name: Criar branch autopilot-state
+        run: |
+          git checkout --orphan autopilot-state
+          git rm -rf . 2>/dev/null || true
+          mkdir -p state
+
+          cat > state/controller-state.json << 'EOF'
+{
+  "schemaVersion": 1,
+  "tenantId": "bbvinet",
+  "component": "psc-sre-automacao-controller",
+  "initialized": true,
+  "lastReleasedSha": "",
+  "lastTag": "",
+  "updatedAt": "",
+  "runId": "",
+  "note": "Controller via GitLab interno - promocao manual por ora"
+}
+EOF
+
+          cat > state/agent-state.json << 'EOF'
+{
+  "schemaVersion": 1,
+  "tenantId": "bbvinet",
+  "component": "psc-sre-automacao-agent",
+  "initialized": true,
+  "lastReleasedSha": "",
+  "lastTag": "",
+  "updatedAt": "",
+  "runId": ""
+}
+EOF
+
+          cat > README.md << 'EOF'
+# autopilot-state
+
+Branch de estado do BBDevOpsAutopilot - tenant bbvinet.
+Nao edite manualmente.
+EOF
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: init autopilot-state bbvinet [skip ci]"
+          git push origin autopilot-state
+
+      - name: Resumo
+        run: |
+          echo "## Branch autopilot-state criado" >> "$GITHUB_STEP_SUMMARY"
+          echo "Proximo: dispare o workflow Autopilot: Agent Release." >> "$GITHUB_STEP_SUMMARY"

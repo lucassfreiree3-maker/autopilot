@@ -1,0 +1,275 @@
+# =============================================================================
+# TEMPLATE: Deploy this to the CONTROLLER SOURCE repo
+# Path: .github/workflows/release-autopilot.yml
+# Required secrets: RELEASE_TOKEN (PAT with repo scope on lucassfreiree/autopilot + deploy repo)
+# Required vars: AUTOPILOT_WORKSPACE_ID
+# =============================================================================
+name: "[Release] Controller"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_run:
+    workflows: ["$CI_WORKFLOW_NAME"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID override"
+        required: false
+      force:
+        description: "Force release even if SHA already promoted"
+        required: false
+        default: "false"
+
+concurrency:
+  group: autopilot-controller-release
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: CI gate
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+      sha: ${{ steps.check.outputs.sha }}
+      workspace_id: ${{ steps.check.outputs.workspace_id }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id || vars.AUTOPILOT_WORKSPACE_ID }}"
+          if [ -z "$WS_ID" ]; then
+            echo "::error ::AUTOPILOT_WORKSPACE_ID not set"
+            exit 1
+          fi
+          echo "workspace_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SHA=$(gh api "repos/${{ github.repository }}/commits/main" --jq '.sha')
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          else
+            CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+            if [ "$CONCLUSION" = "success" ]; then
+              echo "proceed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              echo "::notice ::CI did not pass ($CONCLUSION). Skipping."
+            fi
+          fi
+
+          # Check freeze
+          FREEZE=$(gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/${WS_ID}/release-freeze.json?ref=autopilot-state" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"frozen":false}')
+          IS_FROZEN=$(echo "$FREEZE" | jq -r '.frozen // false')
+          if [ "$IS_FROZEN" = "true" ]; then
+            REASON=$(echo "$FREEZE" | jq -r '.reason // "unknown"')
+            EXPIRES=$(echo "$FREEZE" | jq -r '.expiresAt // "never"')
+            if [ "$EXPIRES" != "never" ] && [ "$EXPIRES" != "null" ]; then
+              EXPIRES_S=$(date -d "$EXPIRES" +%s 2>/dev/null || echo "9999999999")
+              [ "$(date +%s)" -ge "$EXPIRES_S" ] && { echo "Freeze expired."; exit 0; }
+            fi
+            echo "::error ::Releases frozen: $REASON (expires: $EXPIRES)"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Promote deploy
+    needs: guard
+    if: needs.guard.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      AUTOPILOT_REPO: lucassfreiree/autopilot
+      STATE_BRANCH: autopilot-state
+    steps:
+      - name: Read workspace config
+        id: ws
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ needs.guard.outputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          DEPLOY_REPO=$(echo "$WS_JSON" | jq -r '.controller.deployRepo')
+          DEPLOY_BRANCH=$(echo "$WS_JSON" | jq -r '.controller.deployBranch // "main"')
+          VALUES_PATH=$(echo "$WS_JSON" | jq -r '.controller.deployValuesPath')
+          IMAGE_PATTERN=$(echo "$WS_JSON" | jq -r '.controller.imagePattern')
+          echo "deploy_repo=$DEPLOY_REPO" >> "$GITHUB_OUTPUT"
+          echo "deploy_branch=$DEPLOY_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "values_path=$VALUES_PATH" >> "$GITHUB_OUTPUT"
+          echo "image_pattern=$IMAGE_PATTERN" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Read release state
+        id: state
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          FILE="${WS_PATH}/controller-release-state.json"
+          CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          FILE_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          LAST_SHA=$(echo "$CONTENT" | jq -r '.lastReleasedSha // ""')
+          CURRENT_SHA="${{ needs.guard.outputs.sha }}"
+          echo "file_sha=$FILE_SHA" >> "$GITHUB_OUTPUT"
+          echo "last_sha=$LAST_SHA" >> "$GITHUB_OUTPUT"
+          echo "current_sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${CURRENT_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          if [ "$LAST_SHA" = "$CURRENT_SHA" ] && [ "${{ github.event.inputs.force }}" != "true" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Acquire lock
+        if: steps.state.outputs.skip == 'false'
+        id: lock
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          LOCK_PATH="${WS_PATH}/locks/controller-release.json"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EXPIRES=$(date -u -d "+30 minutes" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+          LOCK=$(jq -n \
+            --arg ws "${{ needs.guard.outputs.workspace_id }}" \
+            --arg now "$NOW" \
+            --arg exp "$EXPIRES" \
+            --arg run "${{ github.run_id }}" \
+            '{lockId: "controller-release", workspaceId: $ws, operation: "controller-release", acquiredAt: $now, acquiredBy: "release-workflow", runId: $run, expiresAt: $exp, released: false}')
+          EXISTING=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=lock: acquire controller-release [skip ci]" -f "content=$(echo "$LOCK" | base64 -w0)")
+          [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ] && ARGS+=(-f "sha=$EXISTING")
+          gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT "${ARGS[@]}"
+          echo "lock_sha=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.sha')" >> "$GITHUB_OUTPUT"
+
+      - name: Extract version
+        id: ver
+        if: steps.state.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SHA="${{ steps.state.outputs.current_sha }}"
+          VERSION=$(gh api "repos/${{ github.repository }}/contents/package.json?ref=$SHA" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // ""' || echo "")
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            VERSION="0.0.0"
+          fi
+          TAG="${VERSION}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Promote to deploy repo
+        if: steps.state.outputs.skip == 'false'
+        id: promote
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          DEPLOY_REPO="${{ steps.ws.outputs.deploy_repo }}"
+          DEPLOY_BRANCH="${{ steps.ws.outputs.deploy_branch }}"
+          VALUES_PATH="${{ steps.ws.outputs.values_path }}"
+          IMAGE_PATTERN="${{ steps.ws.outputs.image_pattern }}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          if [ -z "$DEPLOY_REPO" ] || [ "$DEPLOY_REPO" = "null" ]; then
+            echo "::warning ::Deploy repo not configured. Skipping promotion."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Read current values.yaml
+          VALUES_CONTENT=$(gh api "repos/$DEPLOY_REPO/contents/${VALUES_PATH}?ref=$DEPLOY_BRANCH" \
+            --jq '.content' | base64 -d)
+          VALUES_SHA=$(gh api "repos/$DEPLOY_REPO/contents/${VALUES_PATH}?ref=$DEPLOY_BRANCH" \
+            --jq '.sha')
+          # Update image tag using yq-like approach with jq for safety
+          # Pattern: replace the tag portion of the image line matching IMAGE_PATTERN
+          UPDATED=$(echo "$VALUES_CONTENT" | sed "s|\(${IMAGE_PATTERN}:\).*|\1${TAG}|")
+          if [ "$VALUES_CONTENT" = "$UPDATED" ]; then
+            echo "::warning ::No change in values.yaml. Tag may already be current."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ENCODED=$(echo "$UPDATED" | base64 -w0)
+          gh api "repos/$DEPLOY_REPO/contents/${VALUES_PATH}" \
+            --method PUT \
+            -f "branch=$DEPLOY_BRANCH" \
+            -f "message=chore(release): controller -> ${TAG} [autopilot]" \
+            -f "content=$ENCODED" \
+            -f "sha=$VALUES_SHA"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Save state
+        if: steps.state.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          FILE="${WS_PATH}/controller-release-state.json"
+          FILE_SHA="${{ steps.state.outputs.file_sha }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          PROMOTIONS='[]'
+          if [ "${{ steps.promote.outputs.pushed }}" = "true" ]; then
+            PROMOTIONS=$(jq -n \
+              --arg repo "${{ steps.ws.outputs.deploy_repo }}" \
+              --arg branch "${{ steps.ws.outputs.deploy_branch }}" \
+              --arg path "${{ steps.ws.outputs.values_path }}" \
+              --arg tag "${{ steps.ver.outputs.tag }}" \
+              --arg sha "${{ steps.state.outputs.current_sha }}" \
+              --arg ts "$NOW" \
+              '[{target:"deploy", repo:$repo, branch:$branch, path:$path, tag:$tag, sha:$sha, timestamp:$ts, status:"success"}]')
+          fi
+          NEW_STATE=$(jq -n \
+            --arg ws "${{ needs.guard.outputs.workspace_id }}" \
+            --arg sha "${{ steps.state.outputs.current_sha }}" \
+            --arg tag "${{ steps.ver.outputs.tag }}" \
+            --arg ver "${{ steps.ver.outputs.version }}" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --argjson promo "$PROMOTIONS" \
+            '{schemaVersion:2, workspaceId:$ws, component:"controller", lastReleasedSha:$sha, lastTag:$tag, lastVersion:$ver, updatedAt:$ts, runId:$run, runUrl:$url, promotions:$promo, status:"promoted"}')
+          ENCODED=$(echo "$NEW_STATE" | base64 -w0)
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: controller -> ${{ steps.ver.outputs.tag }} [skip ci]" -f "content=$ENCODED")
+          [ -n "$FILE_SHA" ] && [ "$FILE_SHA" != "null" ] && ARGS+=(-f "sha=$FILE_SHA")
+          gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
+
+      - name: Release lock
+        if: always() && steps.lock.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          LOCK_PATH="${WS_PATH}/locks/controller-release.json"
+          LOCK_SHA="${{ steps.lock.outputs.lock_sha }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LOCK=$(jq -n --arg now "$NOW" '{released: true, releasedAt: $now}')
+          CURRENT_SHA=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "$LOCK_SHA")
+          CONTENT=$(gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          UPDATED=$(echo "$CONTENT" | jq --arg now "$NOW" '.released = true | .releasedAt = $now')
+          if ! gh api "repos/$AUTOPILOT_REPO/contents/${LOCK_PATH}" --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=lock: release controller-release [skip ci]" \
+            -f "content=$(echo "$UPDATED" | base64 -w0)" \
+            -f "sha=$CURRENT_SHA" 2>/dev/null; then
+            echo "::warning ::Failed to release controller-release lock at ${LOCK_PATH}. Manual cleanup may be required."
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Controller Release" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.state.outputs.skip }}" = "true" ]; then
+            echo "SHA already promoted. Skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Tag | ${{ steps.ver.outputs.tag }} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| SHA | ${{ steps.state.outputs.short_sha }} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Deploy pushed | ${{ steps.promote.outputs.pushed }} |" >> "$GITHUB_STEP_SUMMARY"
+          fi

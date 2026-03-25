@@ -1,0 +1,63 @@
+name: "[Core] Lock GC"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  gc:
+    name: "Cleanup Expired Locks"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cleanup expired locks
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW_S=$(date +%s)
+          CLEANED=0
+          WORKSPACES=$(gh api "repos/$REPO/contents/state/workspaces?ref=$STATE_BRANCH" \
+            --jq '.[].name' 2>/dev/null || echo "")
+          for WS in $WORKSPACES; do
+            LOCKS=$(gh api "repos/$REPO/contents/state/workspaces/${WS}/locks?ref=$STATE_BRANCH" \
+              --jq '.[] | select(.name | endswith(".json")) | .name' 2>/dev/null || echo "")
+            for LOCK_FILE in $LOCKS; do
+              LOCK_PATH="state/workspaces/${WS}/locks/${LOCK_FILE}"
+              CONTENT=$(gh api "repos/$REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+              FILE_SHA=$(gh api "repos/$REPO/contents/${LOCK_PATH}?ref=$STATE_BRANCH" \
+                --jq '.sha' 2>/dev/null || echo "")
+              RELEASED=$(echo "$CONTENT" | jq -r '.released // false')
+              EXPIRES=$(echo "$CONTENT" | jq -r '.expiresAt // ""')
+              if [ "$RELEASED" = "true" ]; then
+                gh api "repos/$REPO/contents/${LOCK_PATH}" \
+                  --method DELETE \
+                  -f "branch=$STATE_BRANCH" \
+                  -f "message=gc: remove released lock ${WS}/${LOCK_FILE} [skip ci]" \
+                  -f "sha=$FILE_SHA" 2>/dev/null && CLEANED=$((CLEANED + 1))
+              elif [ -n "$EXPIRES" ] && [ "$EXPIRES" != "null" ]; then
+                EXPIRES_S=$(date -d "$EXPIRES" +%s 2>/dev/null || echo "0")
+                if [ "$NOW_S" -gt "$EXPIRES_S" ]; then
+                  UPDATED=$(echo "$CONTENT" | jq \
+                    --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                    '.released = true | .releasedAt = $now | .releasedBy = "lock-gc"')
+                  gh api "repos/$REPO/contents/${LOCK_PATH}" \
+                    --method PUT \
+                    -f "branch=$STATE_BRANCH" \
+                    -f "message=gc: expire lock ${WS}/${LOCK_FILE} [skip ci]" \
+                    -f "content=$(echo "$UPDATED" | base64 -w0)" \
+                    -f "sha=$FILE_SHA" 2>/dev/null && CLEANED=$((CLEANED + 1))
+                fi
+              fi
+            done
+          done
+          echo "## Lock GC" >> "$GITHUB_STEP_SUMMARY"
+          echo "Cleaned: $CLEANED locks" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,105 @@
+name: "[Agent] Enqueue Handoff"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+      from_agent:
+        description: "From agent"
+        required: true
+        type: choice
+        options: [claude, chatgpt, codex, human]
+      to_agent:
+        description: "To agent"
+        required: true
+        type: choice
+        options: [claude, chatgpt, codex, human]
+      component:
+        description: "Component"
+        required: true
+        type: choice
+        options: [controller, agent, infra, general]
+      summary:
+        description: "Summary of work to hand off"
+        required: true
+      next_steps:
+        description: "Next steps (comma-separated)"
+        required: false
+      priority:
+        description: "Priority"
+        required: false
+        type: choice
+        options: [low, normal, high, critical]
+        default: normal
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create handoff
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}/handoffs"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(echo "$NOW" | tr ':' '-')
+          HANDOFF_ID="handoff-${SAFE_NOW}-${{ github.run_number }}"
+          NEXT_STEPS='[]'
+          IFS=',' read -ra STEPS <<< "${{ github.event.inputs.next_steps }}"
+          for S in "${STEPS[@]}"; do
+            TRIMMED=$(echo "$S" | xargs)
+            [ -n "$TRIMMED" ] && NEXT_STEPS=$(echo "$NEXT_STEPS" | jq --arg s "$TRIMMED" '. + [$s]')
+          done
+          HANDOFF=$(jq -n \
+            --arg id "$HANDOFF_ID" \
+            --arg ws "$WS_ID" \
+            --arg from "${{ github.event.inputs.from_agent }}" \
+            --arg to "${{ github.event.inputs.to_agent }}" \
+            --arg now "$NOW" \
+            --arg comp "${{ github.event.inputs.component }}" \
+            --arg sum "${{ github.event.inputs.summary }}" \
+            --argjson steps "$NEXT_STEPS" \
+            --arg pri "${{ github.event.inputs.priority }}" \
+            '{
+              handoffId: $id, workspaceId: $ws,
+              fromAgent: $from, toAgent: $to,
+              createdAt: $now, status: "pending",
+              context: { summary: $sum, component: $comp, nextSteps: $steps, files: [], blockers: [] },
+              priority: $pri
+            }')
+          ENCODED=$(echo "$HANDOFF" | base64 -w0)
+          gh api "repos/$REPO/contents/${WS_PATH}/${HANDOFF_ID}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=handoff: ${{ github.event.inputs.from_agent }} -> ${{ github.event.inputs.to_agent }} ($WS_ID) [skip ci]" \
+            -f "content=$ENCODED"
+          # ── Audit entry ──
+          AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg from "${{ github.event.inputs.from_agent }}" \
+            --arg to "${{ github.event.inputs.to_agent }}" \
+            --arg comp "${{ github.event.inputs.component }}" \
+            --arg hid "$HANDOFF_ID" \
+            '{operation:"enqueue-handoff",workspaceId:$ws,timestamp:$ts,runId:$run,handoffId:$hid,fromAgent:$from,toAgent:$to,component:$comp,status:"created"}')
+          gh api "repos/$REPO/contents/state/workspaces/${WS_ID}/audit/handoff-${SAFE_NOW}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: handoff $HANDOFF_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write audit"
+
+          echo "## Handoff Created" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **ID:** $HANDOFF_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **From:** ${{ github.event.inputs.from_agent }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **To:** ${{ github.event.inputs.to_agent }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Priority:** ${{ github.event.inputs.priority }}" >> "$GITHUB_STEP_SUMMARY"

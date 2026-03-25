@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/lock.schema.json",
+  "title": "Workspace Lock",
+  "type": "object",
+  "required": ["lockId", "workspaceId", "operation", "acquiredAt", "acquiredBy"],
+  "properties": {
+    "lockId": { "type": "string" },
+    "workspaceId": { "type": "string" },
+    "operation": { "type": "string", "enum": ["controller-release", "agent-release", "bootstrap", "backup", "seed"] },
+    "acquiredAt": { "type": "string", "format": "date-time" },
+    "acquiredBy": { "type": "string" },
+    "runId": { "type": "string" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "released": { "type": "boolean", "default": false },
+    "releasedAt": { "type": "string", "format": "date-time" },
+    "agentId": { "type": "string" },
+    "sessionId": { "type": "string" }
+  }
+}

@@ -1,0 +1,125 @@
+name: "[Core] Seed Workspace"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID (e.g. ws-corp-1)"
+        required: true
+      display_name:
+        description: "Display name"
+        required: false
+      controller_source_repo:
+        description: "Controller source repo (owner/repo)"
+        required: false
+      agent_source_repo:
+        description: "Agent source repo (owner/repo)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autopilot-seed-${{ github.event.inputs.workspace_id }}
+  cancel-in-progress: false
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  seed:
+    name: "Create Workspace State"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate
+        id: validate
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          if ! echo "$WS_ID" | grep -qE '^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$'; then
+            echo "::error ::workspace_id invalido"
+            exit 1
+          fi
+          echo "workspace_id=$WS_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Seed workspace
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.validate.outputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          DISPLAY="${{ github.event.inputs.display_name }}"
+          [ -z "$DISPLAY" ] && DISPLAY="$WS_ID"
+          CTRL_SRC="${{ github.event.inputs.controller_source_repo }}"
+          AGENT_SRC="${{ github.event.inputs.agent_source_repo }}"
+          EXISTING=$(gh api "repos/$REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            echo "Workspace $WS_ID ja existe. Atualizando..."
+            CURRENT=$(gh api "repos/$REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+              --jq '.content' | base64 -d)
+            WS_JSON=$(echo "$CURRENT" | jq \
+              --arg name "$DISPLAY" \
+              --arg now "$NOW" \
+              --arg csrc "$CTRL_SRC" \
+              --arg asrc "$AGENT_SRC" \
+              '.displayName = $name | .updatedAt = $now |
+               if $csrc != "" then .controller.sourceRepo = $csrc else . end |
+               if $asrc != "" then .agent.sourceRepo = $asrc else . end')
+          else
+            WS_JSON=$(jq -n \
+              --arg ws "$WS_ID" \
+              --arg name "$DISPLAY" \
+              --arg now "$NOW" \
+              --arg csrc "$CTRL_SRC" \
+              --arg asrc "$AGENT_SRC" \
+              '{
+                schemaVersion: 2, workspaceId: $ws, displayName: $name,
+                createdAt: $now, updatedAt: $now,
+                controller: { sourceRepo: $csrc, deployRepo: "", deployBranch: "main", deployValuesPath: "", ciWorkflowName: "", imagePattern: "" },
+                agent: { sourceRepo: $asrc, deployRepo: "", deployBranch: "main", deployValuesPath: "", capRepo: "", capBranch: "main", capValuesPath: "", ciWorkflowName: "", imagePattern: "" },
+                settings: { promotionTarget: "both", autoRelease: true, lockTimeoutMinutes: 30, healthCheckEnabled: true }
+              }')
+          fi
+          ENCODED=$(echo "$WS_JSON" | base64 -w0)
+          ARGS=(-f "branch=$STATE_BRANCH" -f "message=chore: seed workspace $WS_ID [skip ci]" -f "content=$ENCODED")
+          [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ] && ARGS+=(-f "sha=$EXISTING")
+          gh api "repos/$REPO/contents/${WS_PATH}/workspace.json" --method PUT "${ARGS[@]}"
+          for FILE in controller-release-state.json agent-release-state.json health.json; do
+            FILE_SHA=$(gh api "repos/$REPO/contents/${WS_PATH}/${FILE}?ref=$STATE_BRANCH" \
+              --jq '.sha' 2>/dev/null || echo "")
+            if [ -z "$FILE_SHA" ] || [ "$FILE_SHA" = "null" ]; then
+              COMPONENT=$(echo "$FILE" | sed 's/-release-state.json//' | sed 's/.json//')
+              if [ "$FILE" = "health.json" ]; then
+                CONTENT=$(jq -n --arg ws "$WS_ID" --arg now "$NOW" \
+                  '{schemaVersion:2, workspaceId:$ws, checkedAt:$now, overall:"unknown", checks:{}, summary:"Not yet checked"}')
+              else
+                CONTENT=$(jq -n --arg ws "$WS_ID" --arg comp "$COMPONENT" --arg now "$NOW" \
+                  '{schemaVersion:2, workspaceId:$ws, component:$comp, lastReleasedSha:"", lastTag:"", lastVersion:"", updatedAt:$now, runId:"", runUrl:"", promotions:[], status:"idle"}')
+              fi
+              gh api "repos/$REPO/contents/${WS_PATH}/${FILE}" \
+                --method PUT \
+                -f "branch=$STATE_BRANCH" \
+                -f "message=chore: seed $FILE for $WS_ID [skip ci]" \
+                -f "content=$(echo "$CONTENT" | base64 -w0)"
+            fi
+          done
+          echo "Workspace $WS_ID seeded."
+
+          # ── Audit entry ──
+          AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{operation:"seed-workspace",workspaceId:$ws,timestamp:$ts,runId:$run,runUrl:$url,status:"success"}')
+          SN=$(echo "$NOW" | tr ':' '-')
+          gh api "repos/$REPO/contents/${WS_PATH}/audit/seed-${SN}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: seed-workspace $WS_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write audit entry"
+
+          echo "## Workspace Seeded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **ID:** $WS_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Path:** $WS_PATH/" >> "$GITHUB_STEP_SUMMARY"

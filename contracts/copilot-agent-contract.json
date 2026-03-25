@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 3,
+  "contractId": "copilot-agent-contract",
+  "extends": "shared-agent-contract",
+  "agent": "copilot",
+  "agentIdentifier": "copilot",
+  "capabilities": [
+    "workflow-dispatch",
+    "pr-review",
+    "issue-management",
+    "state-reading",
+    "handoff-creation",
+    "trigger-file-editing",
+    "coordination"
+  ],
+  "tools": {
+    "primary": "github-copilot",
+    "github": "github-api-native",
+    "editor": "github.dev"
+  },
+  "instructions": {
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context. Check trigger file _context field. If ambiguous, ask. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
+    "stateAccess": "Read state from autopilot-state branch via GitHub API. Use gh api repos/lucassfreiree/autopilot/contents/{path}?ref=autopilot-state",
+    "lockProtocol": "Read session-lock.json before any action. If locked by another agent, create handoff instead of proceeding.",
+    "sessionGuard": "CRITICAL: Check locks/session-lock.json. If agentId != 'none' and not expired, ABORT and create handoff. Never force override.",
+    "workflowDispatch": "Trigger workflows by editing trigger/*.json files (bump 'run' field) or via workflow_dispatch API.",
+    "handoffProtocol": "Use enqueue-agent-handoff.yml to delegate work to Claude or Codex. Set from_agent=copilot.",
+    "coordinationProtocol": "Read latest improvement report to understand project health. Check release state before triggering releases.",
+    "auditProtocol": "Workflows handle audit automatically. When creating issues or comments, reference the run URL."
+  },
+  "triggerFiles": {
+    "description": "Edit these files on main branch, bump 'run' field to trigger associated workflow",
+    "files": {
+      "trigger/source-change.json": "apply-source-change.yml",
+      "trigger/full-test.json": "test-full-flow.yml",
+      "trigger/e2e-test.json": "test-corporate-flow.yml",
+      "trigger/improvement.json": "continuous-improvement.yml",
+      "trigger/fix-ci.json": "fix-corporate-ci.yml",
+      "trigger/fix-and-validate.json": "fix-and-validate.yml",
+      "trigger/agent-sync.json": "agent-sync.yml"
+    }
+  },
+  "limitations": [
+    "Cannot push directly to corporate repos - must use apply-source-change.yml",
+    "Cannot modify autopilot-state branch directly - must use workflows",
+    "Cannot override another agent's session lock",
+    "Should create handoffs for complex implementations instead of doing them directly"
+  ],
+  "contextFiles": [
+    "contracts/shared-agent-contract.json",
+    "CLAUDE.md"
+  ]
+}

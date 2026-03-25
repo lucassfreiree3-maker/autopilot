@@ -1,0 +1,87 @@
+name: "[Infra] Cleanup: Stale Branches"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup-merged:
+    name: "Delete head branch after merge"
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Delete merged branch"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          PROTECTED="main autopilot-state autopilot-backups"
+          for P in $PROTECTED; do
+            if [ "$BRANCH" = "$P" ]; then
+              echo "Protected branch, skip"
+              exit 0
+            fi
+          done
+          gh api "repos/${{ github.repository }}/git/refs/heads/${BRANCH}" --method DELETE 2>/dev/null && \
+            echo "Deleted: $BRANCH" || echo "Already deleted or not found"
+
+  cleanup-stale:
+    name: "Delete stale branches"
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Find and delete"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          PROTECTED="main autopilot-state autopilot-backups"
+          echo "## Branch Cleanup" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | Action |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          DELETED=0
+          for B in $(gh api "repos/$REPO/branches" --paginate --jq '.[].name'); do
+            SKIP=false
+            for P in $PROTECTED; do [ "$B" = "$P" ] && SKIP=true; done
+            [ "$SKIP" = "true" ] && continue
+
+            COMPARE_RESPONSE=$(gh api "repos/$REPO/compare/main...$B" 2>/dev/null || echo "")
+            if [ -z "$COMPARE_RESPONSE" ] || ! echo "$COMPARE_RESPONSE" | jq empty 2>/dev/null; then
+              echo "| $B | skipped (compare API returned invalid response) |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            STATUS=$(echo "$COMPARE_RESPONSE" | jq -r '.status // "unknown"')
+            if [ "$STATUS" = "unknown" ] || [ "$STATUS" = "null" ] || [ -z "$STATUS" ]; then
+              echo "| $B | skipped (compare API returned no status) |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            if [ "$STATUS" = "behind" ] || [ "$STATUS" = "identical" ]; then
+              gh api "repos/$REPO/git/refs/heads/$B" --method DELETE 2>/dev/null && \
+                echo "Deleted: $B (merged)" || echo "Failed: $B"
+              echo "| $B | deleted (merged) |" >> "$GITHUB_STEP_SUMMARY"
+              DELETED=$((DELETED + 1))
+            else
+              LAST=$(gh api "repos/$REPO/branches/$B" --jq '.commit.commit.committer.date' 2>/dev/null || echo "")
+              if [ -n "$LAST" ]; then
+                AGE=$(( ($(date +%s) - $(date -d "$LAST" +%s 2>/dev/null || echo "0")) / 86400 ))
+                if [ "$AGE" -gt 7 ]; then
+                  gh api "repos/$REPO/git/refs/heads/$B" --method DELETE 2>/dev/null && \
+                    echo "Deleted: $B (stale ${AGE}d)" || echo "Failed: $B"
+                  echo "| $B | deleted (${AGE}d stale) |" >> "$GITHUB_STEP_SUMMARY"
+                  DELETED=$((DELETED + 1))
+                else
+                  echo "| $B | kept (${AGE}d old) |" >> "$GITHUB_STEP_SUMMARY"
+                fi
+              fi
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Deleted $DELETED branches**" >> "$GITHUB_STEP_SUMMARY"

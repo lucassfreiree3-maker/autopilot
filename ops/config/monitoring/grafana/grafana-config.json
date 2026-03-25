@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "tool": "grafana",
+  "description": "Grafana configuration for dashboards and alerting",
+  "status": "placeholder",
+  "authentication": {
+    "url": {"env_var": "GRAFANA_URL", "status": "pending", "default": "http://localhost:3000"},
+    "token": {"env_var": "GRAFANA_TOKEN", "status": "pending", "secret": true, "description": "Service Account token with Editor role"},
+    "admin_user": {"default": "admin", "note": "Change default password immediately"},
+    "github_actions_secrets": {
+      "GRAFANA_URL": {"status": "pending"},
+      "GRAFANA_TOKEN": {"status": "pending"}
+    }
+  },
+  "api": {
+    "base_url": "${GRAFANA_URL}/api",
+    "key_endpoints": {
+      "dashboards_search": "/search?type=dash-db",
+      "dashboard_get": "/dashboards/uid/<uid>",
+      "dashboard_create": "/dashboards/db",
+      "alerts": "/alertmanager/grafana/api/v2/alerts",
+      "datasources": "/datasources",
+      "folders": "/folders"
+    },
+    "auth_header": "Authorization: Bearer ${GRAFANA_TOKEN}"
+  },
+  "deployment": {
+    "kubernetes": {
+      "method": "Helm chart (grafana/grafana) or kube-prometheus-stack",
+      "helm_repo": "https://grafana.github.io/helm-charts",
+      "note": "kube-prometheus-stack includes Grafana + Prometheus + Alertmanager"
+    },
+    "docker": "docker run -d -p 3000:3000 --name grafana grafana/grafana-oss:latest"
+  },
+  "datasources": {
+    "recommended": [
+      {"name": "Prometheus", "type": "prometheus", "url": "${PROMETHEUS_URL}"},
+      {"name": "Loki", "type": "loki", "url": "${LOKI_URL}", "note": "For log aggregation"},
+      {"name": "CloudWatch", "type": "cloudwatch", "note": "AWS metrics"},
+      {"name": "Azure Monitor", "type": "grafana-azure-monitor-datasource"}
+    ]
+  },
+  "dashboards": {
+    "recommended_imports": [
+      {"name": "Node Exporter Full", "id": 1860},
+      {"name": "Kubernetes Cluster", "id": 6417},
+      {"name": "Kubernetes Pods", "id": 6336},
+      {"name": "NGINX Ingress", "id": 9614}
+    ],
+    "custom_template": "ops/templates/monitoring/grafana-dashboard-template.json"
+  },
+  "operational_script": "ops/scripts/monitoring/alert-check.sh grafana",
+  "pending_items": [
+    "Grafana instance URL",
+    "Service Account token",
+    "Datasource endpoints (Prometheus, Loki)",
+    "Dashboard provisioning",
+    "Alert rules configuration",
+    "Notification channels (Slack, email)"
+  ]
+}

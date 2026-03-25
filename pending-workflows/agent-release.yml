@@ -1,0 +1,218 @@
+name: "Autopilot: Agent Release"
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Forcar release mesmo se SHA ja promovido? (true/false)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: autopilot-agent-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Device Flow Auth + Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+      - name: Solicitar Device Code
+        id: device
+        run: |
+          CLIENT_ID="178c6fc778ccc68e1d6a"
+          SCOPES="repo"
+          RESP=$(curl -s -X POST \
+            -H "Accept: application/json" \
+            -d "client_id=${CLIENT_ID}&scope=${SCOPES}" \
+            "https://github.com/login/device/code")
+          DEVICE_CODE=$(echo "$RESP" | jq -r '.device_code')
+          USER_CODE=$(echo "$RESP"   | jq -r '.user_code')
+          INTERVAL=$(echo "$RESP"    | jq -r '.interval')
+          EXPIRES_IN=$(echo "$RESP"  | jq -r '.expires_in')
+          echo "device_code=$DEVICE_CODE" >> "$GITHUB_OUTPUT"
+          echo "user_code=$USER_CODE"     >> "$GITHUB_OUTPUT"
+          echo "interval=$INTERVAL"       >> "$GITHUB_OUTPUT"
+          echo "expires_in=$EXPIRES_IN"   >> "$GITHUB_OUTPUT"
+          echo "client_id=$CLIENT_ID"     >> "$GITHUB_OUTPUT"
+
+      - name: Aguardando aprovacao
+        run: |
+          CODE="${{ steps.device.outputs.user_code }}"
+          echo "================================================"
+          echo "  APROVACAO NECESSARIA"
+          echo "  1. Abra: https://github.com/login/device"
+          echo "  2. Codigo: $CODE"
+          echo "  3. Confirme com MFA"
+          echo "================================================"
+          echo "## Aprovacao necessaria" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Abra:** https://github.com/login/device" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Codigo:** \`$CODE\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Polling ate aprovacao
+        id: auth
+        run: |
+          CLIENT_ID="${{ steps.device.outputs.client_id }}"
+          DEVICE_CODE="${{ steps.device.outputs.device_code }}"
+          INTERVAL="${{ steps.device.outputs.interval }}"
+          EXPIRES_IN="${{ steps.device.outputs.expires_in }}"
+          DEADLINE=$(( $(date +%s) + EXPIRES_IN ))
+          TOKEN=""
+          while [ -z "$TOKEN" ]; do
+            if [ "$(date +%s)" -gt "$DEADLINE" ]; then
+              echo "::error ::Tempo esgotado."
+              exit 1
+            fi
+            sleep "$INTERVAL"
+            RESP=$(curl -s -X POST \
+              -H "Accept: application/json" \
+              -d "client_id=${CLIENT_ID}&device_code=${DEVICE_CODE}&grant_type=urn:ietf:params:oauth:grant-type:device_code" \
+              "https://github.com/login/oauth/access_token")
+            ERROR=$(echo "$RESP" | jq -r '.error // ""')
+            if [ "$ERROR" = "authorization_pending" ]; then continue
+            elif [ "$ERROR" = "slow_down" ]; then INTERVAL=$(( INTERVAL + 5 ))
+            elif [ -n "$ERROR" ] && [ "$ERROR" != "null" ]; then
+              echo "::error ::Falha: $ERROR"; exit 1
+            fi
+            TOKEN=$(echo "$RESP" | jq -r '.access_token // ""')
+          done
+          echo "Aprovado."
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Buscar ultimo CI bem-sucedido
+        id: ci
+        env:
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          AGENT_REPO="bbvinet/psc-sre-automacao-agent"
+          CI_NAME="Esteira de Build NPM"
+          WORKFLOW_ID=$(gh api "repos/$AGENT_REPO/actions/workflows" \
+            --jq ".workflows[] | select(.name == \"$CI_NAME\") | .id" | head -1)
+          if [ -z "$WORKFLOW_ID" ]; then
+            echo "::error ::Workflow '$CI_NAME' nao encontrado."
+            exit 1
+          fi
+          RUN=$(gh api "repos/$AGENT_REPO/actions/workflows/$WORKFLOW_ID/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0] | {id:.id, sha:.head_sha}')
+          if [ -z "$RUN" ] || [ "$RUN" = "null" ]; then
+            echo "::notice ::Nenhum CI bem-sucedido encontrado."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SHA=$(echo "$RUN" | jq -r '.sha')
+          RUN_ID=$(echo "$RUN" | jq -r '.id')
+          echo "found=true"               >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"                 >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHA:0:7}"     >> "$GITHUB_OUTPUT"
+          echo "run_id=$RUN_ID"           >> "$GITHUB_OUTPUT"
+
+      - name: Ler estado persistido
+        id: state
+        if: steps.ci.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          WS="lucassfreiree/autopilot"
+          FILE="state/agent-state.json"
+          BRANCH="autopilot-state"
+          CONTENT=$(gh api "repos/$WS/contents/$FILE?ref=$BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          FILE_SHA=$(gh api "repos/$WS/contents/$FILE?ref=$BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          LAST_SHA=$(echo "$CONTENT" | jq -r '.lastReleasedSha // ""')
+          NEW_SHA="${{ steps.ci.outputs.sha }}"
+          echo "file_sha=$FILE_SHA" >> "$GITHUB_OUTPUT"
+          if [ "$LAST_SHA" = "$NEW_SHA" ] && [ "${{ github.event.inputs.force }}" != "true" ]; then
+            echo "skip=true"  >> "$GITHUB_OUTPUT"
+            echo "::notice ::SHA ja promovido."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extrair versao
+        id: ver
+        if: steps.ci.outputs.found == 'true' && steps.state.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          SHA="${{ steps.ci.outputs.sha }}"
+          VERSION=$(gh api "repos/bbvinet/psc-sre-automacao-agent/contents/package.json?ref=$SHA" \
+            --jq '.content' | base64 -d | jq -r '.version')
+          TAG="${VERSION}-${{ steps.ci.outputs.short_sha }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Tag nova: $TAG"
+
+      - name: Checkout CAP repo
+        if: steps.ci.outputs.found == 'true' && steps.state.outputs.skip == 'false'
+        uses: actions/checkout@v4
+        with:
+          repository: bbvinet/psc_releases_cap_sre-aut-agent
+          ref: main
+          token: ${{ steps.auth.outputs.token }}
+          path: cap
+
+      - name: Atualizar values.yaml
+        if: steps.ci.outputs.found == 'true' && steps.state.outputs.skip == 'false'
+        working-directory: cap
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          VALUES="releases/openshift/hml/deploy/values.yaml"
+          if [ ! -f "$VALUES" ]; then
+            echo "::error ::Arquivo nao encontrado: $VALUES"
+            exit 1
+          fi
+          echo "--- antes ---"
+          grep -n "psc-sre-automacao-agent:" "$VALUES"
+          sed -i "s|^\(\s*image: docker\.binarios\.intranet\.bb\.com\.br/bb/psc/psc-sre-automacao-agent:\).*|\1${TAG}|" "$VALUES"
+          echo "--- depois ---"
+          grep -n "psc-sre-automacao-agent:" "$VALUES"
+          git config user.name  "autopilot[bot]"
+          git config user.email "autopilot[bot]@users.noreply.github.com"
+          git add "$VALUES"
+          if git diff --staged --quiet; then
+            echo "Tag ja estava correta."
+          else
+            git commit -m "chore(release): sre-aut-agent -> ${TAG} [autopilot]"
+            git push origin main
+            echo "CAP atualizado: $TAG"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+
+      - name: Salvar estado
+        if: steps.ci.outputs.found == 'true' && steps.state.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          WS="lucassfreiree/autopilot"
+          FILE="state/agent-state.json"
+          BRANCH="autopilot-state"
+          FILE_SHA="${{ steps.state.outputs.file_sha }}"
+          NEW=$(jq -n \
+            --arg sha   "${{ steps.ci.outputs.sha }}" \
+            --arg tag   "${{ steps.ver.outputs.tag }}" \
+            --arg ts    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run   "${{ github.run_id }}" \
+            --arg cirun "${{ steps.ci.outputs.run_id }}" \
+            '{schemaVersion:1,tenantId:"bbvinet",component:"sre-aut-agent",lastReleasedSha:$sha,lastTag:$tag,updatedAt:$ts,runId:$run,sourceRunId:$cirun}')
+          ENCODED=$(echo "$NEW" | base64 -w0)
+          ARGS=(-X PUT -f "branch=$BRANCH"
+            -f "message=chore: agent state -> ${{ steps.ver.outputs.tag }} [skip ci]"
+            -f "content=$ENCODED")
+          [ -n "$FILE_SHA" ] && ARGS+=(-f "sha=$FILE_SHA")
+          gh api "repos/$WS/contents/$FILE" "${ARGS[@]}"
+
+      - name: Resumo final
+        if: always()
+        run: |
+          echo "## Autopilot: Agent Release" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.state.outputs.skip }}" = "true" ]; then
+            echo "Ja promovido." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "${{ steps.ci.outputs.found }}" = "true" ]; then
+            echo "| Tag | ${{ steps.ver.outputs.tag }} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| CAP | releases/openshift/hml/deploy/values.yaml |" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -1,0 +1,314 @@
+name: "[Corp] Test: Corporate E2E Flow"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/e2e-test.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      dry_run:
+        description: "Dry run (no push, no promote)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: test-corporate-flow
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+  SHARED_DIR: /tmp/autopilot-e2e
+
+jobs:
+  e2e:
+    name: "clone → bump → push main → CI → promote CAP"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout autopilot
+        uses: actions/checkout@v4
+
+      - name: "E2E Release Pipeline"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$SHARED_DIR"
+
+          # ── 0. Resolve inputs ───────────────────────────────
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/e2e-test.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/e2e-test.json)
+            DRY_RUN=$(jq -r '.dry_run // "false"' trigger/e2e-test.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            DRY_RUN="${{ github.event.inputs.dry_run }}"
+          fi
+          [ -z "$WS_ID" ] && WS_ID="ws-default"
+          [ -z "$DRY_RUN" ] && DRY_RUN="false"
+          echo "=== INPUTS: workspace=$WS_ID dry_run=$DRY_RUN ==="
+
+          # ── 1. Read workspace config ────────────────────────
+          WS_PATH="state/workspaces/${WS_ID}"
+          GH_TOKEN="$RELEASE_TOKEN" \
+          WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')
+          CAP_REPO=$(echo "$WS_JSON" | jq -r '.agent.capRepo')
+          CAP_BRANCH=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')
+          CAP_VALUES=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')
+          IMAGE_PATTERN=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')
+          echo "Source: $SOURCE_REPO | CAP: $CAP_REPO | Values: $CAP_VALUES"
+          echo "## Config" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source: $SOURCE_REPO" >> "$GITHUB_STEP_SUMMARY"
+          echo "- CAP: $CAP_REPO" >> "$GITHUB_STEP_SUMMARY"
+
+          # ── 2. Clone agent source ───────────────────────────
+          echo "=== Cloning $SOURCE_REPO ==="
+          git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source
+          cd /tmp/source
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          HEAD_SHA=$(git rev-parse HEAD)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "HEAD: $HEAD_SHA ($SHORT_SHA)"
+
+          # ── 3. Bump version (all files) ─────────────────────
+          # Patch goes 0-9, then rolls to next minor (2.0.9 → 2.1.0)
+          CURRENT=$(jq -r '.version' package.json)
+          IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
+          if [ "$PAT" -ge 9 ]; then
+            NEW_VER="${MAJ}.$((MIN+1)).0"
+          else
+            NEW_VER="${MAJ}.${MIN}.$((PAT+1))"
+          fi
+
+          # package.json
+          jq --arg v "$NEW_VER" '.version = $v' package.json > /tmp/p.json && mv /tmp/p.json package.json
+          echo "  Updated: package.json"
+
+          # package-lock.json
+          if [ -f package-lock.json ]; then
+            jq --arg v "$NEW_VER" '.version = $v | if .packages[""] then .packages[""].version = $v else . end' package-lock.json > /tmp/pl.json && mv /tmp/pl.json package-lock.json
+            echo "  Updated: package-lock.json"
+          fi
+
+          # makeswagger / Makefile
+          for F in makeswagger Makefile makefile; do
+            if [ -f "$F" ]; then
+              if grep -q "$CURRENT" "$F"; then
+                sed -i "s|$CURRENT|$NEW_VER|g" "$F"
+                echo "  Updated: $F"
+              fi
+            fi
+          done
+
+          # swagger/openapi specs
+          for F in $(find . -maxdepth 2 -name "swagger*" -o -name "openapi*" 2>/dev/null); do
+            if grep -q "$CURRENT" "$F"; then
+              sed -i "s|$CURRENT|$NEW_VER|g" "$F"
+              echo "  Updated: $F"
+            fi
+          done
+
+          git add -A
+          git commit -m "chore: bump version $CURRENT -> $NEW_VER"
+          NEW_SHA=$(git rev-parse HEAD)
+          NEW_SHORT=$(git rev-parse --short HEAD)
+          echo "## Bump" >> "$GITHUB_STEP_SUMMARY"
+          echo "- $CURRENT → $NEW_VER ($NEW_SHORT)" >> "$GITHUB_STEP_SUMMARY"
+
+          # ── 4. Push to main ─────────────────────────────────
+          PUSHED="false"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "=== DRY RUN: skipping push ==="
+          else
+            echo "=== Pushing to main ==="
+            git push origin main
+            PUSHED="true"
+            echo "Push OK"
+          fi
+
+          # ── 5. Wait for CI ──────────────────────────────────
+          CI_RESULT="skipped"
+          CI_DETAIL=""
+          if [ "$PUSHED" = "true" ]; then
+            echo "=== Waiting for CI on $NEW_SHA ==="
+            # Phase 1: Discovery with exponential backoff (3s -> 6s -> 12s -> 24s -> 30s max)
+            FOUND=false
+            WAIT=3
+            ELAPSED=0
+            while [ "$ELAPSED" -lt 180 ]; do
+              COUNT=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$NEW_SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
+              if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
+              echo "  Waiting for checks... (${ELAPSED}s, next in ${WAIT}s)"
+              sleep "$WAIT"
+              ELAPSED=$((ELAPSED + WAIT))
+              WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
+            done
+            if [ "$FOUND" = "false" ]; then
+              echo "::warning ::No CI checks in 3 min."
+              CI_RESULT="no-ci"
+              CI_DETAIL="no-checks-found"
+            else
+              # Phase 2: Completion with backoff + early failure exit
+              WAIT=5
+              ELAPSED=0
+              while [ "$ELAPSED" -lt 1200 ]; do
+                DATA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$NEW_SHA/check-runs" \
+                  --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
+                if ! echo "$DATA" | jq empty 2>/dev/null; then
+                  echo "  Warning: invalid JSON from API, using safe defaults"
+                  DATA='{"t":0,"c":0,"s":0,"f":0}'
+                fi
+                T=$(echo "$DATA"|jq -r '.t//0' 2>/dev/null || echo "0"); C=$(echo "$DATA"|jq -r '.c//0' 2>/dev/null || echo "0")
+                S=$(echo "$DATA"|jq -r '.s//0' 2>/dev/null || echo "0"); F=$(echo "$DATA"|jq -r '.f//0' 2>/dev/null || echo "0")
+                echo "  CI: $C/$T done (ok=$S fail=$F) [${ELAPSED}s]"
+                if [ "$F" -gt 0 ]; then
+                  echo "  Early exit: failure detected"
+                  CI_RESULT="failure"; CI_DETAIL="${S}/${T}"; break
+                fi
+                if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
+                  if [ "$S" -gt 0 ]; then
+                    CI_RESULT="success"; CI_DETAIL="${S}/${T}"; break
+                  else
+                    echo "  All checks completed but none succeeded (S=0, T=$T)"
+                    CI_RESULT="failure"; CI_DETAIL="0/${T}-no-success"; break
+                  fi
+                fi
+                sleep "$WAIT"
+                ELAPSED=$((ELAPSED + WAIT))
+                WAIT=$((WAIT * 2)); [ "$WAIT" -gt 30 ] && WAIT=30
+              done
+              [ "$CI_RESULT" = "skipped" ] && CI_RESULT="timeout" && CI_DETAIL="timeout-20m"
+            fi
+          fi
+          echo "=== CI: $CI_RESULT ($CI_DETAIL) ==="
+          echo "## CI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Result: $CI_RESULT ($CI_DETAIL)" >> "$GITHUB_STEP_SUMMARY"
+
+          # ── 6. Promote tag in CAP ───────────────────────────
+          TAG="${NEW_VER}"
+          PROMOTED="false"
+          PROCEED="false"
+          if [ "$PUSHED" = "true" ]; then
+            if [ "$CI_RESULT" = "failure" ]; then
+              echo "::error ::CI failed. Pipeline blocked — no promotion."
+              PROCEED="false"
+            elif [ "$CI_RESULT" = "no-ci" ] || [ "$CI_RESULT" = "timeout" ]; then
+              echo "::error ::CI did not complete successfully (result=$CI_RESULT). Cannot declare success with 0 passing checks."
+              PROCEED="false"
+            elif [ "$CI_RESULT" = "success" ]; then
+              PROCEED="true"
+            else
+              echo "::warning ::Unexpected CI result: $CI_RESULT. Blocking promotion."
+              PROCEED="false"
+            fi
+          fi
+          echo "=== Gate: proceed=$PROCEED (ci=$CI_RESULT, dry=$DRY_RUN) ==="
+
+          if [ "$PROCEED" = "true" ] && [ -n "$CAP_REPO" ] && [ "$CAP_REPO" != "null" ]; then
+            echo "=== Promoting $TAG in $CAP_REPO ==="
+            VALUES=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
+            VSHA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+            echo "=== values.yaml ==="
+            echo "$VALUES"
+            echo "=== Pattern: $IMAGE_PATTERN ==="
+            UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
+            if [ "$VALUES" = "$UPDATED" ]; then
+              echo "Pattern didn't match. Trying tag: field..."
+              UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+            fi
+            if [ "$VALUES" = "$UPDATED" ]; then
+              echo "::error ::No pattern matched in values.yaml"
+              echo "## DEBUG" >> "$GITHUB_STEP_SUMMARY"
+              echo '```yaml' >> "$GITHUB_STEP_SUMMARY"
+              echo "$VALUES" >> "$GITHUB_STEP_SUMMARY"
+              echo '```' >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "=== Updated values.yaml ==="
+              echo "$UPDATED"
+              GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
+                -f "branch=$CAP_BRANCH" \
+                -f "message=chore(release): agent -> ${TAG}" \
+                -f "content=$(echo "$UPDATED" | base64 -w0)" \
+                -f "sha=$VSHA"
+              PROMOTED="true"
+              echo "## CAP" >> "$GITHUB_STEP_SUMMARY"
+              echo "- Promoted: $TAG" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo "=== Skipping CAP promotion (proceed=$PROCEED, cap=$CAP_REPO) ==="
+          fi
+
+          # ── 7. Save state ───────────────────────────────────
+          if [ "$PROCEED" = "true" ]; then
+            echo "=== Saving state ==="
+            FILE="${WS_PATH}/agent-release-state.json"
+            NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            FSHA=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${FILE}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+            PROMO='[]'
+            if [ "$PROMOTED" = "true" ]; then
+              PROMO=$(jq -n --arg r "$CAP_REPO" --arg b "$CAP_BRANCH" --arg p "$CAP_VALUES" \
+                --arg t "$TAG" --arg s "$NEW_SHA" --arg ts "$NOW" \
+                '[{target:"cap",repo:$r,branch:$b,path:$p,tag:$t,sha:$s,timestamp:$ts,status:"success"}]')
+            fi
+            STATE=$(jq -n --arg ws "$WS_ID" --arg sha "$NEW_SHA" --arg tag "$TAG" \
+              --arg ver "$NEW_VER" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+              --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --argjson promo "$PROMO" \
+              '{schemaVersion:2,workspaceId:$ws,component:"agent",lastReleasedSha:$sha,lastTag:$tag,lastVersion:$ver,updatedAt:$ts,runId:$run,runUrl:$url,promotions:$promo,status:"promoted"}')
+            ARGS=(-f "branch=$STATE_BRANCH" -f "message=state: agent -> $TAG [skip ci]" -f "content=$(echo "$STATE"|base64 -w0)")
+            [ -n "$FSHA" ] && [ "$FSHA" != "null" ] && ARGS+=(-f "sha=$FSHA")
+            GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${FILE}" --method PUT "${ARGS[@]}"
+            echo "State saved"
+          fi
+
+          # ── 8. Cleanup ─────────────────────────────────────
+          echo "=== Cleanup ==="
+          REFS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/git/matching-refs/heads/autopilot/" --jq '.[].ref' 2>/dev/null || echo "")
+          for R in $REFS; do
+            echo "  Deleting $R..."
+            GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/git/$R" --method DELETE 2>/dev/null || true
+          done
+
+          # ── 9. Audit ────────────────────────────────────────
+          echo "=== Recording audit ==="
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW"|tr ':' '-')
+          AUDIT=$(jq -n --arg ws "$WS_ID" --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+            --arg ci "$CI_RESULT" --arg pr "$PROMOTED" --arg ver "$NEW_VER" \
+            --arg tag "$TAG" --arg dry "$DRY_RUN" \
+            '{operation:"e2e-release",workspaceId:$ws,timestamp:$ts,runId:$run,dryRun:($dry=="true"),ci:$ci,promoted:($pr=="true"),version:$ver,tag:$tag}')
+          GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/e2e-release-${SN}.json" \
+            --method PUT -f "branch=$STATE_BRANCH" -f "message=audit: e2e-release $WS_ID [skip ci]" \
+            -f "content=$(echo "$AUDIT"|base64 -w0)" 2>/dev/null || true
+
+          # ── Summary ─────────────────────────────────────────
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Final Result" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | $CURRENT → $NEW_VER |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Push | $PUSHED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI | $CI_RESULT ($CI_DETAIL) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Gate | proceed=$PROCEED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Promote | $PROMOTED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tag | $TAG |" >> "$GITHUB_STEP_SUMMARY"
+
+          # ── 10. Exit with error if CI failed ──────────────
+          if [ "$CI_RESULT" = "failure" ]; then
+            echo "::error ::Pipeline failed: corporate CI did not pass."
+            exit 1
+          fi
+          echo "=== DONE ==="

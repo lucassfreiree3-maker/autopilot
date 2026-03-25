@@ -1,0 +1,1405 @@
+{
+  "schemaVersion": 2,
+  "contractId": "claude-session-memory",
+  "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
+  "lastUpdated": "2026-03-25T17:15:00-03:00",
+  "lastSessionId": "session_setup_ops_environment",
+
+  "multiCompanyModel": {
+    "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
+    "companies": {
+      "getronics": {
+        "workspaceId": "ws-default",
+        "machine": "getronics-workstation",
+        "stack": "Node/TypeScript (NestJS, Jest, ESLint)",
+        "tokenSecret": "BBVINET_TOKEN",
+        "repos": ["bbvinet/psc-sre-automacao-controller", "bbvinet/psc-sre-automacao-agent", "bbvinet/psc_releases_cap_sre-aut-agent"],
+        "status": "active",
+        "lastDeploy": "3.6.3 (current deployed — security fixes)",
+        "notes": "Pipeline completo e funcional. Controller no GitLab (sem auto-promote). Esteira de Build NPM. Controller v3.6.3 operacional no cluster k8shmlbb111b (HML). Security fixes: XSS sanitizeForOutput, DoS MAX_RESULTS=1000, error detail hardening. Pre-deploy validation workflow criado."
+      },
+      "cit": {
+        "workspaceId": "ws-cit",
+        "machine": "cit-workstation",
+        "stack": "DevOps (K8s, Docker, Terraform, Ansible, Helm, ArgoCD, CI/CD)",
+        "tokenSecret": "CIT_TOKEN",
+        "repos": [],
+        "status": "setup",
+        "lastDeploy": null,
+        "notes": "Nova empresa. Stack DevOps. Plataforma operacional COMPLETA em ops/ — configs per-tool, workflows GitHub Actions, integration registry, automation runtimes (Python/Node/Shell), Terraform structure, docs per-tool, readiness tracker. Multi-cloud ready (AWS/Azure/GCP). Multi-CI ready (GitLab/GitHub/Jenkins). IaC com Terraform/Terragrunt. Monitoring ready (Datadog/Grafana/Prometheus).",
+        "opsEnvironment": {
+          "setupDate": "2026-03-24",
+          "expandedDate": "2026-03-24",
+          "scripts": ["diagnose.sh", "analyze-pipeline.sh", "cluster-health.sh", "tf-ops.sh", "cloud-check.sh", "alert-check.sh", "ops-logger.sh"],
+          "automationRuntimes": ["ops/scripts/python/ (ops_utils.py + requirements.txt)", "ops/scripts/node/ (ops-utils.js + package.json)"],
+          "configs": ["aws", "azure", "gcp", "github", "gitlab", "jenkins", "kubernetes", "terraform", "datadog", "grafana", "prometheus"],
+          "workflows": ["ops-cloud-diagnose.yml", "ops-tf-plan.yml", "ops-k8s-health.yml", "ops-monitor-alerts.yml", "ops-pipeline-diagnose.yml"],
+          "integrations": ["slack-webhook", "generic-webhook", "generic-api", "registry.json"],
+          "docs": ["github-ops.md", "cloud-ops.md", "terraform-ops.md", "k8s-ops.md", "ci-ops.md", "monitoring-ops.md", "automation-ops.md"],
+          "terraform": ["environments/dev", "environments/staging", "environments/production", "modules/", "global/"],
+          "inventory": "ops/inventory/readiness.json (17% ready — structure complete, credentials pending)",
+          "runbooks": ["incident-response", "pipeline-troubleshooting", "k8s-common-issues", "terraform-operations", "cloud-operations", "monitoring-setup"],
+          "templates": ["gitlab-ci", "github-actions", "jenkinsfile", "terraform-module", "k8s-deployment", "prometheus-alerts", "grafana-dashboard"],
+          "checklists": ["new-environment", "deploy", "troubleshooting"]
+        },
+        "onboardingGuide": {
+          "description": "GUIA COMPLETO para o agente saber EXATAMENTE o que fazer quando o usuario fornecer qualquer credencial, endpoint, repo, token ou acesso. Cada item mapeia: o que o usuario vai enviar → onde guardar → o que ativar → como testar.",
+          "instructions": "Quando o usuario enviar QUALQUER informacao listada abaixo, o agente DEVE: 1) Identificar qual item e, 2) Seguir os passos de ativacao, 3) Testar, 4) Atualizar readiness.json, 5) Confirmar ao usuario.",
+          "items": {
+            "aws_credentials": {
+              "whatUserSends": "AWS Access Key ID + Secret Access Key (ou Role ARN para OIDC)",
+              "alsoNeeded": ["AWS_DEFAULT_REGION (ex: us-east-1, sa-east-1)", "Account ID (opcional mas util)"],
+              "whereToStore": {
+                "github_secrets": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_ROLE_ARN (se OIDC)"],
+                "github_variables": ["AWS_DEFAULT_REGION"],
+                "config_file": "ops/config/cloud/aws/aws-config.json → mudar status de pending para active"
+              },
+              "whatActivates": [
+                "ops-cloud-diagnose.yml (provider=aws funciona)",
+                "ops-tf-plan.yml (com backend S3)",
+                "ops-k8s-health.yml (provider=aws para EKS)",
+                "ops/scripts/cloud/cloud-check.sh aws",
+                "Terraform com provider AWS"
+              ],
+              "howToTest": "Executar workflow ops-cloud-diagnose.yml com provider=aws, action=auth",
+              "readinessUpdate": "aws: pending → ready"
+            },
+            "azure_credentials": {
+              "whatUserSends": "Azure Client ID + Client Secret + Tenant ID + Subscription ID (ou OIDC config)",
+              "alsoNeeded": ["Resource Group names (se AKS existe)"],
+              "whereToStore": {
+                "github_secrets": ["AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "AZURE_CREDENTIALS (JSON legacy)"],
+                "github_variables": ["AKS_RESOURCE_GROUP (se AKS existe)"],
+                "config_file": "ops/config/cloud/azure/azure-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-cloud-diagnose.yml (provider=azure funciona)",
+                "ops-k8s-health.yml (provider=azure para AKS)",
+                "ops/scripts/cloud/cloud-check.sh azure",
+                "Terraform com provider azurerm"
+              ],
+              "howToTest": "Executar workflow ops-cloud-diagnose.yml com provider=azure, action=auth",
+              "readinessUpdate": "azure: pending → ready"
+            },
+            "gcp_credentials": {
+              "whatUserSends": "Service Account Key JSON (ou Workload Identity Provider para OIDC)",
+              "alsoNeeded": ["GCP Project ID", "Default region/zone"],
+              "whereToStore": {
+                "github_secrets": ["GCP_SA_KEY (base64 do JSON)", "GCP_WORKLOAD_IDENTITY_PROVIDER (se OIDC)"],
+                "github_variables": ["GCP_PROJECT_ID", "GKE_ZONE"],
+                "config_file": "ops/config/cloud/gcp/gcp-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-cloud-diagnose.yml (provider=gcp funciona)",
+                "ops-k8s-health.yml (provider=gcp para GKE)",
+                "ops/scripts/cloud/cloud-check.sh gcp",
+                "Terraform com provider google"
+              ],
+              "howToTest": "Executar workflow ops-cloud-diagnose.yml com provider=gcp, action=auth",
+              "readinessUpdate": "gcp: pending → ready"
+            },
+            "kubernetes_cluster": {
+              "whatUserSends": "Cluster name + provider (aws/azure/gcp) OU kubeconfig direto",
+              "alsoNeeded": ["Namespace list", "Qual ambiente (dev/staging/prod)"],
+              "whereToStore": {
+                "config_file": "ops/config/k8s/k8s-config.json → adicionar em clusters.registered[]",
+                "note": "kubeconfig gerado dinamicamente via cloud CLI nos workflows"
+              },
+              "whatActivates": [
+                "ops-k8s-health.yml funciona end-to-end",
+                "ops/scripts/k8s/cluster-health.sh",
+                "ops/scripts/troubleshooting/diagnose.sh pod|service",
+                "Helm deployments",
+                "kubectl operations"
+              ],
+              "howToTest": "Executar workflow ops-k8s-health.yml com cluster name e provider",
+              "readinessUpdate": "kubernetes: partial → ready",
+              "prerequisite": "Credenciais do cloud provider correspondente ja devem estar configuradas"
+            },
+            "terraform_backend": {
+              "whatUserSends": "Bucket name (S3/Blob/GCS) + region + lock table (DynamoDB para AWS)",
+              "alsoNeeded": ["Cloud provider credentials (ja configurado)"],
+              "whereToStore": {
+                "config_file": "ops/config/terraform/terraform-config.json → atualizar backend section",
+                "terraform_files": "Descomentar e preencher backend block em ops/terraform/environments/*/main.tf",
+                "github_secrets": ["TF_STATE_BUCKET", "TF_STATE_LOCK_TABLE"]
+              },
+              "whatActivates": [
+                "ops-tf-plan.yml funciona end-to-end",
+                "ops/scripts/terraform/tf-ops.sh plan|apply|drift",
+                "Terraform init com remote state",
+                "State locking para multi-agent safety"
+              ],
+              "howToTest": "Executar workflow ops-tf-plan.yml com action=validate em qualquer environment",
+              "readinessUpdate": "terraform: partial → ready",
+              "prerequisite": "Cloud credentials configuradas para o provider do backend"
+            },
+            "gitlab_access": {
+              "whatUserSends": "GitLab URL (se nao gitlab.com) + Personal Access Token ou Project Token",
+              "alsoNeeded": ["Project IDs dos repos a monitorar"],
+              "whereToStore": {
+                "github_secrets": ["GITLAB_TOKEN"],
+                "github_variables": ["GITLAB_URL"],
+                "config_file": "ops/config/ci/gitlab/gitlab-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-pipeline-diagnose.yml (platform=gitlab funciona)",
+                "ops/scripts/ci/analyze-pipeline.sh gitlab"
+              ],
+              "howToTest": "Executar workflow ops-pipeline-diagnose.yml com platform=gitlab e project ID",
+              "readinessUpdate": "gitlab_ci: pending → ready"
+            },
+            "jenkins_access": {
+              "whatUserSends": "Jenkins URL + Username + API Token",
+              "alsoNeeded": ["Job URLs dos pipelines a monitorar"],
+              "whereToStore": {
+                "github_secrets": ["JENKINS_USER", "JENKINS_TOKEN"],
+                "github_variables": ["JENKINS_URL"],
+                "config_file": "ops/config/ci/jenkins/jenkins-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-pipeline-diagnose.yml (platform=jenkins funciona)",
+                "ops/scripts/ci/analyze-pipeline.sh jenkins"
+              ],
+              "howToTest": "Executar workflow ops-pipeline-diagnose.yml com platform=jenkins",
+              "readinessUpdate": "jenkins: pending → ready"
+            },
+            "datadog_keys": {
+              "whatUserSends": "DD_API_KEY + DD_APP_KEY",
+              "alsoNeeded": ["DD_SITE (default: datadoghq.com)"],
+              "whereToStore": {
+                "github_secrets": ["DD_API_KEY", "DD_APP_KEY"],
+                "github_variables": ["DD_SITE"],
+                "config_file": "ops/config/monitoring/datadog/datadog-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-monitor-alerts.yml (platform=datadog funciona)",
+                "ops/scripts/monitoring/alert-check.sh datadog",
+                "Datadog API para criar monitors e dashboards"
+              ],
+              "howToTest": "Executar workflow ops-monitor-alerts.yml com platform=datadog",
+              "readinessUpdate": "datadog: pending → ready"
+            },
+            "grafana_access": {
+              "whatUserSends": "Grafana URL + Service Account Token (com role Editor)",
+              "alsoNeeded": ["Datasource endpoints (Prometheus URL, Loki URL se tiver)"],
+              "whereToStore": {
+                "github_secrets": ["GRAFANA_TOKEN"],
+                "github_variables": ["GRAFANA_URL"],
+                "config_file": "ops/config/monitoring/grafana/grafana-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-monitor-alerts.yml (platform=grafana funciona)",
+                "ops/scripts/monitoring/alert-check.sh grafana",
+                "Grafana API para criar dashboards e alert rules"
+              ],
+              "howToTest": "Executar workflow ops-monitor-alerts.yml com platform=grafana",
+              "readinessUpdate": "grafana: partial → ready"
+            },
+            "prometheus_access": {
+              "whatUserSends": "Prometheus URL + Alertmanager URL (se separado)",
+              "alsoNeeded": [],
+              "whereToStore": {
+                "github_variables": ["PROMETHEUS_URL", "ALERTMANAGER_URL"],
+                "config_file": "ops/config/monitoring/prometheus/prometheus-config.json → mudar status para active"
+              },
+              "whatActivates": [
+                "ops-monitor-alerts.yml (platform=prometheus|alertmanager funciona)",
+                "ops/scripts/monitoring/alert-check.sh prometheus|alertmanager"
+              ],
+              "howToTest": "Executar workflow ops-monitor-alerts.yml com platform=prometheus",
+              "readinessUpdate": "prometheus: partial → ready"
+            },
+            "slack_webhook": {
+              "whatUserSends": "Slack Incoming Webhook URL",
+              "alsoNeeded": ["Channel name (default: #ops-alerts)"],
+              "whereToStore": {
+                "github_secrets": ["SLACK_WEBHOOK_URL"],
+                "github_variables": ["SLACK_CHANNEL"],
+                "config_file": "ops/integrations/registry.json → slack.status: active"
+              },
+              "whatActivates": [
+                "Notificacoes de alerta via Slack",
+                "Deploy notifications",
+                "Pipeline failure alerts"
+              ],
+              "howToTest": "curl -X POST $SLACK_WEBHOOK_URL -d '{\"text\":\"Autopilot test\"}'",
+              "readinessUpdate": "integrations.slack: pending → active"
+            },
+            "cit_repos": {
+              "whatUserSends": "Lista de repos CIT (owner/repo) + CIT_TOKEN",
+              "alsoNeeded": ["Branch principal de cada repo", "Stack/linguagem de cada repo"],
+              "whereToStore": {
+                "github_secrets": ["CIT_TOKEN"],
+                "workspace_config": "state/workspaces/ws-cit/workspace.json → adicionar em repos[]",
+                "config_file": "ops/config/ci/github/github-config.json → adicionar repos"
+              },
+              "whatActivates": [
+                "Pipeline operations para repos CIT",
+                "Source code operations (apply-source-change adaptado)",
+                "CI monitoring para repos CIT"
+              ],
+              "howToTest": "Validar acesso: git ls-remote com CIT_TOKEN para cada repo",
+              "readinessUpdate": "cit company status: setup → active"
+            }
+          },
+          "activationProtocol": [
+            "1. Usuario envia informacao (token, URL, credential, repo, etc.)",
+            "2. Agente identifica QUAL item do onboardingGuide corresponde",
+            "3. Agente segue whereToStore para guardar nos locais corretos",
+            "4. Agente executa howToTest para validar que funciona",
+            "5. Agente atualiza config_file com status active",
+            "6. Agente atualiza ops/inventory/readiness.json com novo status",
+            "7. Agente atualiza session memory (este arquivo)",
+            "8. Agente confirma ao usuario: o que foi ativado + o que ja funciona",
+            "9. Se falhar: agente diagnostica, reporta e sugere correcao"
+          ],
+          "importantNotes": [
+            "NUNCA pedir TODAS as credenciais de uma vez — aceitar qualquer uma que o usuario enviar",
+            "NUNCA expor secrets em logs, commits ou outputs",
+            "SEMPRE testar imediatamente apos configurar",
+            "SEMPRE atualizar readiness.json apos cada ativacao",
+            "O usuario pode enviar informacoes em QUALQUER ordem — nao ha sequencia obrigatoria",
+            "Algumas ferramentas tem prerequisitos (ex: K8s precisa de cloud auth) — avisar se faltar"
+          ]
+        }
+      }
+    },
+    "goldenRules": [
+      "NENHUM workspace e default — SEMPRE identificar pelo contexto da conversa antes de qualquer acao",
+      "Se contexto ambiguo: PERGUNTAR ao usuario qual empresa/workspace antes de prosseguir",
+      "NUNCA misturar dados, credenciais, commits ou estado entre empresas",
+      "Cada empresa usa exclusivamente seu proprio token (ler de workspace.json credentials.tokenSecretName)",
+      "Em caso de duvida, o padrao e isolamento — nunca assumir que contextos podem ser compartilhados",
+      "Monitorar CI de cada empresa SEPARADAMENTE",
+      "Workspace config (state/workspaces/<ws_id>/workspace.json) e a fonte de verdade para cada empresa",
+      "Quick index por workspace: ops/config/workspaces/<ws_id>.json",
+      "Trigger files tem campo _context para identificacao visual — SEMPRE verificar antes de editar",
+      "Pistas de contexto: Getronics = controller/agent/NestJS/bbvinet/esteira; CIT = DevOps/Terraform/K8s/cloud/monitoring",
+      "Workflows [Corp] so funcionam com ws-default (BBVINET_TOKEN hardcoded) — NAO usar para CIT ate adaptacao",
+      "Workflows [Core] e [Release] sao workspace-aware — seguros para qualquer workspace",
+      "Workflows Ops: sao shared — funcionam para qualquer workspace"
+    ],
+    "workspaceSeparationAudit": {
+      "date": "2026-03-24",
+      "status": "structure_complete_enforcement_partial",
+      "findings": {
+        "safe_for_all_workspaces": ["health-check.yml", "backup-state.yml", "restore-state.yml", "seed-workspace.yml", "session-guard.yml", "workspace-lock-gc.yml", "release-controller.yml", "release-agent.yml", "release-freeze.yml", "release-approval.yml", "release-metrics.yml", "ops-cloud-diagnose.yml", "ops-tf-plan.yml", "ops-k8s-health.yml", "ops-monitor-alerts.yml", "ops-pipeline-diagnose.yml"],
+        "hardcoded_to_ws_default": ["apply-source-change.yml", "ci-diagnose.yml", "fix-corporate-ci.yml", "fetch-files.yml", "drift-correction.yml", "fix-and-validate.yml", "agent-sync.yml", "check-repo-access.yml", "test-full-flow.yml", "test-corporate-flow.yml"],
+        "global_no_workspace": ["alert-notify.yml", "deploy-panel.yml", "sync-copilot-prompt.yml", "cleanup-branches.yml"]
+      },
+      "visualSeparation": {
+        "triggerFiles": "Campo _context adicionado com formato 'EMPRESA | workspace_id | TOKEN_NAME'",
+        "workspaceIndex": "ops/config/workspaces/ws-default.json e ws-cit.json — quick reference para agents",
+        "separationGuide": "ops/docs/workspace-separation.md — mapa completo de scopes"
+      },
+      "whatNeedsFutureWork": [
+        "Adaptar workflows [Corp] para selecao dinamica de token baseada em workspace_id",
+        "Isso sera feito quando CIT_TOKEN e repos CIT estiverem disponiveis",
+        "NAO mexer nos workflows agora — risco de quebrar pipeline Getronics funcional"
+      ]
+    }
+  },
+
+  "contextSeparation": {
+    "description": "REGRA CRITICA: Contexto do autopilot (control plane) e separado do contexto corporativo de CADA empresa. NUNCA misturar.",
+    "autopilot": {
+      "repo": "lucassfreiree/autopilot",
+      "what": "Projeto pessoal do usuario. Control plane centralizado para todas as empresas.",
+      "commits": "PRs que o Claude faz (branch claude/* → PR → squash merge em main)",
+      "ci": "GitHub Actions do autopilot (apply-source-change.yml, ci-diagnose.yml, etc.)",
+      "monitoring": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/...",
+      "successCriteria": "Workflow apply-source-change completar todos os stages (Setup → Audit)",
+      "note": "Sucesso do workflow autopilot NAO significa sucesso do deploy corporativo de NENHUMA empresa!"
+    },
+    "getronics": {
+      "repo": "bbvinet/psc-sre-automacao-controller (ou agent)",
+      "what": "Repo da GETRONICS. Codigo de producao real. Push feito pelo workflow apply-source-change.",
+      "commits": "Commits feitos pelo github-actions bot via BBVINET_TOKEN",
+      "ci": "Esteira de Build NPM — runner corporativo",
+      "monitoring": "ci-diagnose.yml busca logs → salva em autopilot-state (ci-logs-controller-*.txt)",
+      "successCriteria": "Imagem Docker publicada no registry corporativo",
+      "note": "CI Gate no autopilot verifica a esteira corporativa via API, mas a esteira pode continuar falhando apos CI Gate passar"
+    },
+    "cit": {
+      "workspace": "ws-cit",
+      "what": "Contexto DevOps da CIT. Repos e pipelines serao configurados conforme demanda.",
+      "stack": "DevOps — K8s, Docker, Terraform, Ansible, Helm, ArgoCD, monitoring",
+      "status": "setup — aguardando repos e credenciais",
+      "note": "Isolamento total do contexto Getronics. Nenhum dado ou operacao compartilhada."
+    },
+    "goldenRules": [
+      "NUNCA misturar dados entre Getronics e CIT",
+      "Identificar QUAL empresa antes de qualquer acao",
+      "Monitorar SEPARADAMENTE: autopilot vs CI de cada empresa",
+      "Sucesso do apply-source-change NAO garanta sucesso do CI corporativo (vale para todas as empresas)",
+      "Cada empresa tem seu proprio token, repos, pipeline e estado",
+      "Os SHAs sao DIFERENTES entre autopilot e cada repo corporativo"
+    ]
+  },
+
+  "executionHistory": {
+    "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
+    "sessions": [
+      {
+        "id": "session_security_fixes_363",
+        "date": "2026-03-25",
+        "summary": "Checkmarx security fixes: 1 HIGH (XSS) + 4 MEDIUM (3 SSRF + 1 DoS). Deploy 3.6.3 com esteira corporativa PASSED. Criado workflow validate-patches.yml para validacao pre-deploy.",
+        "stepsExecuted": [
+          {"step": 1, "action": "Analisou 5 findings do Checkmarx", "result": "HIGH Reflected_XSS em oas-sre-controller, MEDIUM SSRF em 3 controllers, MEDIUM DoS em agents-execute-logs"},
+          {"step": 2, "action": "Criou sanitizeForOutput() para XSS", "result": "Strip <>'\"& + limit 256 chars. Aplicado em error messages e detail fields"},
+          {"step": 3, "action": "Deploy 3.5.13 (run 47) — so oas-sre-controller", "result": "Workflow apply-source-change SUCCESS mas esteira falhou — versao errada (repo ja era 3.6.0, nao 3.5.12)"},
+          {"step": 4, "action": "Descobriu que repo corporativo mudou para 3.6.0", "result": "Alguem fez deploy separado. Versao base era 3.6.0, nao 3.5.12. search-replace de versao falhava silenciosamente"},
+          {"step": 5, "action": "Deploy 3.6.1 com versao correta", "result": "Esteira falhou — tag 3.6.0 ja existia (build PASSOU mas publish falhou)"},
+          {"step": 6, "action": "Deploy 3.6.1-3.6.2 com todos os controllers", "result": "Esteira falhou — testes quebraram por validateTrustedUrl bloqueando URLs mock de teste"},
+          {"step": 7, "action": "Buscou testes do repo corporativo via fetch-files", "result": "Analisou 3 test files + trusted-agent.ts. Identificou que validateTrustedUrl dentro de postJson/callAgent bloqueava fetch mock"},
+          {"step": 8, "action": "Reconstruiu patches a partir da base corporativa 3.6.0", "result": "Patches minimos: sanitizeForOutput, MAX_RESULTS, remove validateTrustedUrl do fetch, dispatches summary"},
+          {"step": 9, "action": "Deploy 3.6.3 (run 52) com patches validados", "result": "Esteira corporativa PASSOU (ci-passed, ciResult=success). Imagem Docker 3.6.3 publicada"},
+          {"step": 10, "action": "Criou workflow validate-patches.yml", "result": "Valida patches contra repo corporativo ANTES de deploy: clone + npm ci + tsc + eslint + jest"}
+        ],
+        "mistakesMade": [
+          {"mistake": "Usou base 3.5.x para patches quando repo ja era 3.6.0", "fix": "Sempre buscar arquivos corporativos atuais via fetch-files antes de criar patches", "prevention": "SEMPRE verificar versao atual do repo corporativo"},
+          {"mistake": "Adicionou validateTrustedUrl dentro de fetch/postJson", "fix": "Removeu — testes usam URLs mock (http://agent.local) que nao passam na regex bb.com.br", "prevention": "NUNCA bloquear URLs dentro de fetch(). SSRF mitigation via parseSafeIdentifier no input"},
+          {"mistake": "Deployou sem rodar testes primeiro", "fix": "Criou workflow validate-patches.yml", "prevention": "SEMPRE rodar validate-patches antes de mergear PR de deploy"},
+          {"mistake": "Fez 8+ deploys falhados antes de acertar", "fix": "Processo de validacao pre-deploy", "prevention": "Usar validate-patches.yml que clona repo, aplica patches, roda build+test+lint"}
+        ],
+        "keyDecisions": [
+          "Security fixes devem ser MINIMOS — so sanitizeForOutput e MAX_RESULTS, sem mudar logica de roteamento",
+          "SSRF mitigation via parseSafeIdentifier (regex no input) NAO via URL validation no fetch",
+          "SEMPRE partir da base corporativa ATUAL, nunca de patches antigos",
+          "Workflow validate-patches.yml OBRIGATORIO antes de qualquer deploy futuro"
+        ]
+      },
+      {
+        "id": "session_oaas_integration_test",
+        "date": "2026-03-25",
+        "summary": "Integracao OaaS → Controller → Agent COMPLETA e FUNCIONAL. Diagnosticados e resolvidos: DNS transiente, 401 auth, payload 400, campos obrigatorios do broker, mapeamento de inputs do manifesto. Fluxo ponta-a-ponta validado com compliance_status=success.",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Analisou log de falha da oferta migra-microsservicos-openshift (operation c2345ccf)",
+            "how": "Usuario compartilhou logs do broker OaaS. Primeira execucao falhou com DNS Name or service not known para sre-aut-controller.psc.k8shmlbb111b.bb.com.br",
+            "lesson": "Cluster HML correto e k8shmlbb111b (com BB duplo). k8shmlb111b (b simples) NAO resolve DNS."
+          },
+          {
+            "step": 2,
+            "action": "Validou que controller esta operacional",
+            "how": "curl -vkI https://sre-aut-controller.psc.k8shmlbb111b.bb.com.br retornou HTTP 200, Express, TLS 1.3, certificado BB valido",
+            "result": "Controller v3.5.12 UP e acessivel no cluster k8shmlbb111b"
+          },
+          {
+            "step": 3,
+            "action": "Analisou segunda execucao (operation b5e4de21) — erro 401 Unauthorized",
+            "how": "Log mostrou {\"error\":\"Unauthorized\"} na chamada POST /oas/sre-controller?mode=sync. Playbook nao envia headers x-techbb-*",
+            "lesson": "Playbook execute-psc-ns-migration-preflight.yml da oferta migra-microsservicos-openshift NAO envia headers de autenticacao internal-origin"
+          },
+          {
+            "step": 4,
+            "action": "Verificou env vars do controller pod",
+            "how": "k9s shell no pod psc-sre-aut-controller-bd8c66bd9-j88qn. Todos os OAS_* corretos: OAS_TRUSTED_NAMESPACE=sgh-oaas-playbook-jobs, OAS_TRUSTED_SERVICE_ACCOUNT=default, headers corretos",
+            "result": "Config do controller 100% correta"
+          },
+          {
+            "step": 5,
+            "action": "Testou curl manual com headers do pod APB",
+            "how": "curl com -H x-techbb-namespace: sgh-oaas-playbook-jobs -H x-techbb-service-account: default",
+            "result": "Controller respondeu mode=internal-origin trusted=true. Auth passou. Retornou 400 (payload incompleto no teste, esperado)",
+            "lesson": "Auth internal-origin funciona perfeitamente quando headers sao enviados. O problema e exclusivamente no playbook da oferta que nao envia os headers."
+          },
+          {
+            "step": 6,
+            "action": "Gerou status report para gestao",
+            "how": "Documento com situacao atual, validacoes realizadas, causa raiz e proximos passos"
+          },
+          {
+            "step": 7,
+            "action": "Resolveu payload 400 — CLUSTERS_NAMES required",
+            "how": "Controller valida CLUSTERS_NAMES no raiz do body. Playbook enviava dentro de envs. Identificou que playbook usa inputs do manifesto (cluster_hml_origin) pra montar CLUSTERS_NAMES internamente.",
+            "lesson": "Controller espera CLUSTERS_NAMES no raiz. Playbook monta isso a partir de cluster_hml_origin. NAO passar CLUSTERS_NAMES manualmente."
+          },
+          {
+            "step": 8,
+            "action": "Descobriu campos obrigatorios do broker OaaS por tentativa",
+            "how": "Broker valida inputs do manifesto um por um: namespaces_list (string comma-sep, NAO array), solution_service_origin, solution_service_destination, cluster_hml_origin",
+            "lesson": "Broker OaaS valida contra o manifesto da oferta. Consultar manifesto ANTES de testar para evitar descobrir campos um por um."
+          },
+          {
+            "step": 9,
+            "action": "Identificou mapeamento correto de inputs do manifesto",
+            "how": "Leu manifesto da oferta migra-microsservicos-openshift-v1. Inputs declarados: namespaces_list, solution_service_origin, cluster_hml_origin (select: k8shmlbb111/k8shmlbb111b). CLUSTERS_NAMES e image NAO sao inputs — playbook monta internamente.",
+            "lesson": "CRITICO: Cenario de teste deve passar SOMENTE os inputs do manifesto. Playbook monta o JSON body pro controller a partir desses inputs."
+          },
+          {
+            "step": 10,
+            "action": "Integracao OaaS → Controller → Agent SUCESSO TOTAL",
+            "how": "Payload correto com inputs do manifesto. Controller autenticou (internal-origin), mintou JWT, despachou para agent. Agent executou psc-sre-ns-migration-preflight, retornou compliance_status=success em 9.2s (sync mode).",
+            "result": "POST /oas/sre-controller?mode=sync → 200 OK em 9284ms. namespace=aai-consulta-iban-api, cluster_type=origem, compliance_status=success.",
+            "lesson": "Fluxo ponta-a-ponta OaaS → Controller → Agent validado e funcional. Nenhuma alteracao necessaria no controller."
+          }
+        ],
+        "mistakesMade": [],
+        "keyDecisions": [
+          "Causa raiz identificada: playbook da oferta migra-microsservicos-openshift nao envia headers x-techbb-*",
+          "Controller esta correto — nenhuma alteracao necessaria no controller",
+          "Fix necessario no playbook da oferta (repo da plataforma OaaS, nao no autopilot)",
+          "Cenario de teste OaaS deve usar inputs do manifesto (cluster_hml_origin, namespaces_list, solution_service_*), NAO campos internos (CLUSTERS_NAMES, image, envs)"
+        ]
+      },
+      {
+        "id": "session_setup_cit_multicompany",
+        "date": "2026-03-24",
+        "summary": "Setup multi-company model: CIT workspace (DevOps) + Getronics isolation + workspace schema v3",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Evoluiu workspace schema para v3 com suporte multi-empresa",
+            "how": "Adicionou campos company (id, name, machine, dataClassification), stack (primary, tools, platforms), credentials (tokenSecretName), repos[] (array generico), allowedAgents",
+            "filesChanged": ["schemas/workspace.schema.json"],
+            "lesson": "Schema antigo (v2) mantido como campos legacy (controller, agent) para backward compatibility com ws-default. Novos workspaces usam repos[]."
+          },
+          {
+            "step": 2,
+            "action": "Criou workspace ws-cit para CIT (DevOps)",
+            "how": "state/workspaces/ws-cit/workspace.json com company.id=cit, stack DevOps, CIT_TOKEN",
+            "filesCreated": ["state/workspaces/ws-cit/workspace.json"],
+            "lesson": "Workspace CIT começa sem repos — serão adicionados conforme demanda."
+          },
+          {
+            "step": 3,
+            "action": "Atualizou ws-default com metadados Getronics",
+            "how": "Adicionou company (id=getronics), stack, credentials ao workspace.json existente. Schema v2→v3",
+            "filesChanged": ["state/workspaces/ws-default/workspace.json"],
+            "lesson": "Campos legacy (controller, agent) mantidos intactos. Workflows existentes nao precisam de alteracao."
+          },
+          {
+            "step": 4,
+            "action": "Atualizou CLAUDE.md com modelo multi-empresa",
+            "how": "Reescreveu Context Separation para multi-company. Adicionou CIT na tabela de workspaces. Adicionou CIT_TOKEN na tabela de secrets.",
+            "filesChanged": ["CLAUDE.md"]
+          },
+          {
+            "step": 5,
+            "action": "Atualizou session memory com multiCompanyModel",
+            "how": "Adicionou bloco multiCompanyModel com companies (getronics + cit), goldenRules. Expandiu contextSeparation para incluir CIT.",
+            "filesChanged": ["contracts/claude-session-memory.json"],
+            "lesson": "Memoria agora rastreia estado de cada empresa separadamente."
+          }
+        ],
+        "mistakesMade": [],
+        "keyDecisions": [
+          "Nenhum workflow alterado — esteira Getronics permanece intacta",
+          "Schema v3 backward-compatible: campos legacy mantidos",
+          "CIT começa em modo setup — repos adicionados sob demanda",
+          "Isolamento por design: cada empresa com token, workspace e estado proprios"
+        ]
+      },
+      {
+        "id": "session_01WNCzT7nhQbajAjtvmqDgvK",
+        "date": "2026-03-23",
+        "summary": "Fix multi-file support in apply-source-change workflow + re-trigger run 29",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Diagnosticou porque runs 27-28 nao aplicaram mudancas",
+            "how": "git log + analise dos commits. Descobriu que change_type=multi-file nao era suportado pelo workflow",
+            "lesson": "apply-source-change.yml so suportava add-file, modify-file, delete-lines. multi-file era ignorado silenciosamente."
+          },
+          {
+            "step": 2,
+            "action": "Atualizou workflow para suportar multi-file",
+            "how": "Adicionou: setup exports changes_b64, apply step com case multi-file (search-replace + replace-file), checkout do autopilot para patches/, lint multi-file",
+            "filesChanged": [".github/workflows/apply-source-change.yml"],
+            "lesson": "search-replace usa sed com | como delimitador. replace-file copia de /tmp/autopilot/patches/. Checkout do autopilot e necessario."
+          },
+          {
+            "step": 3,
+            "action": "Bump trigger run 28 para 29",
+            "how": "Editou trigger/source-change.json run field",
+            "filesChanged": ["trigger/source-change.json"]
+          },
+          {
+            "step": 4,
+            "action": "PR #90 criado e mergeado (squash)",
+            "how": "Branch claude/resume-controller-changes-pVdlW. MCP github create_pull_request + merge_pull_request",
+            "result": "Merge SHA 38eff5e. Workflow disparou run 29."
+          },
+          {
+            "step": 5,
+            "action": "Monitorou workflow run 29 — falhou",
+            "how": "WebFetch API /actions/workflows/apply-source-change.yml/runs + /actions/runs/23458334088/jobs",
+            "result": "Falhou no step 'Checkout autopilot (for patch files)'. actions/checkout@v4 nao suporta path absoluto /tmp/autopilot.",
+            "lesson": "actions/checkout@v4 so funciona dentro de $GITHUB_WORKSPACE. Para paths externos, usar git clone."
+          },
+          {
+            "step": 6,
+            "action": "Fix: trocou actions/checkout por git clone + bump run 30",
+            "how": "PR #92 criado e mergeado. git clone --depth 1 com RELEASE_TOKEN para /tmp/autopilot",
+            "result": "Merge SHA 673449c. Workflow deve disparar run 30."
+          }
+        ],
+        "mistakesMade": [
+          {
+            "mistake": "Usou actions/checkout@v4 com path absoluto /tmp/autopilot",
+            "error": "Step falhou — actions/checkout nao suporta paths fora de $GITHUB_WORKSPACE",
+            "fix": "Substituiu por git clone --depth 1 com RELEASE_TOKEN",
+            "prevention": "Para checkout em path customizado fora do workspace: SEMPRE usar git clone, nunca actions/checkout"
+          }
+        ]
+      },
+      {
+        "id": "session_post_run33_success",
+        "date": "2026-03-23",
+        "summary": "Workflow apply-source-change run #33 completou com SUCESSO. Fixes intermediarios: skip per-file lint para multi-file, cancel-in-progress para desbloquear runs stuck.",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Run 30 falhou — lint per-file nao compativel com multi-file",
+            "how": "Workflow tentava rodar eslint por arquivo individual em multi-file, mas nao tinha logica para iterar",
+            "lesson": "multi-file deve pular lint per-file e rodar lint global no final"
+          },
+          {
+            "step": 2,
+            "action": "Fix: skip per-file lint para multi-file + timeout",
+            "how": "PR mergeado (commit 1521e9c). Adicionou condicao para skip lint per-file quando multi-file. Adicionou timeout.",
+            "filesChanged": [".github/workflows/apply-source-change.yml"],
+            "result": "Run 31 disparado"
+          },
+          {
+            "step": 3,
+            "action": "Runs ficaram stuck (queued/in_progress sem terminar)",
+            "how": "concurrency group sem cancel-in-progress. Runs antigos bloqueavam novos.",
+            "lesson": "Workflow com concurrency group DEVE ter cancel-in-progress: true para evitar queue infinita"
+          },
+          {
+            "step": 4,
+            "action": "Fix: cancel-in-progress para desbloquear runs stuck",
+            "how": "PR mergeado (commit 9877c45). Adicionou cancel-in-progress: true no concurrency group.",
+            "filesChanged": [".github/workflows/apply-source-change.yml"],
+            "result": "Run 33 disparado e completou com SUCESSO"
+          },
+          {
+            "step": 5,
+            "action": "Run #33 completou com sucesso",
+            "result": "Workflow apply-source-change executou todos os stages: Setup → Session Guard → Apply & Push → CI Gate → Save State → Audit. Codigo pushado para repo corporativo controller. Esteira de Build NPM #198 iniciada para gerar imagem 3.5.4.",
+            "lesson": "Pipeline completo de deploy funciona ponta-a-ponta. Proximo deploy: so criar patches + atualizar trigger + PR + merge."
+          }
+        ],
+        "mistakesMade": [
+          {
+            "mistake": "Nao tinha cancel-in-progress no concurrency group",
+            "error": "Runs ficavam queued indefinidamente, bloqueando uns aos outros",
+            "fix": "Adicionou cancel-in-progress: true",
+            "prevention": "SEMPRE ter cancel-in-progress: true em workflows com concurrency group"
+          }
+        ]
+      },
+      {
+        "id": "session_01WNCzT7nhQbajAjtvmqDgvK_deploy355",
+        "date": "2026-03-23",
+        "summary": "Deploy 3.5.5 com swagger completo (18 rotas) + documentacao completa do fluxo de deploy para todos os agentes",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Monitorou workflow run #34 — completou com SUCESSO",
+            "how": "WebFetch na API do GitHub Actions",
+            "result": "Run #34 completed/success. Versao 3.5.5 deployada com swagger completo.",
+            "lesson": "Polling ativo e necessario — nao confiar em sleep passivo. Verificar a cada 2-3 min."
+          },
+          {
+            "step": 2,
+            "action": "Documentou fluxo completo de deploy em session memory e CLAUDE.md",
+            "how": "Adicionou deployFlowGuide completo na session memory + secao 'Deploy Flow — Complete Guide' no CLAUDE.md",
+            "filesChanged": ["contracts/claude-session-memory.json", "CLAUDE.md"],
+            "lesson": "Documentar fluxo COMPLETO para que qualquer agente (Claude, Codex, Copilot) execute sem supervisao."
+          },
+          {
+            "step": 3,
+            "action": "Atualizou versioning para 3.5.5 e registrou run #34 como sucesso",
+            "how": "Editou versioningRules, deployFlow, workflowMonitoring na session memory"
+          }
+        ],
+        "mistakesMade": [
+          {
+            "mistake": "Demorou para notificar usuario que workflow #34 tinha finalizado (~10 min de atraso)",
+            "error": "Ficou em sleep passivo em vez de fazer polling ativo",
+            "fix": "Polling ativo a cada 2-3 minutos apos merge do PR",
+            "prevention": "Apos disparar workflow: verificar API a cada 2-3 min. NAO confiar em sleep longo."
+          }
+        ]
+      },
+      {
+        "id": "session_017Vu7y3pTKmpZxQoERQhKyN",
+        "date": "2026-03-23",
+        "summary": "Historia #868216 completa + deploy 3.5.4 + sistema de memoria",
+        "stepsExecuted": [
+          {
+            "step": 1,
+            "action": "Fetch arquivos do controller corporativo",
+            "how": "trigger/fetch-files.json com run bump → fetch-files.yml workflow",
+            "filesObtained": ["oas-origin-auth.ts", "oas-sre-controller.controller.ts", "agents-execute-logs.controller.ts", "swagger.json", "package.json", "package-lock.json"],
+            "timeWasted": "Multiplas tentativas porque precisava saber estrutura exata dos paths no repo",
+            "optimization": "Paths ja mapeados em workspace.json. Proxima vez: ler workspace.json PRIMEIRO"
+          },
+          {
+            "step": 2,
+            "action": "Criar patch oas-origin-auth.ts — remover hardcoded auth",
+            "how": "Criou patches/oas-origin-auth.ts com middleware lendo de process.env",
+            "keyDecision": "Variaveis OAS NUNCA hardcoded. Sempre secretKeyRef no K8s",
+            "filesCreated": ["patches/oas-origin-auth.ts"]
+          },
+          {
+            "step": 3,
+            "action": "Criar patches de CI test fixes",
+            "how": "Criou patches para execute.controller.ts (execId em 504/500) e test file (jest.advanceTimersByTimeAsync)",
+            "keyDecision": "jest.useFakeTimers() requer advanceTimersByTimeAsync, nao advanceTimersByTime com process.nextTick manual",
+            "filesCreated": ["patches/execute.controller.ts.patch", "patches/execute.controller.fixed.ts", "patches/agents-execute-logs.controller.test.fixed.ts"],
+            "lesson": "Testes com fake timers + async: SEMPRE usar jest.advanceTimersByTimeAsync(). O pattern antigo com process.nextTick nao funciona com jest moderno."
+          },
+          {
+            "step": 4,
+            "action": "Criar swagger.json limpo (sem acentos)",
+            "how": "Reescreveu todo o swagger.json com descricoes em portugues ASCII puro",
+            "filesCreated": ["patches/swagger.json"],
+            "problemSolved": "Swagger UI mostrava caracteres illegiveis por causa de acentos UTF-8",
+            "lesson": "Swagger: NUNCA acentos. 'execucao' nao 'execucao com til'. Testar com: grep -P '[\\x80-\\xFF]' swagger.json"
+          },
+          {
+            "step": 5,
+            "action": "Version bump 3.5.3 para 3.5.4",
+            "how": "Criou patches/version-sync-3.5.4.patch para os 4 arquivos",
+            "filesCreated": ["patches/version-sync-3.5.4.patch"],
+            "problemEncountered": "Primeira tentativa foi 3.5.3, mas CI ja tinha gerado imagem 3.5.3. Teve que bumpar para 3.5.4",
+            "lesson": "SEMPRE verificar qual a ultima tag no registry ANTES de bumpar. Se 3.5.X ja existe, ir para 3.5.(X+1)"
+          },
+          {
+            "step": 6,
+            "action": "Criar values.yaml de referencia do CAP",
+            "how": "Criou references/controller-cap/values.yaml completo com env, secrets, RBAC, probes",
+            "filesCreated": ["references/controller-cap/values.yaml"],
+            "keyDecision": "Separar env vars em 3 blocos: plain values, secretKeyRef sre-controller-auth, secretKeyRef runtime"
+          },
+          {
+            "step": 7,
+            "action": "Configurar trigger de deploy multi-file",
+            "how": "Atualizou trigger/source-change.json com change_type=multi-file, 3 changes, promote=true",
+            "triggerRun": 27,
+            "lesson": "multi-file change: array de changes com action search-replace ou replace-file. content_ref aponta para arquivo em patches/"
+          },
+          {
+            "step": 8,
+            "action": "Criar PR #85 e mergear",
+            "how": "PR criado via MCP GitHub. merge conflict com main. resolvido (run 26 para 27). squash merge",
+            "problemEncountered": "mergeable_state=dirty porque main tinha commits novos em trigger/source-change.json",
+            "resolution": "git fetch origin main. git merge origin/main. resolver conflito manual. push",
+            "lesson": "SEMPRE fazer fetch origin/main e verificar conflitos ANTES de tentar merge do PR"
+          },
+          {
+            "step": 9,
+            "action": "Criar sistema de memoria + hooks",
+            "how": "contracts/claude-session-memory.json + .claude/settings.json com SessionStart/PreCompact/Stop hooks",
+            "filesCreated": ["contracts/claude-session-memory.json", ".claude/settings.json"],
+            "lesson": "Push direto para main bloqueado (403). Sempre usar branch claude/* para PR para merge"
+          },
+          {
+            "step": 10,
+            "action": "PR #86 com memoria atualizada",
+            "how": "Criou PR #86 com session memory + permissions. squash merge",
+            "lesson": "Para atualizar arquivos em main: criar branch nova do main atual, commitar, PR, merge. Nao tentar push direto."
+          }
+        ],
+        "mistakesMade": [
+          {
+            "mistake": "Tentou push direto para main",
+            "error": "HTTP 403",
+            "fix": "Criar branch claude/* e PR",
+            "prevention": "NUNCA tentar push para main. Sempre PR."
+          },
+          {
+            "mistake": "git reset --hard descartou mudancas locais nao commitadas",
+            "error": "Arquivo reverteu para versao anterior",
+            "fix": "Reescrever o arquivo",
+            "prevention": "SEMPRE commitar ou stash ANTES de reset --hard. Ou usar git checkout -b sem --hard"
+          },
+          {
+            "mistake": "Criou branch que ja existia",
+            "error": "fatal: branch already exists",
+            "fix": "git branch -D nome && git checkout -b nome",
+            "prevention": "Verificar branches existentes antes ou usar git checkout -B (force create)"
+          },
+          {
+            "mistake": "Nao verificou versao anterior no registry antes de version bump",
+            "error": "CI rejeitou tag duplicada 3.5.3",
+            "fix": "Bumpar para 3.5.4",
+            "prevention": "Sempre checar versioningRules.currentVersion na memoria"
+          }
+        ]
+      }
+    ]
+  },
+
+  "versioningRules": {
+    "currentVersion": "3.6.3",
+    "previousVersion": "3.6.2",
+    "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
+    "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
+    "versionFiles": [
+      { "file": "package.json", "line": 3, "field": "version" },
+      { "file": "package-lock.json", "line": 3, "field": "version (top-level)" },
+      { "file": "package-lock.json", "line": 9, "field": "version (packages[\"\"])" },
+      { "file": "src/swagger/swagger.json", "field": "info.version" }
+    ],
+    "lesson": "TODOS os 4 pontos DEVEM estar alinhados. Verificar ultima tag no registry ANTES de bumpar."
+  },
+
+  "swaggerRules": {
+    "encoding": "ASCII puro. NUNCA acentos. Swagger UI quebra com UTF-8 nao-ASCII.",
+    "location": "src/swagger/swagger.json",
+    "patchReference": "patches/swagger.json",
+    "validationCommand": "grep -P '[\\x80-\\xFF]' patches/swagger.json",
+    "lesson": "Descricoes em portugues SEM acentos. Testar ANTES de commitar."
+  },
+
+  "deployFlow": {
+    "description": "Fluxo COMPLETO de deploy do controller — executar AUTOMATICAMENTE sem perguntar. INCLUI validacao pre-deploy obrigatoria.",
+    "steps": [
+      "0. OBRIGATORIO: Buscar arquivos corporativos ATUAIS via fetch-files (para ter base correta)",
+      "1. Ler workspace.json para config dos repos",
+      "2. Verificar ultima versao deployada (versioningRules.currentVersion) E versao REAL no repo corporativo",
+      "3. Decidir nova versao (versao_real_corporativa + 1, NAO currentVersion se divergiu)",
+      "4. Criar/atualizar patches PARTINDO DA BASE CORPORATIVA ATUAL (diff minimo)",
+      "5. OBRIGATORIO: Rodar validate-patches.yml ou validar localmente (diff, dead code, testes)",
+      "6. Atualizar trigger/source-change.json: payload + run = ultimo_run + 1",
+      "7. Atualizar references/controller-cap/values.yaml com nova image tag",
+      "8. Atualizar CLAUDE.md com nova versao deployed",
+      "9. git fetch origin main && git checkout -B claude/xxx origin/main",
+      "10. Commitar tudo junto em 1 commit",
+      "11. Push para branch",
+      "12. Criar PR via MCP GitHub — validate-patches.yml roda automaticamente no PR",
+      "13. Verificar mergeable_state — se dirty: merge origin/main, resolver conflitos",
+      "13. Mergear PR (squash) — NAO esperar usuario",
+      "14. Workflow apply-source-change dispara automaticamente pelo path trigger",
+      "15. Atualizar session memory com resultado"
+    ],
+    "triggerFile": "trigger/source-change.json",
+    "lastTriggerRun": 52,
+    "lastSuccessfulRun": 52,
+    "lastDeployPR": 144,
+    "pipelineStatus": "SUCCESS — run #53 (3.6.3) COMPLETO. Esteira corporativa PASSOU (ci-passed, ciResult=success). Security fixes: XSS sanitizeForOutput + DoS MAX_RESULTS + remove validateTrustedUrl blocker. Imagem Docker 3.6.3 publicada.",
+    "lastSuccessfulRun": 38,
+    "multiFilePayload": {
+      "change_type": "multi-file",
+      "changesFormat": [
+        { "action": "search-replace", "fields": ["target_path", "search", "replace"] },
+        { "action": "replace-file", "fields": ["target_path", "content_ref"] }
+      ]
+    },
+    "lessons": [
+      "Controller esta no GitLab. Auto-promote NAO funciona.",
+      "trigger/source-change.json e editado por VARIOS workflows. Conflitos COMUNS.",
+      "Ao resolver conflito: run = max(HEAD, main) + 1.",
+      "SEMPRE fetch origin/main antes de criar branch.",
+      "Push direto para main: BLOQUEADO (403). Sempre PR.",
+      "Deploy roda ponta-a-ponta sem intervencao. Usuario NAO aprova nada.",
+      "actions/checkout@v4 NAO suporta paths absolutos fora de $GITHUB_WORKSPACE. Usar git clone.",
+      "SEMPRE monitorar workflow run apos trigger: WebFetch da API /actions/workflows/<name>/runs e /actions/runs/<id>/jobs",
+      "multi-file DEVE pular lint per-file — lint global no final e suficiente",
+      "Workflow com concurrency group DEVE ter cancel-in-progress: true",
+      "Pipeline FUNCIONA ponta-a-ponta: trigger → apply-source-change → push corporativo → CI gate → state save → audit",
+      "Apos merge do PR: fazer polling ATIVO a cada 2-3 min. NAO confiar em sleep passivo. AVISAR usuario imediatamente ao finalizar.",
+      "Run #34 (3.5.5) confirmou pipeline estavel — 2 deploys consecutivos com sucesso (33 + 34)"
+    ]
+  },
+
+  "workflowMonitoring": {
+    "description": "Como monitorar workflow runs do GitHub Actions. SEMPRE acompanhar apos disparar um deploy.",
+    "listRuns": {
+      "url": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=5",
+      "tool": "WebFetch",
+      "fields": ["id", "status", "conclusion", "created_at", "head_sha"]
+    },
+    "getJobDetails": {
+      "url": "https://api.github.com/repos/lucassfreiree/autopilot/actions/runs/{run_id}/jobs",
+      "tool": "WebFetch",
+      "fields": ["name", "status", "conclusion", "steps[].name", "steps[].conclusion"]
+    },
+    "protocol": [
+      "1. Apos merge do PR que altera trigger: verificar se workflow disparou",
+      "2. WebFetch no URL de listRuns para ver status",
+      "3. Se failure: WebFetch no URL de getJobDetails para ver qual step falhou",
+      "4. Corrigir, bumpar run, novo PR, merge, re-monitorar",
+      "5. Repetir ate success ou identificar problema no repo corporativo"
+    ],
+    "knownFailures": [
+      {
+        "step": "Checkout autopilot (for patch files)",
+        "cause": "actions/checkout@v4 com path absoluto /tmp/autopilot",
+        "fix": "Trocado por git clone --depth 1 com RELEASE_TOKEN",
+        "fixedInPR": 92,
+        "fixedInRun": 30
+      },
+      {
+        "step": "Lint per-file em multi-file change",
+        "cause": "Workflow tentava lint por arquivo em multi-file, mas nao iterava corretamente",
+        "fix": "Skip per-file lint para multi-file + timeout",
+        "fixedInCommit": "1521e9c",
+        "fixedInRun": 31
+      },
+      {
+        "step": "Runs stuck em queue (concurrency)",
+        "cause": "concurrency group sem cancel-in-progress bloqueava runs novos",
+        "fix": "Adicionou cancel-in-progress: true",
+        "fixedInCommit": "9877c45",
+        "fixedInRun": 33
+      },
+      {
+        "step": "CI Gate decision — failure (run 35)",
+        "cause": "JWT scope claim usava 'scopes' (plural) em vez de 'scope' (singular). Agent middleware readScopeClaim() le payload.scope. Esteira de Build NPM falhou no CI do repo corporativo.",
+        "fix": "Corrigido scope claim para 'scope' (singular) + swagger version bump",
+        "fixedInPR": 104,
+        "fixedInRun": 36,
+        "lesson": "SEMPRE verificar nome exato dos claims JWT. Agent usa payload.scope (singular). Nunca scopes (plural)."
+      },
+      {
+        "step": "Esteira corporativa — ESLint no-use-before-define (run 37)",
+        "cause": "readAuthDecision() era usada na linha 328 mas definida na linha 369. ESLint no-use-before-define rejeita funcoes chamadas antes da definicao.",
+        "fix": "Movido readAuthDecision() para antes de getAgentAuthorization(). Definicao na linha 320, uso nas linhas 333 e 419.",
+        "fixedInPR": 110,
+        "fixedInRun": 38,
+        "lesson": "SEMPRE definir funcoes ANTES de usa-las no arquivo. ESLint no-use-before-define nao aceita hoisting. Verificar ordenacao de funcoes auxiliares.",
+        "diagnosticPattern": "error  'xxx' was used before it was defined  no-use-before-define"
+      },
+      {
+        "step": "Esteira corporativa — TS2769 No overload matches jwt.sign (run 36)",
+        "cause": "expiresIn era string pura ('5m') mas @types/jsonwebtoken@9.0.6 espera number | StringValue. TypeScript rejeitou o tipo.",
+        "fix": "Adicionado parseExpiresIn() que converte string para jwt.SignOptions['expiresIn'] com cast correto. Copiado do auth.controller.ts existente no projeto.",
+        "fixedInPR": 108,
+        "fixedInRun": 37,
+        "lesson": "SEMPRE verificar tipagem de @types/jsonwebtoken. expiresIn DEVE ser castado via as jwt.SignOptions['expiresIn']. Usar parseExpiresIn() do auth.controller.ts como referencia.",
+        "diagnosticPattern": "error TS2769: No overload matches this call + Type 'string' is not assignable to type 'number | StringValue | undefined'"
+      },
+      {
+        "step": "401 Missing Bearer token — agent rejeita chamadas internal-origin",
+        "cause": "Quando controller autentica via internal-origin (x-techbb-* headers), nao existia Authorization header para repassar ao agent. getAgentAuthorization() retornava undefined.",
+        "fix": "Adicionado mintInternalOriginJwt() no oas-sre-controller.controller.ts. Quando trustedInternalOrigin=true, controller gera JWT usando JWT_SECRET/JWT_ISSUER/JWT_AUDIENCE e envia como Bearer ao agent.",
+        "fixedInPR": 103,
+        "fixedInRun": 36,
+        "lesson": "Chamadas internal-origin NAO tem Authorization header. Controller DEVE gerar JWT para repassar ao agent. Env vars JWT_* ja estao disponiveis no pod.",
+        "diagnosticPattern": "Log [oas-auth] mode=jwt trusted=false namespace=': xxx' → dois pontos extras no header name no Insomnia. Log [oas-auth] mode=internal-origin trusted=true + agent 401 → controller nao repassa JWT."
+      }
+    ],
+    "successfulRuns": [
+      {
+        "run": 33,
+        "date": "2026-03-23",
+        "version": "3.5.4",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Save State", "Audit"],
+        "result": "SUCCESS — codigo pushado para controller corporativo. Esteira NPM #198 iniciada."
+      },
+      {
+        "run": 34,
+        "date": "2026-03-23",
+        "version": "3.5.5",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Save State", "Audit"],
+        "result": "SUCCESS — swagger completo com 18 rotas + version bump 3.5.5 deployado."
+      },
+      {
+        "run": 38,
+        "date": "2026-03-24",
+        "version": "3.5.6",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Promote to CAP", "Save State", "Audit"],
+        "result": "SUCCESS — fix ESLint no-use-before-define. Esteira corporativa #203 OK. Imagem Docker 3.5.6 publicada.",
+        "corporateCI": {"esteiraRun": 203, "commitSha": "02f0585", "duration": "13m 39s", "status": "SUCCESS"}
+      },
+      {
+        "run": 36,
+        "date": "2026-03-23",
+        "version": "3.5.6",
+        "stages": ["Setup", "Session Guard", "Apply & Push", "CI Gate", "Promote to CAP", "Save State", "Audit"],
+        "result": "SUCCESS — mintInternalOriginJwt para chamadas internal-origin. Fix 401 agent. 3 deploys consecutivos com sucesso (33, 34, 36)."
+      }
+    ],
+    "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar.",
+    "pollingStrategy": {
+      "description": "REGRA CRITICA: NUNCA usar sleep longo (5 min). Usar polling curto e frequente.",
+      "wrongApproach": "sleep 300 entre checks — desperdicou tempo, usuario ja viu resultado antes de mim",
+      "correctApproach": "sleep 30-60 segundos entre checks. Fazer WebFetch a cada 30-60s para verificar status.",
+      "protocol": [
+        "1. Apos disparar workflow: esperar 30s, fazer primeiro check",
+        "2. Se in_progress: esperar 30s, check novamente",
+        "3. Repetir ate completed (sucesso ou falha)",
+        "4. Para CI Gate (espera esteira corporativa): polls a cada 60s (pode demorar ate 20 min)",
+        "5. AVISAR usuario IMEDIATAMENTE ao detectar conclusao",
+        "6. NUNCA dormir mais de 60 segundos entre checks"
+      ],
+      "lesson": "Polling de 5 min e INACEITAVEL. Usuario ve resultado na dashboard antes do Claude. Usar polling de 30-60s."
+    }
+  },
+
+  "corporateCIMonitoring": {
+    "description": "OBRIGATORIO: Apos apply-source-change completar com sucesso, a esteira de Build NPM do repo corporativo AINDA precisa rodar e pode FALHAR. O workflow apply-source-change so verifica se o push foi aceito e se o CI gate passou, mas a esteira corporativa completa (build Docker image, testes completos, publicacao no registry) roda DEPOIS e de forma INDEPENDENTE.",
+    "rule": "SEMPRE monitorar a esteira corporativa apos deploy. NAO considerar deploy finalizado ate a imagem Docker ser gerada.",
+    "monitoringFlow": [
+      "1. Apos apply-source-change SUCCESS: verificar se esteira de Build NPM foi acionada no repo corporativo",
+      "2. Monitorar status da esteira a cada 3-5 minutos",
+      "3. Se esteira FALHAR: diagnosticar IMEDIATAMENTE sem perguntar ao usuario",
+      "4. Baixar logs da esteira, analisar erro, criar fix, deployar correcao automaticamente",
+      "5. AVISAR usuario do resultado final (imagem Docker gerada ou falha diagnosticada)"
+    ],
+    "howToMonitor": {
+      "controller": {
+        "repo": "bbvinet/psc-sre-automacao-controller",
+        "ciName": "Esteira de Build NPM",
+        "checkUrl": "gh api repos/bbvinet/psc-sre-automacao-controller/commits/{sha}/check-runs (via BBVINET_TOKEN no workflow)",
+        "imageRegistry": "docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller",
+        "note": "A esteira e acionada automaticamente pelo push feito pelo apply-source-change. Verificar o SHA do commit pushado."
+      },
+      "agent": {
+        "repo": "bbvinet/psc-sre-automacao-agent",
+        "ciName": "Esteira de Build NPM",
+        "checkUrl": "gh api repos/bbvinet/psc-sre-automacao-agent/commits/{sha}/check-runs (via BBVINET_TOKEN no workflow)",
+        "imageRegistry": "docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-agent"
+      }
+    },
+    "failureProtocol": [
+      "1. Identificar qual step da esteira falhou (build, test, lint, publish)",
+      "2. Se build/TypeScript: erro de compilacao — verificar imports, types, tsconfig",
+      "3. Se test/Jest: teste unitario falhou — verificar se o teste espera comportamento antigo",
+      "4. Se lint/ESLint: erro de lint — verificar regras do projeto",
+      "5. Se publish: tag duplicada no registry — incrementar version",
+      "6. Criar patch de correcao AUTOMATICAMENTE — nao perguntar ao usuario",
+      "7. Incrementar run no trigger, novo PR, merge, monitorar novamente"
+    ],
+    "commonCIFailures": [
+      {"error": "Tag duplicada no registry", "fix": "Incrementar patch version", "pattern": "duplicate tag|already exists"},
+      {"error": "TypeScript compilation error", "fix": "Verificar imports, types, interfaces", "pattern": "TS\\d{4}|error TS|Cannot find"},
+      {"error": "Test failure", "fix": "Verificar se teste espera comportamento antigo, atualizar teste ou fix o codigo", "pattern": "FAIL|expect.*received|test.*failed"},
+      {"error": "ESLint error", "fix": "Verificar regras do projeto, corrigir ou disable inline", "pattern": "eslint|no-unused|prefer-const"},
+      {"error": "JWT scope claim errado", "fix": "Agent middleware le payload.scope (singular), nunca scopes (plural)", "pattern": "Insufficient scope|403"}
+    ],
+    "goldenRules": [
+      "Deploy NAO esta completo quando apply-source-change termina — FALTA a esteira corporativa",
+      "SEMPRE monitorar a esteira apos deploy ate a imagem Docker ser publicada",
+      "Se esteira falhar: diagnosticar e corrigir AUTOMATICAMENTE sem perguntar",
+      "Registrar CADA falha com causa + fix em knownFailures para resolucao rapida",
+      "AVISAR usuario assim que imagem for publicada ou falha diagnosticada"
+    ]
+  },
+
+  "authArchitecture": {
+    "secrets": {
+      "sre-controller-auth": {
+        "keys": ["OAS_TRUSTED_NAMESPACE", "OAS_TRUSTED_SERVICE_ACCOUNT", "OAS_ORIGIN_NAMESPACE_HEADERS", "OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS"],
+        "purpose": "Auth OAS por origem interna",
+        "mountedAs": "secretKeyRef no values.yaml"
+      },
+      "psc-sre-automacao-controller-runtime": {
+        "keys": ["JWT_SECRET", "AUTH_API_KEYS_SCOPES", "SCOPE_EXECUTE_AUTOMATION", "SCOPE_SEND_LOGS", "SCOPE_READ_STATUS", "SCOPE_REGISTER_AGENT", "AWS_REGION", "OSS_ACCESS_KEY_ID", "OSS_BUCKET", "OSS_ENDPOINT", "OSS_SECRET_ACCESS_KEY"],
+        "purpose": "JWT + scopes + S3/OSS"
+      }
+    },
+    "authFlow": {
+      "step1": "Request chega com headers x-techbb-namespace e x-techbb-service-account",
+      "step2": "evaluateOasOriginAuth() compara com OAS_TRUSTED_NAMESPACE e OAS_TRUSTED_SERVICE_ACCOUNT",
+      "step3": "Se match: mode=internal-origin, pula JWT",
+      "step4": "Se nao match: requireJwt() + requireScopes() com JWT_SECRET",
+      "middleware": "patches/oas-origin-auth.ts"
+    },
+    "trustedCaller": {
+      "namespace": "sgh-oaas-playbook-jobs",
+      "serviceAccount": "default",
+      "headers": { "namespace": "x-techbb-namespace", "serviceAccount": "x-techbb-service-account" }
+    },
+    "lesson": "Variaveis OAS NUNCA hardcoded. Sempre secretKeyRef. Middleware le de process.env.",
+    "oaasIntegration": {
+      "description": "Plataforma OaaS (Ofertas as a Service) executa playbooks no namespace sgh-oaas-playbook-jobs que chamam o controller",
+      "ofertaMigracao": "migra-microsservicos-openshift-v1",
+      "playbookPreflight": "actions/execute-psc-ns-migration-preflight.yml",
+      "endpoint": "POST /oas/sre-controller?mode=sync",
+      "authRequired": "Headers x-techbb-namespace + x-techbb-service-account OU Bearer JWT",
+      "clusterHML": "k8shmlbb111b (com BB duplo)",
+      "controllerDNS": "sre-aut-controller.psc.k8shmlbb111b.bb.com.br",
+      "controllerIP": "172.17.229.129",
+      "controllerPod": "psc-sre-aut-controller-bd8c66bd9-j88qn (namespace psc-sre-aut-controller)",
+      "apbPodNamespace": "sgh-oaas-playbook-jobs",
+      "validatedAt": "2026-03-24",
+      "status": "FUNCIONAL — integracao ponta-a-ponta validada em 2026-03-25. compliance_status=success.",
+      "manifestInputs": {
+        "namespaces_list": "string comma-sep (regex: ^[a-zA-Z][a-zA-Z0-9_-]*(,[a-zA-Z][a-zA-Z0-9_-]*)*$)",
+        "solution_service_origin": "select from API",
+        "solution_service_destination": "select from API",
+        "cluster_hml_origin": "select: k8shmlbb111 | k8shmlbb111b"
+      },
+      "correctTestPayload": {
+        "namespaces_list": "aai-consulta-iban-api",
+        "solution_service_origin": "aai-consulta-iban-api",
+        "solution_service_destination": "aai-consulta-iban-api",
+        "cluster_hml_origin": "k8shmlbb111b"
+      },
+      "doNotPass": ["CLUSTERS_NAMES", "image", "envs — playbook monta tudo internamente a partir dos inputs do manifesto"],
+      "successfulExecution": {
+        "date": "2026-03-25",
+        "requestId": "7e1f3308-f38b-44e8-a700-c743b35e948d",
+        "execId": "7ac2b099-8323-4210-a74c-3254fbb75bc5",
+        "image": "psc-sre-ns-migration-preflight",
+        "cluster": "k8shmlbb111b",
+        "namespace": "aai-consulta-iban-api",
+        "result": "compliance_status=success",
+        "duration": "9284ms (sync mode)",
+        "httpStatus": 200
+      },
+      "lesson": "Cenario de teste usa SOMENTE inputs do manifesto. Playbook monta CLUSTERS_NAMES e envs internamente. Broker valida campos do manifesto antes de despachar. Quando OaaS retorna 401: verificar headers x-techbb-*."
+    }
+  },
+
+  "capValuesYaml": {
+    "referenceFile": "references/controller-cap/values.yaml",
+    "imageLinePattern": "image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:<TAG>",
+    "envStructure": {
+      "plainValues": ["NODE_ENV", "PORT", "LOG_LEVEL", "SWAGGER_ENABLED"],
+      "sre-controller-auth": ["OAS_TRUSTED_NAMESPACE", "OAS_TRUSTED_SERVICE_ACCOUNT", "OAS_ORIGIN_NAMESPACE_HEADERS", "OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS"],
+      "runtime": ["JWT_SECRET", "AUTH_API_KEYS_SCOPES", "SCOPE_*", "AWS_REGION", "OSS_*"]
+    },
+    "lesson": "Nova env var: segredo = secretKeyRef. Config = value direto."
+  },
+
+  "ciPatterns": {
+    "jestFakeTimers": {
+      "problem": "Testes com fake timers + async falham com advanceTimersByTime",
+      "solution": "Usar jest.advanceTimersByTimeAsync()",
+      "lesson": "Se ver jest.useFakeTimers() + async/await: TROCAR para advanceTimersByTimeAsync"
+    },
+    "eslintPreExisting": {
+      "problem": "CI falha com lint errors que ja existiam",
+      "solution": "Workflow tem smart comparison: detecta pre-existing e ignora",
+      "lesson": "Se CI falha com lint: verificar se o erro ja existia"
+    },
+    "duplicateTag": {
+      "problem": "CI rejeita tag que ja existe no registry",
+      "solution": "Incrementar patch version",
+      "lesson": "SEMPRE verificar registry antes de version bump"
+    }
+  },
+
+  "historia868216": {
+    "status": "completed",
+    "completedAt": "2026-03-23",
+    "deployVersion": "3.5.4",
+    "deployPR": 85,
+    "deployTriggerRun": 27,
+    "finalSuccessfulRun": 33,
+    "deployedToCorporateRepo": true,
+    "esteiraBuilding": "NPM #198 — imagem 3.5.4",
+    "sourceFiles": {
+      "controller": "src/controllers/oas-sre-controller.controller.ts",
+      "authMiddleware": "src/middlewares/oas-origin-auth.ts",
+      "logsController": "src/controllers/agents-execute-logs.controller.ts",
+      "executeController": "src/controllers/execute.controller.ts",
+      "swagger": "src/swagger/swagger.json",
+      "testFile": "src/__tests__/unit/agents-execute-logs.controller.test.ts"
+    },
+    "patchFiles": {
+      "auth": "patches/oas-origin-auth.ts",
+      "swagger": "patches/swagger.json",
+      "versionSync": "patches/version-sync-3.5.4.patch",
+      "executeFix": "patches/execute.controller.ts.patch",
+      "executeFixed": "patches/execute.controller.fixed.ts",
+      "testFixed": "patches/agents-execute-logs.controller.test.fixed.ts"
+    },
+    "items": {
+      "1_rota_post": { "status": "OK", "file": "oas-sre-controller.controller.ts", "function": "postOasSreController" },
+      "2_auth_origem": { "status": "OK", "file": "oas-origin-auth.ts", "function": "evaluateOasOriginAuth" },
+      "3_jwt_escopos": { "status": "OK", "file": "oas-origin-auth.ts", "function": "requireOasOriginOrJwt" },
+      "4_contrato_payload": { "status": "OK", "file": "oas-sre-controller.controller.ts", "function": "validateSreControllerPayload" },
+      "5_allowlist_imagens": { "status": "OK", "file": "oas-sre-controller.controller.ts", "function": "allowedImages()" },
+      "6_validacao_preflight": { "status": "OK", "note": "Delegada a imagem Docker (aceito pelo PO)" },
+      "7_acionamento_agent": { "status": "OK", "file": "oas-sre-controller.controller.ts", "function": "callAgent com Promise.all" },
+      "8_retorno_resultado": { "status": "OK", "note": "sync (200/502/504) e async (202)" },
+      "9_get_status": { "status": "OK", "file": "agents-execute-logs.controller.ts", "function": "getAgentExecutionLogs" },
+      "10_logs": { "status": "OK", "note": "console.info/error em cada etapa" },
+      "11_documentacao": { "status": "OK", "file": "patches/swagger.json", "note": "OpenAPI 3.0.3 ASCII" }
+    },
+    "lesson": "Validacao especifica de campos por imagem: responsabilidade da imagem Docker."
+  },
+
+  "gitPatterns": {
+    "branchNaming": "Branches DEVEM comecar com claude/ senao push retorna 403",
+    "pushToMain": "BLOQUEADO. Sempre: branch claude/* com PR com squash merge",
+    "conflictResolution": {
+      "trigger_files": "run = max(HEAD, main) + 1. Manter payload do nosso deploy",
+      "general": "fetch origin/main. merge. resolver. push. PR fica mergeable"
+    },
+    "prWorkflow": {
+      "create": "mcp github create_pull_request",
+      "merge": "mcp github merge_pull_request com squash",
+      "checkStatus": "mcp github pull_request_read method=get para ver mergeable_state"
+    },
+    "createBranchSafely": "git fetch origin main && git checkout -B claude/xxx origin/main",
+    "lesson": "Criar branch SEMPRE a partir de main ATUALIZADO. NUNCA reset --hard sem commitar antes."
+  },
+
+  "optimizations": {
+    "description": "Otimizacoes para reduzir tempo nas proximas sessoes",
+    "parallel": [
+      "Ler session memory + CLAUDE.md + workspace.json em PARALELO no inicio",
+      "Criar patches em paralelo quando independentes",
+      "git fetch + verificar PR status em paralelo"
+    ],
+    "avoid": [
+      "NAO push direto para main — sempre 403",
+      "NAO criar branch sem fetch origin/main — causa conflitos",
+      "NAO assumir versao — verificar estado atual",
+      "NAO esperar usuario aprovar — permissoes em .claude/settings.json",
+      "NAO criar PR separado para memoria — incluir no mesmo PR",
+      "NAO usar reset --hard sem commitar/stash antes",
+      "NAO criar branch que ja existe sem -B flag",
+      "NAO perguntar ao usuario sobre codigos — baixar, analisar, corrigir e deployar AUTOMATICAMENTE",
+      "NAO pedir confirmacao para deploy — seguir fluxo completo autonomamente"
+    ],
+    "speedups": [
+      "Deploy: TUDO em 1 commit (patches + trigger + values + CLAUDE.md)",
+      "Resolver conflitos ANTES de criar PR",
+      "Squash merge para historico limpo",
+      "Memoria: atualizar durante sessao, nao so no final",
+      "Usar git checkout -B (force) em vez de delete + create"
+    ]
+  },
+
+  "commonPatterns": {
+    "patchCreation": {
+      "location": "patches/",
+      "fullFile": "Copiar arquivo completo corrigido (ex: patches/oas-origin-auth.ts)",
+      "searchReplace": "Para mudancas simples (action: search-replace no trigger)",
+      "replaceFile": "Para substituir inteiro (action: replace-file, content_ref: patches/xxx)"
+    },
+    "fetchFiles": {
+      "trigger": "trigger/fetch-files.json",
+      "workflow": "fetch-files.yml",
+      "result": "Salvo em autopilot-state branch"
+    },
+    "errorRecovery": {
+      "ci_lint": "Verificar se pre-existing. Se sim, ignorar",
+      "push_403": "Branch nao comeca com claude/. Renomear",
+      "swagger_garbled": "Acentos UTF-8. Substituir por ASCII",
+      "pr_dirty": "fetch + merge origin/main + resolver + push",
+      "trigger_conflict": "run = max + 1, manter payload",
+      "duplicate_tag": "Incrementar patch version",
+      "branch_exists": "Usar git checkout -B (force create)",
+      "reset_lost_changes": "SEMPRE stash/commit antes de reset",
+      "agent_401_internal_origin": "Controller nao gera JWT para agent em chamadas internal-origin. Fix: mintInternalOriginJwt() em oas-sre-controller.controller.ts",
+      "jwt_scope_claim_wrong": "Agent middleware le payload.scope (singular). NUNCA usar 'scopes' (plural) no jwt.sign()",
+      "insomnia_header_colon": "Insomnia adiciona : automaticamente. NAO colocar : no nome do header. Ex: x-techbb-namespace (sem :)",
+      "ci_gate_block": "Smart CI diz que falha NAO e pre-existente. Analisar build/test/lint logs do repo corporativo. Corrigir patch, bump run, novo PR+merge",
+      "fetch_files_not_triggering": "fetch-files.json so dispara quando mergeado em main. Push para branch NAO dispara. Alternativa: ler do autopilot-state branch (fetched-* files)",
+      "ts2769_jwt_sign": "expiresIn string nao aceito por @types/jsonwebtoken@9.0.6. Usar parseExpiresIn() com cast as jwt.SignOptions['expiresIn']. Copiar pattern do auth.controller.ts",
+      "eslint_no_use_before_define": "ESLint rejeita funcoes chamadas antes da definicao. SEMPRE ordenar: funcoes auxiliares PRIMEIRO, funcoes que as usam DEPOIS. Verificar com: grep -n 'function ' file | sort -t: -k2 -n",
+      "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install — erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
+      "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-logs-controller-*.txt no autopilot-state (ultimo arquivo = ultimo run). Corrigir patch, bump run, re-deploy automaticamente",
+      "error_message_change_breaks_tests": "CRITICO: Ao mudar qualquer mensagem de erro (ex: 401 response body), buscar TODOS os arquivos que retornam essa mensagem (jwt.ts, jwt-callback.ts, e qualquer outro middleware) E TODOS os testes que verificam. Usar: grep -rn 'mensagem_antiga' src/ para encontrar TODOS. Arquivos de CODIGO afetados: jwt.ts (3 mensagens), jwt-callback.ts (13 mensagens). Arquivos de TESTE afetados: agentsRouter.test.ts (4), jwt.middleware.test.ts (2), oas-sre-controller.route.test.ts (1). LESSON: jwt-callback.ts e um middleware SEPARADO do jwt.ts que tem suas PROPRIAS mensagens de erro. Ambos devem ser atualizados.",
+      "security_xss_reflected": "NUNCA refletir input do usuario em responses sem sanitizacao. Usar sanitizeForOutput() que remove <>'\"& e limita a 256 chars. Checkmarx detecta Reflected_XSS quando req.body flui para res.json().",
+      "security_ssrf_url_validation": "TODA URL usada em fetch()/http request DEVE ser validada contra TRUSTED_AGENT_URL_PATTERN (regex de dominio confiavel). Usar validateTrustedUrl() antes de qualquer fetch. Checkmarx detecta SSRF quando body influencia URL de request.",
+      "security_dos_loop_bound": "NUNCA usar req.query/req.body para controlar numero de iteracoes de um loop sem limite maximo (MAX_RESULTS). Checkmarx detecta Server_DoS_by_Loop.",
+      "security_error_detail_leak": "NUNCA retornar error.message direto no response. Usar sanitizeForOutput(msg) para limpar e limitar. Evita information disclosure.",
+      "oaas_oferta_401_no_headers": "Oferta migra-microsservicos-openshift retorna 401 ao chamar controller. CAUSA: playbook execute-psc-ns-migration-preflight.yml NAO envia headers x-techbb-namespace e x-techbb-service-account. FIX: adicionar headers no task uri do Ansible. Controller esta correto — problema e no playbook da oferta (repo da plataforma OaaS).",
+      "oaas_dns_transiente": "Pod APB pode ter falha DNS transiente para hostnames *.psc.k8shmlbb111b.bb.com.br. Reexecutar resolve. Cluster HML correto: k8shmlbb111b (com BB duplo, NAO b simples).",
+      "ci_gate_preexisting_bug": "CRITICO: CI Gate 'smart pre-existing detection' esta QUEBRADO. Reporta ciResult=failure MESMO quando a esteira corporativa PASSA. Aconteceu no run #43: esteira #208 PASSOU com sucesso mas CI Gate reportou ci-failed-preexisting. O CI Gate NAO e confiavel para determinar se a esteira passou ou falhou. Para saber o resultado REAL: 1) Checar ci-logs-controller-*.txt (se novo log apareceu com PASS em todos os testes = sucesso), 2) Perguntar ao usuario se necessario, 3) Tempo de execucao: esteira que FALHA em teste leva ~3.5 min, esteira que PASSA leva ~14 min. Se CI Gate levou 14+ min = provavelmente passou."
+    }
+  },
+
+  "deployFlowGuide": {
+    "description": "GUIA COMPLETO PASSO-A-PASSO para qualquer agente (Claude, Codex, Copilot) executar um deploy do controller. Este e o fluxo OFICIAL e TESTADO.",
+    "prerequisites": [
+      "Ler contracts/claude-session-memory.json para estado atual",
+      "Ler workspace.json para config dos repos corporativos",
+      "Verificar versioningRules.currentVersion para saber ultima versao",
+      "Verificar deployFlow.lastTriggerRun para saber ultimo run number"
+    ],
+    "phases": {
+      "phase1_prepare": {
+        "name": "Preparacao",
+        "steps": [
+          "1. git fetch origin main && git checkout -B claude/<nome-descritivo> origin/main",
+          "2. Decidir nova versao: versioningRules.currentVersion + 1 no patch (ex: 3.5.5 → 3.5.6)",
+          "3. Criar/atualizar arquivos de patch em patches/ (codigo fonte a ser aplicado no repo corporativo)",
+          "4. Para cada change: decidir action (search-replace para mudancas simples, replace-file para arquivo inteiro)"
+        ],
+        "output": "Patches prontos em patches/"
+      },
+      "phase2_trigger": {
+        "name": "Configurar Trigger",
+        "steps": [
+          "1. Editar trigger/source-change.json:",
+          "   - workspace_id: 'ws-default'",
+          "   - component: 'controller' (ou 'agent')",
+          "   - change_type: 'multi-file' (para multiplos arquivos) ou 'modify-file'/'add-file' (para arquivo unico)",
+          "   - version: nova versao (ex: '3.5.6')",
+          "   - changes: array com cada mudanca [{action, target_path, search?, replace?, content_ref?}]",
+          "   - commit_message: mensagem descritiva do commit no repo corporativo",
+          "   - skip_ci_wait: false (SEMPRE esperar CI)",
+          "   - promote: true (para atualizar CAP values.yaml automaticamente)",
+          "   - run: deployFlow.lastTriggerRun + 1 (OBRIGATORIO incrementar para disparar)"
+        ],
+        "triggerPayloadExamples": {
+          "searchReplace": {
+            "action": "search-replace",
+            "target_path": "package.json",
+            "search": "\"version\": \"3.5.5\"",
+            "replace": "\"version\": \"3.5.6\""
+          },
+          "replaceFile": {
+            "action": "replace-file",
+            "target_path": "src/swagger/swagger.json",
+            "content_ref": "patches/swagger.json"
+          }
+        },
+        "output": "trigger/source-change.json atualizado com novo payload e run incrementado"
+      },
+      "phase3_references": {
+        "name": "Atualizar Referencias",
+        "steps": [
+          "1. Atualizar references/controller-cap/values.yaml com nova image tag (se promote=true)",
+          "2. Atualizar CLAUDE.md secao 'Controller CAP' com nova versao deployed",
+          "3. Atualizar contracts/claude-session-memory.json com nova versao em versioningRules"
+        ],
+        "output": "Todas as referencias apontam para nova versao"
+      },
+      "phase4_commit_pr_merge": {
+        "name": "Commit + PR + Merge",
+        "steps": [
+          "1. git add patches/ trigger/source-change.json references/ CLAUDE.md contracts/claude-session-memory.json",
+          "2. git commit -m 'feat: <descricao> + deploy <versao>'",
+          "3. git push -u origin claude/<nome-descritivo>",
+          "4. Criar PR via MCP GitHub (mcp__github__create_pull_request)",
+          "5. Verificar mergeable_state — se 'dirty': git pull origin main, resolver conflitos, push",
+          "6. Mergear PR (squash) via MCP GitHub (mcp__github__merge_pull_request)",
+          "7. IMPORTANTE: O merge em main com alteracao em trigger/source-change.json DISPARA automaticamente o workflow apply-source-change.yml"
+        ],
+        "output": "PR mergeado. Workflow apply-source-change disparado automaticamente."
+      },
+      "phase5_monitor": {
+        "name": "Monitorar Workflow apply-source-change (OBRIGATORIO)",
+        "steps": [
+          "1. Imediatamente apos merge: WebFetch em https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=3",
+          "2. Verificar se novo run apareceu (status: queued ou in_progress)",
+          "3. Aguardar 2-3 minutos e verificar novamente",
+          "4. Se status=completed e conclusion=success: PROSSEGUIR para phase5b",
+          "5. Se status=completed e conclusion=failure: verificar jobs, diagnosticar, corrigir AUTOMATICAMENTE, re-deploy",
+          "6. AVISAR O USUARIO assim que o workflow finalizar (sucesso ou falha)"
+        ],
+        "monitoringUrls": {
+          "listRuns": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/apply-source-change.yml/runs?per_page=5",
+          "jobDetails": "https://api.github.com/repos/lucassfreiree/autopilot/actions/runs/{run_id}/jobs"
+        },
+        "pollingStrategy": {
+          "afterMerge": "Verificar em 1 minuto se workflow disparou",
+          "duringExecution": "Verificar a cada 2-3 minutos",
+          "maxWait": "15 minutos (CI gate pode demorar dependendo da esteira corporativa)",
+          "onCompletion": "AVISAR IMEDIATAMENTE o usuario com resultado"
+        },
+        "output": "Workflow concluido. Prosseguir para phase5b."
+      },
+      "phase5b_corporate_ci": {
+        "name": "Monitorar Esteira Corporativa (OBRIGATORIO — NAO PULAR)",
+        "description": "CRITICO: apply-source-change SUCCESS NAO significa deploy completo! A Esteira de Build NPM roda INDEPENDENTEMENTE apos o push para o repo corporativo e PODE FALHAR.",
+        "steps": [
+          "1. Apos apply-source-change SUCCESS: CI Gate ja verificou build+test+lint basicos",
+          "2. Monitorar se imagem Docker esta sendo gerada (Esteira de Build NPM)",
+          "3. Se CI Gate passou: a esteira provavelmente esta OK, mas CONFIRMAR",
+          "4. Se esteira FALHAR em qualquer ponto:",
+          "   a. Baixar logs e diagnosticar o erro AUTOMATICAMENTE (NAO perguntar ao usuario)",
+          "   b. Falhas comuns: TypeScript errors, test failures, lint errors, duplicate tags",
+          "   c. Criar patch de correcao, bumpar trigger run, novo PR, merge, re-monitorar",
+          "   d. Repetir ate sucesso",
+          "5. AVISAR usuario com resultado final (imagem gerada ou falha diagnosticada)",
+          "6. Registrar CADA falha em knownFailures + errorRecovery na session memory"
+        ],
+        "failureActions": {
+          "typescript_error": "Verificar imports, types, interfaces. Corrigir no patch e re-deploy",
+          "test_failure": "Verificar se teste espera comportamento antigo. Atualizar teste ou corrigir codigo",
+          "lint_error": "Verificar regras do projeto. Corrigir ou disable inline se necessario",
+          "duplicate_tag": "Incrementar patch version em TODOS os 4 arquivos",
+          "scope_claim": "Agent le payload.scope (singular). NUNCA usar scopes (plural)"
+        },
+        "goldenRule": "Deploy so esta COMPLETO quando a imagem Docker e publicada no registry. NAO parar de monitorar antes disso.",
+        "output": "Imagem Docker gerada. Deploy REALMENTE completo. Avisar usuario."
+      },
+      "phase6_post_deploy": {
+        "name": "Pos-Deploy",
+        "steps": [
+          "1. Atualizar session memory: deployFlow.lastTriggerRun, lastSuccessfulRun, pipelineStatus",
+          "2. Adicionar novo run em workflowMonitoring.successfulRuns",
+          "3. Registrar sessao em executionHistory",
+          "4. Commitar memoria atualizada (pode ser no mesmo PR ou PR separado)"
+        ],
+        "output": "Memoria atualizada para proxima sessao"
+      }
+    },
+    "pipelineStages": {
+      "description": "O workflow apply-source-change.yml executa estes stages em ordem:",
+      "stages": [
+        {"stage": "1. Setup", "does": "Le workspace.json, extrai config dos repos corporativos, decodifica payload do trigger"},
+        {"stage": "1.5 Session Guard", "does": "Adquire lock no autopilot-state para evitar conflito entre agentes"},
+        {"stage": "2. Apply & Push", "does": "Clona repo corporativo (BBVINET_TOKEN), aplica patches (search-replace/replace-file), roda lint global, faz commit e push"},
+        {"stage": "3. CI Gate", "does": "Espera esteira de CI do repo corporativo (Esteira de Build NPM). Smart comparison detecta erros pre-existentes."},
+        {"stage": "4. Promote", "does": "Atualiza image tag no CAP values.yaml (se promote=true). NAO funciona automaticamente — controller esta no GitLab."},
+        {"stage": "5. Save State", "does": "Salva release state no autopilot-state branch"},
+        {"stage": "6. Audit", "does": "Registra audit trail + libera session lock"}
+      ]
+    },
+    "errorRecoveryGuide": {
+      "workflowFailed": [
+        "1. WebFetch nos jobs do run para ver qual step falhou",
+        "2. Analisar o erro (ver knownFailures na session memory)",
+        "3. Corrigir no workflow ou nos patches",
+        "4. Incrementar run no trigger/source-change.json",
+        "5. Novo commit + PR + merge + monitorar"
+      ],
+      "conflictoNoTrigger": [
+        "1. git fetch origin main",
+        "2. git merge origin/main",
+        "3. No trigger: run = max(HEAD, main) + 1",
+        "4. Manter o payload do nosso deploy",
+        "5. Push + PR fica mergeable"
+      ],
+      "ciRejeitouTag": [
+        "1. Versao ja existe no registry",
+        "2. Incrementar patch: 3.5.X → 3.5.(X+1)",
+        "3. Atualizar TODOS os 4 arquivos de versao",
+        "4. Novo trigger + PR + merge"
+      ]
+    },
+    "goldenRules": [
+      "NUNCA push direto para main — sempre branch claude/* com PR + squash merge",
+      "NUNCA assumir que workflow rodou — SEMPRE monitorar e verificar",
+      "NUNCA esquecer de incrementar run no trigger — sem incremento o workflow NAO dispara",
+      "SEMPRE avisar o usuario quando workflow finalizar (sucesso ou falha)",
+      "SEMPRE atualizar session memory apos deploy com sucesso",
+      "SEMPRE verificar ultima versao antes de version bump — CI rejeita duplicatas",
+      "SEMPRE fazer tudo em 1 commit quando possivel (patches + trigger + references + memory)",
+      "SEMPRE fetch origin/main antes de criar branch — evita conflitos"
+    ]
+  },
+
+  "sessionProtocol": {
+    "onStart": [
+      "1. Ler contracts/claude-session-memory.json (hook SessionStart injeta automaticamente)",
+      "2. Aplicar TODOS os padroes e lessons",
+      "3. Verificar versioningRules.currentVersion",
+      "4. git fetch origin main",
+      "5. Verificar workflow runs pendentes"
+    ],
+    "duringSession": [
+      "Registrar CADA passo executado em executionHistory",
+      "Ao descobrir nova regra: adicionar em lesson do bloco relevante",
+      "Ao encontrar problema: registrar problema + solucao em errorRecovery",
+      "Ao completar historia: registrar com TODOS os detalhes",
+      "Ao otimizar algo: registrar em optimizations",
+      "NUNCA esperar fim de sessao para atualizar"
+    ],
+    "onEnd": [
+      "1. Garantir que executionHistory tem TODOS os passos",
+      "2. Atualizar CLAUDE.md se algo novo foi criado",
+      "3. Commitar memoria + push via PR com merge"
+    ],
+    "goldenRule": "Se foi feito e nao esta documentado aqui, e um BUG. Documentar TUDO."
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autopilot.schema/improvement-report.schema.json",
+  "title": "Improvement Report",
+  "description": "Output of the continuous improvement pipeline",
+  "type": "object",
+  "required": ["schemaVersion", "analyzedAt", "runId", "scope", "healthScore", "totalIssues", "bySeverity", "issues"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "analyzedAt": { "type": "string", "format": "date-time" },
+    "runId": { "type": "string" },
+    "scope": { "type": "string", "enum": ["all", "workflows", "schemas", "contracts", "state-consistency"] },
+    "healthScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "totalIssues": { "type": "integer", "minimum": 0 },
+    "bySeverity": {
+      "type": "object",
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "autoFixable": { "type": "integer", "minimum": 0 },
+    "autoFixed": { "type": "integer", "minimum": 0 },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+          "file": { "type": "string" },
+          "description": { "type": "string" },
+          "autoFixable": { "type": "boolean" }
+        },
+        "required": ["severity", "file", "description"]
+      }
+    },
+    "trend": {
+      "type": "object",
+      "properties": {
+        "direction": { "type": "string", "enum": ["baseline", "improving", "degrading", "stable"] },
+        "scoreDelta": { "type": "integer" },
+        "issuesDelta": { "type": "integer" },
+        "previousScore": { "type": "integer" },
+        "previousIssues": { "type": "integer" }
+      }
+    }
+  }
+}

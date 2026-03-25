@@ -1,152 +1,255 @@
-# ===========================================================
-# REPO:  lucassfreiree/autopilot
-# PATH:  .github/workflows/bootstrap.yml
-#
-# EXECUTA UMA UNICA VEZ e configura tudo automaticamente:
-#   1. Cria branch autopilot-state com JSONs de estado
-#   2. Faz push do release-autopilot.yml no repo do agent (bbvinet)
-#   3. Configura o secret RELEASE_TOKEN no repo do agent (bbvinet)
-#   4. Faz push do health-check.yml neste repo
-#
-# PRE-REQUISITOS (unicos passos manuais):
-#   Secrets neste repo (lucassfreiree/autopilot):
-#     RELEASE_TOKEN  - token pessoal
-#     BBVINET_TOKEN  - token bbvinet
-# ===========================================================
-name: "Bootstrap: Setup Completo"
+name: "[Core] Bootstrap: Full Setup"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
 
 on:
   workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID to bootstrap (e.g. ws-corp-1)"
+        required: true
+        default: "ws-default"
 
 permissions:
   contents: write
+  issues: write
+
+concurrency:
+  group: autopilot-bootstrap
+  cancel-in-progress: false
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+  BACKUP_BRANCH: autopilot-backups
 
 jobs:
   bootstrap:
     runs-on: ubuntu-latest
-
     steps:
-
-      # ── Checkout do repo para ler os arquivos de workflow ──
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── ETAPA 1: branch autopilot-state ────────────────────
-      - name: "1/4 - Criar branch autopilot-state"
+      - name: "1/8 - Validate inputs"
+        id: validate_inputs
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          if ! echo "$WS_ID" | grep -qE '^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$'; then
+            echo "::error ::workspace_id invalido: '$WS_ID'. Use lowercase, hifens, 3-50 chars."
+            exit 1
+          fi
+          echo "workspace_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "Workspace ID: $WS_ID"
+
+      - name: "2/8 - Validate secrets and vars"
+        id: validate_secrets
+        env:
+          HAS_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN != '' }}
+        run: |
+          ERRORS=""
+          if [ "$HAS_RELEASE_TOKEN" != "true" ]; then
+            ERRORS="${ERRORS}\n- Secret RELEASE_TOKEN nao configurado"
+          fi
+          if [ -n "$ERRORS" ]; then
+            echo "::error ::Secrets/vars ausentes:$(echo -e "$ERRORS")"
+            exit 1
+          fi
+          echo "Secrets validados."
+
+      - name: "3/8 - Init state branch"
+        id: init_state
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
-          REPO="lucassfreiree/autopilot"
-          echo "Verificando se branch ja existe..."
-          if gh api "repos/$REPO/git/refs/heads/autopilot-state" --silent 2>/dev/null; then
-            echo "Branch autopilot-state ja existe. Pulando."
+          if gh api "repos/$REPO/git/refs/heads/$STATE_BRANCH" --silent 2>/dev/null; then
+            echo "Branch $STATE_BRANCH ja existe."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            BASE_SHA=$(gh api "repos/$REPO/git/refs/heads/main" --jq '.object.sha')
+            gh api "repos/$REPO/git/refs" \
+              --method POST \
+              -f "ref=refs/heads/$STATE_BRANCH" \
+              -f "sha=$BASE_SHA"
+            README_B64=$(printf '# autopilot-state\n\nRuntime state branch. Do not merge into main.' | base64 -w0)
+            gh api "repos/$REPO/contents/README.md" \
+              --method PUT \
+              -f "branch=$STATE_BRANCH" \
+              -f "message=chore: init autopilot-state [skip ci]" \
+              -f "content=$README_B64"
+            echo "Branch $STATE_BRANCH criado."
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "4/8 - Init backup branch"
+        id: init_backup
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if gh api "repos/$REPO/git/refs/heads/$BACKUP_BRANCH" --silent 2>/dev/null; then
+            echo "Branch $BACKUP_BRANCH ja existe."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            BASE_SHA=$(gh api "repos/$REPO/git/refs/heads/main" --jq '.object.sha')
+            gh api "repos/$REPO/git/refs" \
+              --method POST \
+              -f "ref=refs/heads/$BACKUP_BRANCH" \
+              -f "sha=$BASE_SHA"
+            README_B64=$(printf '# autopilot-backups\n\nState snapshots for rollback.' | base64 -w0)
+            gh api "repos/$REPO/contents/README.md" \
+              --method PUT \
+              -f "branch=$BACKUP_BRANCH" \
+              -f "message=chore: init autopilot-backups [skip ci]" \
+              -f "content=$README_B64"
+            echo "Branch $BACKUP_BRANCH criado."
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "5/8 - Seed workspace"
+        id: seed_workspace
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.validate_inputs.outputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          EXISTING=$(gh api "repos/$REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            echo "Workspace $WS_ID ja existe."
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "Criando branch autopilot-state..."
-          BASE_SHA=$(gh api "repos/$REPO/git/refs/heads/main" --jq '.object.sha')
-          echo "Base SHA: $BASE_SHA"
-          gh api "repos/$REPO/git/refs" \
-            --method POST \
-            -f "ref=refs/heads/autopilot-state" \
-            -f "sha=$BASE_SHA"
-          echo "Branch criado. Adicionando arquivos de estado..."
-          CTRL='{"schemaVersion":1,"tenantId":"bbvinet","component":"psc-sre-automacao-controller","initialized":true,"lastReleasedSha":"","lastTag":"","updatedAt":"","runId":"","note":"Controller via GitLab interno - promocao manual por ora"}'
-          CTRL_B64=$(echo "$CTRL" | base64 -w0)
-          gh api "repos/$REPO/contents/state/controller-state.json" \
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          WS_JSON=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg now "$NOW" \
+            '{
+              schemaVersion: 2,
+              workspaceId: $ws,
+              displayName: $ws,
+              createdAt: $now,
+              updatedAt: $now,
+              controller: { sourceRepo: "", deployRepo: "", deployBranch: "main", deployValuesPath: "", ciWorkflowName: "", imagePattern: "" },
+              agent: { sourceRepo: "", deployRepo: "", deployBranch: "main", deployValuesPath: "", capRepo: "", capBranch: "main", capValuesPath: "", ciWorkflowName: "", imagePattern: "" },
+              settings: { promotionTarget: "both", autoRelease: true, lockTimeoutMinutes: 30, healthCheckEnabled: true }
+            }')
+          echo "$WS_JSON" | base64 -w0 > /tmp/ws.b64
+          gh api "repos/$REPO/contents/${WS_PATH}/workspace.json" \
             --method PUT \
-            -f "branch=autopilot-state" \
-            -f "message=chore: add controller-state.json [skip ci]" \
-            -f "content=$CTRL_B64"
-          AGENT='{"schemaVersion":1,"tenantId":"bbvinet","component":"psc-sre-automacao-agent","initialized":true,"lastReleasedSha":"","lastTag":"","updatedAt":"","runId":""}'
-          AGENT_B64=$(echo "$AGENT" | base64 -w0)
-          gh api "repos/$REPO/contents/state/agent-state.json" \
-            --method PUT \
-            -f "branch=autopilot-state" \
-            -f "message=chore: add agent-state.json [skip ci]" \
-            -f "content=$AGENT_B64"
-          README_B64=$(echo "# autopilot-state\n\nBranch de estado persistente do BBDevOpsAutopilot - tenant bbvinet.\n**Nao edite manualmente.**" | base64 -w0)
-          gh api "repos/$REPO/contents/README.md" \
-            --method PUT \
-            -f "branch=autopilot-state" \
-            -f "message=chore: add README [skip ci]" \
-            -f "content=$README_B64"
-          echo "Branch autopilot-state criado com sucesso."
-
-      # ── ETAPA 2: push release-autopilot.yml no agent ───────
-      - name: "2/4 - Push release-autopilot.yml no repo do agent"
-        env:
-          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
-        run: |
-          set -euo pipefail
-          TARGET_REPO="bbvinet/psc-sre-automacao-agent"
-          TARGET_PATH=".github/workflows/release-autopilot.yml"
-          CONTENT=$(cat .github/workflows/release-autopilot.yml)
-          ENCODED=$(echo "$CONTENT" | base64 -w0)
-          EXISTING=$(gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
-            --jq '.sha' 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            echo "Arquivo ja existe. Atualizando..."
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=chore: seed workspace $WS_ID [skip ci]" \
+            -f "content=$(cat /tmp/ws.b64)"
+          for FILE in controller-release-state.json agent-release-state.json; do
+            COMPONENT=$(echo "$FILE" | sed 's/-release-state.json//')
+            STATE_JSON=$(jq -n \
+              --arg ws "$WS_ID" \
+              --arg comp "$COMPONENT" \
+              --arg now "$NOW" \
+              '{schemaVersion:2, workspaceId:$ws, component:$comp, lastReleasedSha:"", lastTag:"", lastVersion:"", updatedAt:$now, runId:"", runUrl:"", promotions:[], status:"idle"}')
+            echo "$STATE_JSON" | base64 -w0 > /tmp/state.b64
+            gh api "repos/$REPO/contents/${WS_PATH}/${FILE}" \
               --method PUT \
-              -f "message=chore: update release-autopilot workflow [autopilot bootstrap]" \
-              -f "content=$ENCODED" \
-              -f "sha=$EXISTING"
-          else
-            echo "Criando arquivo novo..."
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
-              --method PUT \
-              -f "message=chore: add release-autopilot workflow [autopilot bootstrap]" \
-              -f "content=$ENCODED"
-          fi
-          echo "release-autopilot.yml criado em $TARGET_REPO"
+              -f "branch=$STATE_BRANCH" \
+              -f "message=chore: seed $FILE for $WS_ID [skip ci]" \
+              -f "content=$(cat /tmp/state.b64)"
+          done
+          HEALTH_JSON=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg now "$NOW" \
+            '{schemaVersion:2, workspaceId:$ws, checkedAt:$now, overall:"unknown", checks:{}, summary:"Not yet checked"}')
+          echo "$HEALTH_JSON" | base64 -w0 > /tmp/health.b64
+          gh api "repos/$REPO/contents/${WS_PATH}/health.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=chore: seed health.json for $WS_ID [skip ci]" \
+            -f "content=$(cat /tmp/health.b64)"
+          echo "Workspace $WS_ID seeded."
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
-      # ── ETAPA 3: configurar secret no repo do agent ─────────
-      - name: "3/4 - Configurar secret RELEASE_TOKEN no repo do agent"
-        env:
-          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
-          SECRET_VALUE: ${{ secrets.BBVINET_TOKEN }}
-        run: |
-          set -euo pipefail
-          TARGET_REPO="bbvinet/psc-sre-automacao-agent"
-          echo "$SECRET_VALUE" | gh secret set RELEASE_TOKEN \
-            --repo "$TARGET_REPO"
-          echo "Secret RELEASE_TOKEN configurado em $TARGET_REPO"
-
-      # ── ETAPA 4: push health-check.yml neste repo ───────────
-      - name: "4/4 - Push health-check.yml neste repo"
+      - name: "6/8 - Validate structure"
+        id: validate_structure
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
-          TARGET_REPO="lucassfreiree/autopilot"
-          TARGET_PATH=".github/workflows/health-check.yml"
-          CONTENT=$(cat .github/workflows/health-check.yml)
-          ENCODED=$(echo "$CONTENT" | base64 -w0)
-          EXISTING=$(gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
-            --jq '.sha' 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
-              --method PUT \
-              -f "message=chore: update health-check workflow [autopilot bootstrap]" \
-              -f "content=$ENCODED" \
-              -f "sha=$EXISTING"
-          else
-            gh api "repos/$TARGET_REPO/contents/$TARGET_PATH" \
-              --method PUT \
-              -f "message=chore: add health-check workflow [autopilot bootstrap]" \
-              -f "content=$ENCODED"
+          WS_ID="${{ steps.validate_inputs.outputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          ERRORS=""
+          for FILE in workspace.json controller-release-state.json agent-release-state.json health.json; do
+            if ! gh api "repos/$REPO/contents/${WS_PATH}/${FILE}?ref=$STATE_BRANCH" --silent 2>/dev/null; then
+              ERRORS="${ERRORS}\n- Arquivo ausente: ${WS_PATH}/${FILE}"
+            fi
+          done
+          if ! gh api "repos/$REPO/git/refs/heads/$BACKUP_BRANCH" --silent 2>/dev/null; then
+            ERRORS="${ERRORS}\n- Branch $BACKUP_BRANCH nao existe"
           fi
-          echo "health-check.yml criado em $TARGET_REPO"
+          if [ -n "$ERRORS" ]; then
+            echo "::error ::Validacao falhou:$(echo -e "$ERRORS")"
+            exit 1
+          fi
+          echo "Estrutura validada."
 
-      # ── RESUMO FINAL ────────────────────────────────────────
-      - name: Resumo final
+      - name: "7/8 - Emit report"
+        id: emit_report
+        if: always()
         run: |
-          echo "## Bootstrap Concluido" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Etapa | Resultado |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|-----------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Branch autopilot-state | Criado |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| release-autopilot.yml no agent | Criado |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Secret RELEASE_TOKEN no agent | Configurado |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| health-check.yml no autopilot | Criado |" >> "$GITHUB_STEP_SUMMARY"
+          WS_ID="${{ steps.validate_inputs.outputs.workspace_id }}"
+          {
+            echo "## Bootstrap Report #${{ github.run_number }}"
+            echo ""
+            echo "**Workspace:** \`${WS_ID}\`"
+            echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "**Commit:** \`${{ github.sha }}\`"
+            echo "**Timestamp:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            echo "| Step | Result |"
+            echo "|------|--------|"
+            echo "| 1/8 - Validate inputs | ${{ steps.validate_inputs.outcome }} |"
+            echo "| 2/8 - Validate secrets | ${{ steps.validate_secrets.outcome }} |"
+            echo "| 3/8 - Init state branch | ${{ steps.init_state.outcome }} |"
+            echo "| 4/8 - Init backup branch | ${{ steps.init_backup.outcome }} |"
+            echo "| 5/8 - Seed workspace | ${{ steps.seed_workspace.outcome }} |"
+            echo "| 6/8 - Validate structure | ${{ steps.validate_structure.outcome }} |"
+            echo "| 7/8 - Emit report | running |"
+            echo "| 8/8 - Record audit | pending |"
+          } > /tmp/report.md
+          cat /tmp/report.md >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/report.md
+
+      - name: "7/8 - Upload report artifact"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-report-${{ github.run_number }}
+          path: /tmp/report.md
+          retention-days: 90
+
+      - name: "8/8 - Record audit"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.validate_inputs.outputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}/audit"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(echo "$NOW" | tr ':' '-')
+          AUDIT=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg s1 "${{ steps.validate_inputs.outcome }}" \
+            --arg s2 "${{ steps.validate_secrets.outcome }}" \
+            --arg s3 "${{ steps.init_state.outcome }}" \
+            --arg s4 "${{ steps.init_backup.outcome }}" \
+            --arg s5 "${{ steps.seed_workspace.outcome }}" \
+            --arg s6 "${{ steps.validate_structure.outcome }}" \
+            '{
+              operation: "bootstrap",
+              workspaceId: $ws,
+              timestamp: $ts,
+              runId: $run,
+              steps: { validateInputs: $s1, validateSecrets: $s2, initState: $s3, initBackup: $s4, seedWorkspace: $s5, validateStructure: $s6 }
+            }')
+          ENCODED=$(echo "$AUDIT" | base64 -w0)
+          gh api "repos/$REPO/contents/${WS_PATH}/bootstrap-${SAFE_NOW}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: bootstrap $WS_ID [skip ci]" \
+            -f "content=$ENCODED" 2>/dev/null || echo "Audit write failed (workspace may not exist yet)"

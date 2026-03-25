@@ -1,0 +1,39 @@
+# Namespace per workspace — provides isolation and resource control.
+# Each workspace_id maps to a K8s namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: autopilot-ws-default
+  labels:
+    app: autopilot
+    workspace: ws-default
+---
+# Resource quota to prevent runaway costs on free-tier clusters
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: autopilot-quota
+  namespace: autopilot-ws-default
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 4Gi
+    pods: "10"
+---
+# LimitRange for default pod limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: autopilot-limits
+  namespace: autopilot-ws-default
+spec:
+  limits:
+    - default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      type: Container

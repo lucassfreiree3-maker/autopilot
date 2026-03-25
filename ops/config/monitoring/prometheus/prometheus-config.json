@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "tool": "prometheus",
+  "description": "Prometheus and Alertmanager configuration for metrics and alerting",
+  "status": "placeholder",
+  "authentication": {
+    "prometheus_url": {"env_var": "PROMETHEUS_URL", "status": "pending", "default": "http://localhost:9090"},
+    "alertmanager_url": {"env_var": "ALERTMANAGER_URL", "status": "pending", "default": "http://localhost:9093"},
+    "note": "Prometheus typically doesn't require auth in-cluster. Use network policies or reverse proxy for access control.",
+    "github_actions_secrets": {
+      "PROMETHEUS_URL": {"status": "pending"},
+      "ALERTMANAGER_URL": {"status": "pending"}
+    }
+  },
+  "api": {
+    "prometheus": {
+      "query": "/api/v1/query?query=<PROMQL>",
+      "query_range": "/api/v1/query_range?query=<PROMQL>&start=<START>&end=<END>&step=<STEP>",
+      "alerts": "/api/v1/alerts",
+      "rules": "/api/v1/rules",
+      "targets": "/api/v1/targets",
+      "config": "/api/v1/status/config"
+    },
+    "alertmanager": {
+      "alerts": "/api/v2/alerts",
+      "silences": "/api/v2/silences",
+      "status": "/api/v2/status"
+    }
+  },
+  "deployment": {
+    "kubernetes": {
+      "recommended": "kube-prometheus-stack Helm chart (includes Prometheus, Grafana, Alertmanager, node-exporter)",
+      "helm_repo": "https://prometheus-community.github.io/helm-charts",
+      "chart": "prometheus-community/kube-prometheus-stack",
+      "install": "helm install monitoring prometheus-community/kube-prometheus-stack -n monitoring --create-namespace"
+    },
+    "docker": "docker run -d -p 9090:9090 -v prometheus.yml:/etc/prometheus/prometheus.yml prom/prometheus"
+  },
+  "alert_rules_template": "ops/templates/monitoring/prometheus-alerts-template.yml",
+  "key_metrics": {
+    "infrastructure": [
+      "node_cpu_seconds_total",
+      "node_memory_MemAvailable_bytes",
+      "node_filesystem_avail_bytes",
+      "node_network_receive_bytes_total"
+    ],
+    "kubernetes": [
+      "kube_pod_status_ready",
+      "kube_pod_container_status_restarts_total",
+      "kube_deployment_status_ready_replicas",
+      "kube_node_status_condition"
+    ],
+    "application": [
+      "http_requests_total",
+      "http_request_duration_seconds_bucket",
+      "up"
+    ]
+  },
+  "operational_scripts": {
+    "alert_check": "ops/scripts/monitoring/alert-check.sh prometheus",
+    "alertmanager_check": "ops/scripts/monitoring/alert-check.sh alertmanager"
+  },
+  "pending_items": [
+    "Prometheus instance URL",
+    "Alertmanager instance URL",
+    "Scrape target configuration",
+    "Alert rules deployment",
+    "Notification receivers (Slack, email, PagerDuty)",
+    "Retention and storage configuration"
+  ]
+}

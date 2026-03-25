@@ -1,0 +1,8 @@
+{
+  "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
+  "schemaVersion": 1,
+  "workspace_id": "ws-default",
+  "test_type": "both",
+  "include_lint_error": false,
+  "run": 10
+}

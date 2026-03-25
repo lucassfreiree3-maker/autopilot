@@ -1,0 +1,180 @@
+{
+  "name": "Autopilot — CI Failure Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autopilot/ci-failure",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "webhook-trigger",
+      "name": "GitHub Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "autopilot-ci-failure"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "id": "check-conclusion",
+              "leftValue": "={{ $json.body.conclusion }}",
+              "rightValue": "failure",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-failure",
+      "name": "Is Failure?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/health.json?ref=autopilot-state",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read-health",
+      "name": "Read Health State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "github-pat",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "build-message",
+              "name": "message",
+              "value": "=🚨 *CI Failure Detected*\n\n*Repo:* {{ $('GitHub Webhook').item.json.body.repository.full_name }}\n*Workflow:* {{ $('GitHub Webhook').item.json.body.workflow.name }}\n*Branch:* {{ $('GitHub Webhook').item.json.body.workflow_run.head_branch }}\n*Conclusion:* {{ $('GitHub Webhook').item.json.body.conclusion }}\n*Run:* {{ $('GitHub Webhook').item.json.body.workflow_run.html_url }}\n\n*Health:* {{ $json.overall || 'unknown' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "build-alert",
+      "name": "Build Alert Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-notify",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/fix-corporate-ci.yml/dispatches",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ref",
+              "value": "main"
+            },
+            {
+              "name": "inputs",
+              "value": "={\"workspace_id\": \"ws-default\"}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "auto-fix",
+      "name": "Trigger Auto-Fix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "github-pat",
+          "name": "GitHub PAT"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GitHub Webhook": {
+      "main": [
+        [{"node": "Is Failure?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is Failure?": {
+      "main": [
+        [{"node": "Read Health State", "type": "main", "index": 0}]
+      ]
+    },
+    "Read Health State": {
+      "main": [
+        [{"node": "Build Alert Message", "type": "main", "index": 0}]
+      ]
+    },
+    "Build Alert Message": {
+      "main": [
+        [
+          {"node": "Send Slack Alert", "type": "main", "index": 0},
+          {"node": "Trigger Auto-Fix", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {"name": "autopilot"},
+    {"name": "ci"},
+    {"name": "alerts"}
+  ]
+}

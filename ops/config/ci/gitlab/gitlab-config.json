@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "tool": "gitlab-ci",
+  "description": "GitLab CI configuration reference for corporate pipeline operations",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["Project Access Token", "Personal Access Token", "Deploy Token", "CI/CD Variables"],
+    "env_vars": {
+      "GITLAB_TOKEN": {"status": "pending", "secret": true, "description": "PAT or project token for API access"},
+      "GITLAB_URL": {"status": "pending", "default": "https://gitlab.com", "description": "GitLab instance URL"},
+      "CI_REGISTRY": {"status": "pending", "description": "Container registry URL"},
+      "CI_REGISTRY_USER": {"status": "pending", "description": "Registry auth user"},
+      "CI_REGISTRY_PASSWORD": {"status": "pending", "secret": true, "description": "Registry auth password"}
+    },
+    "github_actions_secrets": {
+      "GITLAB_TOKEN": {"status": "pending", "description": "For cross-platform pipeline monitoring"},
+      "GITLAB_URL": {"status": "pending"}
+    }
+  },
+  "pipeline_structure": {
+    "config_file": ".gitlab-ci.yml",
+    "stages_convention": ["validate", "build", "test", "security", "deploy-staging", "deploy-production"],
+    "key_concepts": {
+      "variables": "CI/CD > Settings > Variables (masked, protected, environment-scoped)",
+      "runners": "Settings > CI/CD > Runners (shared or specific)",
+      "artifacts": "job artifacts for passing data between stages",
+      "cache": "npm/pip/maven cache to speed up builds",
+      "environments": "Tracked deploy targets with URL and history"
+    }
+  },
+  "troubleshooting": {
+    "common_issues": {
+      "runner_not_picking_jobs": ["Check runner tags match job tags", "Check runner is online", "Check concurrent job limits"],
+      "variable_not_available": ["Check if variable is protected (only available on protected branches)", "Check environment scope"],
+      "artifact_download_failed": ["Check artifact expiration", "Check dependencies vs needs keyword", "Verify stage ordering"],
+      "docker_in_docker_issues": ["Use services: docker:dind", "Set DOCKER_TLS_CERTDIR", "Check runner executor type"]
+    },
+    "diagnostic_script": "ops/scripts/ci/analyze-pipeline.sh gitlab <project_id> [pipeline_id]"
+  },
+  "integration_with_github_actions": {
+    "description": "Monitor GitLab pipelines from GitHub Actions via API",
+    "api_base": "${GITLAB_URL}/api/v4",
+    "key_endpoints": {
+      "list_pipelines": "/projects/{id}/pipelines",
+      "get_pipeline": "/projects/{id}/pipelines/{pipeline_id}",
+      "get_jobs": "/projects/{id}/pipelines/{pipeline_id}/jobs",
+      "retry_pipeline": "/projects/{id}/pipelines/{pipeline_id}/retry",
+      "get_job_log": "/projects/{id}/jobs/{job_id}/trace"
+    }
+  },
+  "template_location": "ops/templates/ci/gitlab-ci-template.yml",
+  "pending_items": [
+    "GitLab instance URL (if not gitlab.com)",
+    "Project IDs for monitored repos",
+    "Access tokens for API calls",
+    "Runner configuration details",
+    "Registry credentials (if private)"
+  ]
+}

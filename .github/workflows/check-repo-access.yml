@@ -1,0 +1,78 @@
+name: "[Corp] Check: Repo Access"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-repo-access.yml'
+
+jobs:
+  check-access:
+    name: "Validate Token Access"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check access to corporate repos
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "=== Checking GitHub API authentication ==="
+          AUTH_USER=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            https://api.github.com/user | jq -r '.login // "FAILED"')
+          echo "Authenticated as: $AUTH_USER"
+
+          if [ "$AUTH_USER" = "FAILED" ] || [ "$AUTH_USER" = "null" ]; then
+            echo "::error::Authentication failed. Check BBVINET_TOKEN secret."
+            exit 1
+          fi
+
+          echo ""
+          echo "=== Checking repository access ==="
+
+          REPOS=(
+            "bbvinet/psc-sre-automacao-agent"
+            "bbvinet/psc-sre-automacao-controller"
+            "bbvinet/psc_releases_cap_sre-aut-agent"
+          )
+
+          RESULTS=()
+          ALL_OK=true
+
+          for REPO in "${REPOS[@]}"; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              # Get default branch and last commit
+              REPO_INFO=$(curl -s -H "Authorization: token $GH_TOKEN" \
+                "https://api.github.com/repos/$REPO")
+              DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.default_branch // "unknown"')
+              VISIBILITY=$(echo "$REPO_INFO" | jq -r '.visibility // "unknown"')
+              PERMISSIONS=$(echo "$REPO_INFO" | jq -r '[.permissions | to_entries[] | select(.value==true) | .key] | join(", ")' 2>/dev/null || echo "unknown")
+
+              echo "✅ $REPO"
+              echo "   Visibility: $VISIBILITY"
+              echo "   Default branch: $DEFAULT_BRANCH"
+              echo "   Permissions: $PERMISSIONS"
+              RESULTS+=("✅ $REPO ($VISIBILITY, $PERMISSIONS)")
+            else
+              echo "❌ $REPO (HTTP $HTTP_CODE)"
+              RESULTS+=("❌ $REPO (HTTP $HTTP_CODE)")
+              ALL_OK=false
+            fi
+            echo ""
+          done
+
+          echo "=== Summary ==="
+          for R in "${RESULTS[@]}"; do
+            echo "  $R"
+          done
+
+          if [ "$ALL_OK" = "false" ]; then
+            echo ""
+            echo "::warning::Some repositories are not accessible. Check token scopes (needs 'repo' scope)."
+          fi

@@ -1,0 +1,26 @@
+--- Fix: add execId to 504 timeout response in execute.controller.ts
+--- The test expects execId in the 504 response but the controller omits it.
+--- Change the catch block for AbortError to include execId.
+
+BEFORE:
+    if (isAbort) {
+      const timeoutMs = readAgentCallTimeoutMs();
+      res.status(504).json({
+        ok: false,
+        error: "Timed out while waiting for Agent response",
+        detail: `No response from Agent after ${timeoutMs}ms`,
+      });
+      return;
+    }
+
+AFTER:
+    if (isAbort) {
+      const timeoutMs = readAgentCallTimeoutMs();
+      res.status(504).json({
+        ok: false,
+        error: "Timed out while waiting for Agent response",
+        detail: `No response from Agent after ${timeoutMs}ms`,
+        execId: (res.locals as Record<string, unknown>).execId,
+      });
+      return;
+    }

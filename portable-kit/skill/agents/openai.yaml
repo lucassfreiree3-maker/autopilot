@@ -1,7 +1,0 @@
-﻿interface:
-  display_name: "BBDevOps Controller Autopilot"
-  short_description: "Controller release autopilot on main"
-  default_prompt: "Use $bbdevops-controller-autopilot to change the controller on main, monitor CI to completion, fix failures without rebumping the release, and promote homologation when green."
-
-policy:
-  allow_implicit_invocation: true

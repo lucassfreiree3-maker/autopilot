@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "tool": "datadog",
+  "description": "Datadog monitoring configuration for observability",
+  "status": "placeholder",
+  "authentication": {
+    "api_key": {"env_var": "DD_API_KEY", "status": "pending", "secret": true, "description": "Datadog API key (for agent data ingestion)"},
+    "app_key": {"env_var": "DD_APP_KEY", "status": "pending", "secret": true, "description": "Datadog Application key (for API read/write)"},
+    "site": {"env_var": "DD_SITE", "status": "pending", "default": "datadoghq.com", "options": ["datadoghq.com", "datadoghq.eu", "us3.datadoghq.com", "us5.datadoghq.com"]},
+    "github_actions_secrets": {
+      "DD_API_KEY": {"status": "pending"},
+      "DD_APP_KEY": {"status": "pending"}
+    }
+  },
+  "api": {
+    "base_url": "https://api.${DD_SITE}",
+    "key_endpoints": {
+      "monitors": "/api/v1/monitor",
+      "dashboards": "/api/v1/dashboard",
+      "metrics": "/api/v1/query",
+      "events": "/api/v1/events",
+      "logs": "/api/v2/logs/events/search"
+    },
+    "auth_headers": {
+      "DD-API-KEY": "${DD_API_KEY}",
+      "DD-APPLICATION-KEY": "${DD_APP_KEY}"
+    }
+  },
+  "agent_deployment": {
+    "kubernetes": {
+      "method": "Helm chart (datadog/datadog)",
+      "helm_repo": "https://helm.datadoghq.com",
+      "key_values": {
+        "datadog.apiKey": "from K8s secret",
+        "datadog.site": "${DD_SITE}",
+        "datadog.logs.enabled": true,
+        "datadog.apm.portEnabled": true,
+        "datadog.processAgent.enabled": true,
+        "clusterAgent.enabled": true
+      }
+    },
+    "docker": "docker run -d --name dd-agent -e DD_API_KEY=<key> -e DD_SITE=<site> datadog/agent:latest"
+  },
+  "monitors": {
+    "recommended": [
+      {"name": "Host CPU High", "type": "metric alert", "query": "avg(last_5m):avg:system.cpu.user{*} > 80"},
+      {"name": "Host Memory High", "type": "metric alert", "query": "avg(last_5m):avg:system.mem.pct_usable{*} < 0.15"},
+      {"name": "Host Disk Full", "type": "metric alert", "query": "avg(last_5m):avg:system.disk.in_use{*} > 0.90"},
+      {"name": "K8s Pod CrashLoop", "type": "metric alert", "query": "sum(last_10m):sum:kubernetes.containers.restarts{*} by {pod_name} > 3"},
+      {"name": "APM Error Rate", "type": "metric alert", "query": "sum(last_5m):sum:trace.http.request.errors{*} / sum:trace.http.request.hits{*} > 0.05"}
+    ]
+  },
+  "operational_script": "ops/scripts/monitoring/alert-check.sh datadog",
+  "pending_items": [
+    "Datadog organization/account",
+    "API key and Application key",
+    "Datadog site (region)",
+    "Agent deployment (K8s or Docker)",
+    "Integration configurations (AWS, Azure, GCP, K8s)",
+    "Dashboard creation",
+    "Monitor/alert configuration",
+    "Log pipeline configuration"
+  ]
+}

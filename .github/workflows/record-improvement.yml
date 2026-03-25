@@ -1,0 +1,71 @@
+name: "[Agent] Record Improvement"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+      category:
+        description: "Category"
+        required: true
+        type: choice
+        options: [bug, performance, security, process, architecture, documentation]
+      description:
+        description: "Description"
+        required: true
+      source:
+        description: "Source"
+        required: true
+        type: choice
+        options: [ci-failure, health-check, agent-observation, manual]
+      recorded_by:
+        description: "Recorded by"
+        required: true
+        type: choice
+        options: [claude, chatgpt, codex, human]
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record improvement
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_PATH="state/workspaces/${WS_ID}/improvements"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(echo "$NOW" | tr ':' '-')
+          IMP_ID="imp-${SAFE_NOW}-${{ github.run_number }}"
+          IMP=$(jq -n \
+            --arg id "$IMP_ID" \
+            --arg ws "$WS_ID" \
+            --arg now "$NOW" \
+            --arg cat "${{ github.event.inputs.category }}" \
+            --arg desc "${{ github.event.inputs.description }}" \
+            --arg src "${{ github.event.inputs.source }}" \
+            --arg by "${{ github.event.inputs.recorded_by }}" \
+            '{
+              improvementId: $id, workspaceId: $ws, createdAt: $now,
+              category: $cat, description: $desc,
+              source: $src, status: "open", recordedBy: $by, resolution: ""
+            }')
+          ENCODED=$(echo "$IMP" | base64 -w0)
+          gh api "repos/$REPO/contents/${WS_PATH}/${IMP_ID}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=improvement: $IMP_ID ($WS_ID) [skip ci]" \
+            -f "content=$ENCODED"
+          echo "## Improvement Recorded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **ID:** $IMP_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Category:** ${{ github.event.inputs.category }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Description:** ${{ github.event.inputs.description }}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,199 @@
+name: "[Agent] Bridge: Claude ↔ Codex"
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/agent-bridge.json']
+  workflow_dispatch:
+    inputs:
+      task:
+        required: true
+        type: string
+      model:
+        required: false
+        default: "o3"
+      include_session_memory:
+        required: false
+        type: boolean
+        default: true
+      include_patches:
+        required: false
+        type: boolean
+        default: true
+permissions:
+  contents: write
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Prepare response file
+        run: |
+          mkdir -p /tmp
+          echo '{"status":"initialized"}' > /tmp/codex-response.txt
+      - name: Load trigger/config
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/agent-bridge.json ]; then
+            TASK=$(jq -r '.task // ""' trigger/agent-bridge.json)
+            REQ_MODEL=$(jq -r '.model // "o3"' trigger/agent-bridge.json)
+            MEM=$(jq -r '.include_session_memory // true' trigger/agent-bridge.json)
+            PATCH=$(jq -r '.include_patches // true' trigger/agent-bridge.json)
+            RUN=$(jq -r '.run // 0' trigger/agent-bridge.json)
+          else
+            TASK="${{ github.event.inputs.task }}"
+            REQ_MODEL="${{ github.event.inputs.model || 'o3' }}"
+            MEM="${{ github.event.inputs.include_session_memory || 'true' }}"
+            PATCH="${{ github.event.inputs.include_patches || 'true' }}"
+            RUN="manual"
+          fi
+          echo "task<<EOF" >> $GITHUB_OUTPUT
+          echo "$TASK" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "requested_model=$REQ_MODEL" >> $GITHUB_OUTPUT
+          echo "include_memory=$MEM" >> $GITHUB_OUTPUT
+          echo "include_patches=$PATCH" >> $GITHUB_OUTPUT
+          echo "run_value=$RUN" >> $GITHUB_OUTPUT
+      - name: Resolve model (preflight)
+        id: model
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REQUESTED_MODEL: ${{ steps.cfg.outputs.requested_model }}
+        run: |
+          set -euo pipefail
+          CANDIDATES=("o3" "o3-mini" "o1" "gpt-4o" "gpt-4-turbo" "gpt-4.1" "gpt-3.5-turbo")
+          MODELS_JSON=$(curl -sS https://api.openai.com/v1/models \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json")
+          if ! echo "$MODELS_JSON" | jq -e '.data' >/dev/null 2>&1; then
+            echo "selected_model=$REQUESTED_MODEL" >> "$GITHUB_OUTPUT"
+            echo "model_resolution=fallback_requested" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          AVAILABLE=$(echo "$MODELS_JSON" | jq -r '.data[].id')
+          SELECTED=""
+          RESOLUTION=""
+          if echo "$AVAILABLE" | grep -Fxq "$REQUESTED_MODEL"; then
+            SELECTED="$REQUESTED_MODEL"
+            RESOLUTION="requested"
+          else
+            for m in "${CANDIDATES[@]}"; do
+              if echo "$AVAILABLE" | grep -Fxq "$m"; then
+                SELECTED="$m"
+                RESOLUTION="priority_fallback"
+                break
+              fi
+            done
+          fi
+          if [ -z "$SELECTED" ]; then
+            SELECTED="$REQUESTED_MODEL"
+            RESOLUTION="forced_requested"
+          fi
+          echo "selected_model=$SELECTED" >> "$GITHUB_OUTPUT"
+          echo "model_resolution=$RESOLUTION" >> "$GITHUB_OUTPUT"
+      - name: Call OpenAI
+        id: call_openai
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ steps.model.outputs.selected_model }}
+          TASK: ${{ steps.cfg.outputs.task }}
+        run: |
+          set +e
+          REQ=$(jq -n \
+            --arg model "$MODEL" \
+            --arg task "$TASK" \
+            '{
+              model: $model,
+              input: [
+                {role:"system", content:"You are Codex. Return concise operational JSON."},
+                {role:"user", content:$task}
+              ]
+            }')
+          HTTP_CODE=$(curl -sS -o /tmp/openai-response.json -w "%{http_code}" \
+            https://api.openai.com/v1/responses \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$REQ")
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            jq -n \
+              --arg status "success" \
+              --arg model "$MODEL" \
+              --arg requested_model "${{ steps.cfg.outputs.requested_model }}" \
+              --arg resolution "${{ steps.model.outputs.model_resolution }}" \
+              --arg run "${{ steps.cfg.outputs.run_value }}" \
+              --arg task "$TASK" \
+              --argjson raw "$(cat /tmp/openai-response.json)" \
+              '{
+                status:$status,
+                requested_model:$requested_model,
+                model:$model,
+                model_resolution:$resolution,
+                run:$run,
+                task:$task,
+                response:$raw,
+                updatedAt:(now|strftime("%Y-%m-%dT%H:%M:%SZ"))
+              }' > /tmp/codex-response.txt
+            echo "api_status=success" >> "$GITHUB_OUTPUT"
+          else
+            ERR_BODY=$(cat /tmp/openai-response.json 2>/dev/null || echo '{}')
+            jq -n \
+              --arg status "failed" \
+              --arg model "$MODEL" \
+              --arg requested_model "${{ steps.cfg.outputs.requested_model }}" \
+              --arg resolution "${{ steps.model.outputs.model_resolution }}" \
+              --arg run "${{ steps.cfg.outputs.run_value }}" \
+              --arg task "$TASK" \
+              --arg code "$HTTP_CODE" \
+              --arg body "$ERR_BODY" \
+              '{
+                status:$status,
+                requested_model:$requested_model,
+                model:$model,
+                model_resolution:$resolution,
+                run:$run,
+                task:$task,
+                http_code:$code,
+                reason:"openai_api_error",
+                body:$body,
+                updatedAt:(now|strftime("%Y-%m-%dT%H:%M:%SZ"))
+              }' > /tmp/codex-response.txt
+            echo "api_status=failed" >> "$GITHUB_OUTPUT"
+          fi
+          set -e
+      - name: Summary
+        run: |
+          {
+            echo "## Agent Bridge Run"
+            echo ""
+            echo "- Run: \`${{ steps.cfg.outputs.run_value }}\`"
+            echo "- Requested model: \`${{ steps.cfg.outputs.requested_model }}\`"
+            echo "- Selected model: \`${{ steps.model.outputs.selected_model }}\`"
+            echo "- Resolution: \`${{ steps.model.outputs.model_resolution }}\`"
+            echo "- API status: \`${{ steps.call_openai.outputs.api_status || 'unknown' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Checkout state branch
+        uses: actions/checkout@v4
+        with:
+          ref: autopilot-state
+          path: state_branch
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Save bridge response to autopilot-state
+        run: |
+          mkdir -p state_branch/state/bridges
+          cp /tmp/codex-response.txt state_branch/state/bridges/agent-bridge-latest.json
+          cd state_branch
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          # Remove state/ from .gitignore — this branch exists to store state
+          sed -i '/^state\//d' .gitignore 2>/dev/null || true
+          git add .gitignore 2>/dev/null || true
+          git add state/bridges/agent-bridge-latest.json
+          if git diff --cached --quiet; then
+            echo "No state changes"
+          else
+            git commit -m "chore: update agent bridge latest response"
+            git push origin autopilot-state
+          fi

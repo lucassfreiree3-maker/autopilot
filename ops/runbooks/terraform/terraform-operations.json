@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "type": "runbook",
+  "name": "Terraform Operations",
+  "description": "Standard procedures for Terraform/Terragrunt operations",
+  "operations": {
+    "state_lock_stuck": {
+      "symptoms": ["Error acquiring the state lock", "Lock Info: ID: xxx"],
+      "diagnosis": [
+        "Check if another operation is running",
+        "Verify the lock ID from error message",
+        "Check who holds the lock and when it was acquired"
+      ],
+      "resolution": [
+        "Wait for ongoing operation to complete",
+        "If operation is stuck: terraform force-unlock <lock-id>",
+        "If using S3 backend: check DynamoDB table for lock entry"
+      ],
+      "prevention": ["Use CI/CD concurrency controls", "Set lock timeouts"]
+    },
+    "state_drift": {
+      "symptoms": ["Plan shows unexpected changes", "Resources modified outside Terraform"],
+      "diagnosis": [
+        "terraform plan to see drift",
+        "Check CloudTrail/Activity Log for manual changes",
+        "Compare state with actual infrastructure"
+      ],
+      "resolution": [
+        "If Terraform state is correct: terraform apply to reconcile",
+        "If manual change is desired: terraform import or state manipulation",
+        "If state is corrupt: restore from backup"
+      ],
+      "prevention": ["Tag resources with IaC tool", "Set up drift detection in CI", "Restrict manual console access"]
+    },
+    "provider_auth_failure": {
+      "symptoms": ["Error configuring provider", "401/403 from provider API"],
+      "diagnosis": [
+        "Verify environment variables (AWS_*, AZURE_*, GOOGLE_*)",
+        "Check credential file paths",
+        "Verify token expiration",
+        "Check provider version compatibility"
+      ],
+      "resolution": [
+        "Refresh/renew credentials",
+        "Update provider configuration",
+        "Fix IAM permissions"
+      ]
+    },
+    "dependency_cycle": {
+      "symptoms": ["Error: Cycle detected in dependency graph"],
+      "diagnosis": [
+        "terraform graph | dot -Tpng > graph.png",
+        "Identify circular references between resources"
+      ],
+      "resolution": [
+        "Use depends_on explicitly to break cycles",
+        "Refactor resources to remove circular dependencies",
+        "Split into separate terraform apply operations"
+      ]
+    },
+    "import_resource": {
+      "steps": [
+        "1. Write the resource block in .tf file matching current config",
+        "2. terraform import <resource_address> <resource_id>",
+        "3. terraform plan to verify no changes",
+        "4. Adjust .tf file if plan shows differences",
+        "5. Repeat until plan is clean"
+      ],
+      "tips": [
+        "Use terraform show after import to see imported state",
+        "Import one resource at a time",
+        "Document imported resources for team awareness"
+      ]
+    }
+  },
+  "best_practices": {
+    "state_management": [
+      "Always use remote state backend (S3+DynamoDB, Azure Blob, GCS)",
+      "Enable state locking",
+      "Enable state file encryption",
+      "Never commit .tfstate files to git",
+      "Regular state backups"
+    ],
+    "code_organization": [
+      "Use modules for reusable components",
+      "Separate environments (dev/staging/prod) with workspaces or directories",
+      "Pin provider and module versions",
+      "Use variables for environment-specific values",
+      "terraform fmt before every commit"
+    ],
+    "security": [
+      "Never hardcode secrets in .tf files",
+      "Use vault/parameter store for sensitive values",
+      "Restrict state file access (IAM policies)",
+      "Review plan output before apply",
+      "Use OPA/Sentinel for policy enforcement"
+    ]
+  }
+}

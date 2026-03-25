@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/handoff.schema.json",
+  "title": "Agent Handoff",
+  "type": "object",
+  "required": ["handoffId", "workspaceId", "fromAgent", "toAgent", "createdAt", "status"],
+  "properties": {
+    "handoffId": { "type": "string" },
+    "workspaceId": { "type": "string" },
+    "fromAgent": { "type": "string", "enum": ["claude", "chatgpt", "codex", "human"] },
+    "toAgent": { "type": "string", "enum": ["claude", "chatgpt", "codex", "human"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["pending", "in-progress", "completed", "expired"] },
+    "context": {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" },
+        "component": { "type": "string", "enum": ["controller", "agent", "infra", "general"] },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "runId": { "type": "string" },
+        "nextSteps": { "type": "array", "items": { "type": "string" } },
+        "blockers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "priority": { "type": "string", "enum": ["low", "normal", "high", "critical"], "default": "normal" }
+  }
+}

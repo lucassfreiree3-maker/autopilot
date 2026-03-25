@@ -1,0 +1,95 @@
+# =============================================================================
+# Prometheus Alert Rules Template
+# Adapt thresholds and labels for each environment
+# =============================================================================
+groups:
+  - name: infrastructure
+    rules:
+      - alert: NodeCPUHigh
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80% for 5 minutes (current: {{ $value | printf \"%.1f\" }}%)"
+
+      - alert: NodeMemoryHigh
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value | printf \"%.1f\" }}%)"
+
+      - alert: NodeDiskAlmostFull
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk almost full on {{ $labels.instance }}"
+          description: "Root filesystem usage is above 90% (current: {{ $value | printf \"%.1f\" }}%)"
+
+      - alert: NodeDown
+        expr: up == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.instance }} is down"
+
+  - name: kubernetes
+    rules:
+      - alert: KubePodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash-looping"
+
+      - alert: KubePodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} not ready for 15m"
+
+      - alert: KubeDeploymentReplicasMismatch
+        expr: kube_deployment_spec_replicas != kube_deployment_status_ready_replicas
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replicas mismatch"
+
+      - alert: KubeNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node {{ $labels.node }} is not ready"
+
+  - name: application
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is above 5% (current: {{ $value | printf \"%.2f\" }})"
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency on {{ $labels.service }}"
+          description: "P95 latency is above 500ms (current: {{ $value | printf \"%.3f\" }}s)"

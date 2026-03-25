@@ -1,0 +1,58 @@
+# Self-hosted GitHub Actions runner for Autopilot.
+# Uses the official actions-runner image.
+# Replaces GitHub-hosted runners — free on your own infra.
+#
+# Prerequisites: Install actions-runner-controller (ARC) OR use this standalone runner.
+# Docs: https://github.com/actions/runner
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autopilot-runner
+  namespace: autopilot-ws-default
+  labels:
+    app: autopilot
+    component: runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autopilot
+      component: runner
+  template:
+    metadata:
+      labels:
+        app: autopilot
+        component: runner
+    spec:
+      containers:
+        - name: runner
+          image: ghcr.io/actions/actions-runner:latest
+          env:
+            - name: RUNNER_NAME
+              value: "autopilot-k8s-runner"
+            - name: RUNNER_LABELS
+              value: "autopilot,self-hosted,linux"
+            - name: GITHUB_URL
+              value: "https://github.com/lucassfreiree/autopilot"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopilot-secrets
+                  key: GITHUB_PAT
+            - name: RUNNER_WORKDIR
+              value: "/home/runner/_work"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: runner-work
+              mountPath: /home/runner/_work
+      volumes:
+        - name: runner-work
+          emptyDir:
+            sizeLimit: 2Gi
+      restartPolicy: Always

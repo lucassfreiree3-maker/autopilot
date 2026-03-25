@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "name": "Generic Webhook Contract Template",
+  "type": "webhook",
+  "direction": "outbound|inbound",
+  "description": "Template for documenting webhook integrations",
+  "endpoint": {
+    "url": "${WEBHOOK_URL}",
+    "method": "POST",
+    "content_type": "application/json",
+    "auth": {
+      "type": "none|bearer|basic|hmac",
+      "token_env_var": "${WEBHOOK_TOKEN}",
+      "hmac_secret_env_var": "${WEBHOOK_HMAC_SECRET}",
+      "hmac_header": "X-Hub-Signature-256"
+    }
+  },
+  "payload_schema": {
+    "type": "object",
+    "required": ["event", "timestamp"],
+    "properties": {
+      "event": {"type": "string", "description": "Event type identifier"},
+      "timestamp": {"type": "string", "format": "date-time"},
+      "workspace_id": {"type": "string"},
+      "source": {"type": "string", "description": "Origin system"},
+      "data": {"type": "object", "description": "Event-specific payload"}
+    }
+  },
+  "retry_policy": {
+    "max_retries": 3,
+    "backoff": "exponential",
+    "initial_delay_seconds": 2,
+    "max_delay_seconds": 16
+  },
+  "validation": {
+    "response_codes": {
+      "success": [200, 201, 202, 204],
+      "retry": [429, 500, 502, 503, 504],
+      "fail": [400, 401, 403, 404]
+    }
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "tool": "github",
+  "description": "GitHub and GitHub Actions configuration for the autopilot control plane",
+  "status": "active",
+  "repository": {
+    "owner": "lucassfreiree",
+    "name": "autopilot",
+    "default_branch": "main",
+    "branch_protection": {
+      "main": {
+        "require_pull_request": true,
+        "require_squash_merge": true,
+        "branch_pattern": "claude/* for agent branches"
+      }
+    }
+  },
+  "environments": {
+    "description": "GitHub Environments for deployment gates and secrets scoping",
+    "recommended": [
+      {"name": "production", "protection_rules": ["required_reviewers", "wait_timer"], "status": "pending"},
+      {"name": "staging", "protection_rules": [], "status": "pending"},
+      {"name": "ops", "protection_rules": [], "status": "pending", "description": "For operational workflows"}
+    ]
+  },
+  "secrets": {
+    "repository_level": {
+      "BBVINET_TOKEN": {"status": "active", "workspace": "ws-default", "description": "PAT for Getronics repos"},
+      "RELEASE_TOKEN": {"status": "active", "workspace": "shared", "description": "Token for release operations"},
+      "CIT_TOKEN": {"status": "pending", "workspace": "ws-cit", "description": "PAT for CIT repos"},
+      "OPENAI_API_KEY": {"status": "active", "workspace": "shared", "description": "For LangChain orchestrator"},
+      "AWS_ACCESS_KEY_ID": {"status": "pending", "workspace": "ws-cit"},
+      "AWS_SECRET_ACCESS_KEY": {"status": "pending", "workspace": "ws-cit"},
+      "AZURE_CREDENTIALS": {"status": "pending", "workspace": "ws-cit"},
+      "GCP_SA_KEY": {"status": "pending", "workspace": "ws-cit"},
+      "DD_API_KEY": {"status": "pending", "description": "Datadog API key"},
+      "DD_APP_KEY": {"status": "pending", "description": "Datadog Application key"},
+      "GRAFANA_TOKEN": {"status": "pending", "description": "Grafana API token"},
+      "SLACK_WEBHOOK_URL": {"status": "pending", "description": "Slack incoming webhook"},
+      "TERRAFORM_CLOUD_TOKEN": {"status": "pending", "description": "Terraform Cloud/Enterprise token"}
+    },
+    "environment_level": {
+      "description": "Secrets scoped to specific environments (production, staging)",
+      "note": "Configure after environments are created"
+    }
+  },
+  "variables": {
+    "repository_level": {
+      "DD_SITE": {"status": "pending", "default": "datadoghq.com"},
+      "GRAFANA_URL": {"status": "pending"},
+      "PROMETHEUS_URL": {"status": "pending"},
+      "ALERTMANAGER_URL": {"status": "pending"},
+      "SLACK_CHANNEL": {"status": "pending", "default": "#ops-alerts"}
+    }
+  },
+  "runners": {
+    "github_hosted": {"status": "active", "type": "ubuntu-latest", "used_by": "all autopilot workflows"},
+    "self_hosted": {
+      "status": "pending",
+      "description": "Self-hosted runner for corporate network access or private cloud",
+      "labels": ["self-hosted", "linux", "ops"],
+      "setup": "See integrations/kubernetes/runner-deployment.yml"
+    }
+  },
+  "workflow_conventions": {
+    "naming": "<domain>-<action>.yml (e.g., cloud-diagnose.yml, tf-plan.yml)",
+    "triggers": ["workflow_dispatch for manual ops", "push to trigger/ for automated dispatch", "schedule for recurring"],
+    "permissions": "Always declare minimum permissions block",
+    "concurrency": "Always use concurrency group with cancel-in-progress: true",
+    "outputs": "Use artifacts for logs and reports",
+    "secrets": "Never echo secrets. Use masking."
+  },
+  "github_token_permissions": {
+    "default": "read-only (recommended)",
+    "contents_write": "For committing state, trigger bumps",
+    "packages_write": "For container registry pushes",
+    "actions_read": "For monitoring workflow runs",
+    "issues_write": "For alert-notify workflow"
+  },
+  "pending_items": [
+    "Create GitHub Environments (production, staging, ops)",
+    "Configure CIT_TOKEN secret when repos are available",
+    "Set up cloud provider secrets as they become available",
+    "Configure Slack webhook for notifications",
+    "Set up OIDC federation for cloud providers",
+    "Create self-hosted runner if needed for private network access"
+  ]
+}

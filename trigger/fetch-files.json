@@ -1,0 +1,7 @@
+{
+  "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
+  "workspace_id": "ws-default",
+  "component": "controller",
+  "files": "src/controllers/oas-sre-controller.controller.ts,src/controllers/oas-execute.controller.ts,src/controllers/execute.controller.ts,src/controllers/agents-execute-logs.controller.ts",
+  "run": 18
+}

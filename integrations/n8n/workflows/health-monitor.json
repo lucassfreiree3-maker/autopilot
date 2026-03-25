@@ -1,0 +1,158 @@
+{
+  "name": "Autopilot — Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/health.json?ref=autopilot-state",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "read-health",
+      "name": "Read Health",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "github-pat",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decode base64 content from GitHub API\nconst content = $input.first().json.content;\nconst decoded = Buffer.from(content, 'base64').toString('utf8');\nconst health = JSON.parse(decoded);\n\n// Check if any critical issues\nconst checks = health.checks || {};\nconst failed = Object.entries(checks)\n  .filter(([_, v]) => v.status === 'fail')\n  .map(([k, v]) => `${k}: ${v.message}`);\n\nconst warned = Object.entries(checks)\n  .filter(([_, v]) => v.status === 'warn')\n  .map(([k, v]) => `${k}: ${v.message}`);\n\nreturn [{\n  json: {\n    overall: health.overall,\n    failedChecks: failed,\n    warnedChecks: warned,\n    needsAlert: health.overall === 'critical' || health.overall === 'degraded',\n    checkedAt: health.checkedAt || new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-health",
+      "name": "Parse Health",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-alert",
+              "leftValue": "={{ $json.needsAlert }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "needs-alert",
+      "name": "Needs Alert?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "alert-msg",
+              "name": "message",
+              "value": "=⚠️ *Autopilot Health Alert*\n\n*Status:* {{ $json.overall }}\n*Checked at:* {{ $json.checkedAt }}\n\n*Failed checks:*\n{{ $json.failedChecks.join('\\n') || 'None' }}\n\n*Warnings:*\n{{ $json.warnedChecks.join('\\n') || 'None' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "build-alert",
+      "name": "Build Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "slack-alert",
+      "name": "Send Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Every 4 Hours": {
+      "main": [
+        [{"node": "Read Health", "type": "main", "index": 0}]
+      ]
+    },
+    "Read Health": {
+      "main": [
+        [{"node": "Parse Health", "type": "main", "index": 0}]
+      ]
+    },
+    "Parse Health": {
+      "main": [
+        [{"node": "Needs Alert?", "type": "main", "index": 0}]
+      ]
+    },
+    "Needs Alert?": {
+      "main": [
+        [{"node": "Build Alert", "type": "main", "index": 0}]
+      ]
+    },
+    "Build Alert": {
+      "main": [
+        [{"node": "Send Alert", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {"name": "autopilot"},
+    {"name": "health"},
+    {"name": "monitoring"}
+  ]
+}

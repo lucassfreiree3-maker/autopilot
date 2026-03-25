@@ -1,0 +1,65 @@
+name: "[Corp] Fetch: Source Files"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/fetch-files.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        default: "ws-default"
+      component:
+        description: "Component"
+        type: choice
+        options: [controller, agent]
+      files:
+        description: "Comma-separated file paths to fetch"
+        required: true
+permissions:
+  contents: write
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Fetch files from corporate repo"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/fetch-files.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/fetch-files.json)
+            COMPONENT=$(jq -r '.component // "controller"' trigger/fetch-files.json)
+            FILES=$(jq -r '.files // ""' trigger/fetch-files.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            FILES="${{ github.event.inputs.files }}"
+          fi
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r ".${COMPONENT}.sourceRepo")
+          echo "Fetching from $SOURCE_REPO: $FILES"
+          git clone "https://x-access-token:${BBVINET_TOKEN}@github.com/${SOURCE_REPO}.git" /tmp/source 2>/dev/null
+          cd /tmp/source
+          IFS=',' read -ra FILE_LIST <<< "$FILES"
+          for FILE in "${FILE_LIST[@]}"; do
+            FILE=$(echo "$FILE" | xargs)
+            if [ -f "$FILE" ]; then
+              echo "=== $FILE ==="
+              CONTENT=$(cat "$FILE" | base64 -w0)
+              SAFE_NAME=$(echo "$FILE" | tr '/' '-')
+              STATE_PATH="${WS_PATH}/fetched-${COMPONENT}-${SAFE_NAME}"
+              EXISTING_SHA=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${STATE_PATH}?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+              ARGS=(-f "branch=$STATE_BRANCH" -f "message=fetch: $FILE from $COMPONENT [skip ci]" -f "content=$CONTENT")
+              [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+              GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${STATE_PATH}" --method PUT "${ARGS[@]}" > /dev/null 2>&1 && echo "Saved to $STATE_PATH" || echo "::warning ::Failed to save $FILE"
+            else
+              echo "::warning ::File not found: $FILE"
+            fi
+          done

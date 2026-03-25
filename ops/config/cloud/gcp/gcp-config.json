@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "tool": "gcp",
+  "description": "Google Cloud CLI and SDK configuration for operational use",
+  "status": "placeholder",
+  "authentication": {
+    "methods": ["Service Account Key (JSON)", "Workload Identity Federation (OIDC)", "gcloud auth login (interactive)", "Application Default Credentials"],
+    "recommended": "Workload Identity Federation for GitHub Actions, ADC for local",
+    "env_vars": {
+      "GOOGLE_PROJECT": {"status": "pending", "description": "GCP project ID"},
+      "GOOGLE_REGION": {"status": "pending", "default": "us-central1", "description": "Default region"},
+      "GOOGLE_ZONE": {"status": "pending", "description": "Default zone"},
+      "GOOGLE_CREDENTIALS": {"status": "pending", "secret": true, "description": "Service account key JSON (base64)"},
+      "GOOGLE_APPLICATION_CREDENTIALS": {"status": "pending", "description": "Path to service account key file"}
+    },
+    "github_actions_secrets": {
+      "GCP_PROJECT_ID": {"status": "pending"},
+      "GCP_SA_KEY": {"status": "pending", "note": "Base64 encoded service account key JSON"},
+      "GCP_WORKLOAD_IDENTITY_PROVIDER": {"status": "pending", "note": "For OIDC federation"}
+    },
+    "oidc_federation": {
+      "description": "Recommended: GitHub Actions OIDC → GCP Workload Identity (no keys)",
+      "setup_steps": [
+        "1. Create Workload Identity Pool in GCP",
+        "2. Create OIDC Provider linked to GitHub",
+        "3. Grant roles to the pool principal on GCP resources",
+        "4. Use google-github-actions/auth@v2 with workload_identity_provider"
+      ],
+      "status": "pending"
+    }
+  },
+  "cli_patterns": {
+    "identity_check": "gcloud auth list && gcloud config get-value project",
+    "list_projects": "gcloud projects list",
+    "gke_clusters": "gcloud container clusters list",
+    "compute_instances": "gcloud compute instances list",
+    "gke_credentials": "gcloud container clusters get-credentials <CLUSTER> --zone <ZONE>",
+    "logs": "gcloud logging read 'resource.type=\"k8s_container\"' --limit=50 --format=json"
+  },
+  "minimum_permissions": [
+    "roles/viewer (project level)",
+    "roles/container.clusterViewer (for GKE)",
+    "roles/editor (for Terraform apply)"
+  ],
+  "pending_items": [
+    "GCP project ID",
+    "Service account for automation",
+    "Workload Identity Federation setup",
+    "GKE cluster details (if exists)",
+    "Default region/zone selection"
+  ]
+}

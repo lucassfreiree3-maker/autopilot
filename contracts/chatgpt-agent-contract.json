@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 3,
+  "contractId": "chatgpt-agent-contract",
+  "extends": "shared-agent-contract",
+  "agent": "chatgpt",
+  "agentIdentifier": "chatgpt",
+  "capabilities": [
+    "code-implementation",
+    "code-refactoring",
+    "test-writing",
+    "documentation",
+    "ci-failure-triage",
+    "handoff-consumption"
+  ],
+  "tools": {
+    "primary": "chatgpt-web",
+    "github": "github-web-ui",
+    "editor": "github.dev"
+  },
+  "instructions": {
+    "workspaceIdentification": "FIRST STEP: identify which workspace (company) from context before any operation. If ambiguous, ask. NEVER assume any workspace as default. See shared-agent-contract.json workspaceIdentification.",
+    "stateAccess": "Read state files from autopilot-state branch via GitHub web UI or API",
+    "lockProtocol": "Check locks/ directory before starting work, coordinate via handoffs. Always release locks on completion.",
+    "sessionGuard": "CRITICAL: Before any state-changing operation, check session-lock.json. If locked by another agent, ABORT and create a handoff instead.",
+    "releaseProtocol": "Follow workspace.json config, create PRs for code changes",
+    "handoffProtocol": "Read pending handoffs, update status when starting work",
+    "auditProtocol": "Record actions in audit entries after every state mutation"
+  },
+  "contextFiles": [
+    "contracts/shared-agent-contract.json",
+    "schemas/*.schema.json"
+  ]
+}

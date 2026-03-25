@@ -1,0 +1,342 @@
+name: "[Corp] Agent Sync: Claude + ChatGPT"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/agent-sync.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      task:
+        description: "Task type"
+        required: true
+        type: choice
+        options:
+          - ci-fix
+          - code-review
+          - analyze
+      context:
+        description: "Additional context"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-sync
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  sync:
+    name: "Clone + Fix + Push"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "Resolve inputs"
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/agent-sync.json ]; then
+            echo "ws_id=$(jq -r '.workspace_id // "ws-default"' trigger/agent-sync.json)" >> "$GITHUB_OUTPUT"
+            echo "task=$(jq -r '.task // "ci-fix"' trigger/agent-sync.json)" >> "$GITHUB_OUTPUT"
+            echo "context=$(jq -r '.context // ""' trigger/agent-sync.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "ws_id=${{ github.event.inputs.workspace_id || 'ws-default' }}" >> "$GITHUB_OUTPUT"
+            echo "task=${{ github.event.inputs.task || 'ci-fix' }}" >> "$GITHUB_OUTPUT"
+            echo "context=${{ github.event.inputs.context }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Read workspace config"
+        id: ws
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          echo "source_repo=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo')" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: "Clone source repo"
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ steps.ws.outputs.source_repo }}.git" /tmp/source
+          cd /tmp/source
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: "Install dependencies"
+        working-directory: /tmp/source
+        run: npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || echo "Install done"
+
+      - name: "Gather lint errors"
+        if: steps.inputs.outputs.task == 'ci-fix'
+        id: lint
+        working-directory: /tmp/source
+        run: |
+          set +e
+          npx eslint src/ --format json > /tmp/lint-output.json 2>/dev/null
+          set -e
+          ERROR_COUNT=$(jq '[.[] | select(.errorCount > 0)] | length' /tmp/lint-output.json 2>/dev/null || echo "0")
+          echo "error_count=$ERROR_COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$ERROR_COUNT" = "0" ]; then
+            echo "No lint errors found"
+          else
+            echo "Found $ERROR_COUNT files with errors"
+            # Extract errors with relative paths
+            PWD_ESC=$(pwd | sed 's/[\/&]/\\&/g')
+            jq --arg pwd "$(pwd)/" '[.[] | select(.errorCount > 0) | {file: (.filePath | ltrimstr($pwd)), messages: [.messages[] | select(.severity == 2) | {rule: .ruleId, line: .line, message: .message}]}]' /tmp/lint-output.json > /tmp/errors.json
+            cat /tmp/errors.json
+          fi
+
+      - name: "Build prompt"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0'
+        working-directory: /tmp/source
+        run: |
+          ERRORS=$(cat /tmp/errors.json)
+
+          # Read source files with errors
+          echo "" > /tmp/source-snippets.txt
+          for F in $(echo "$ERRORS" | jq -r '.[].file'); do
+            if [ -f "$F" ]; then
+              echo "=== $F ===" >> /tmp/source-snippets.txt
+              cat "$F" >> /tmp/source-snippets.txt
+              echo "" >> /tmp/source-snippets.txt
+            fi
+          done
+
+          # Build prompt
+          cat > /tmp/prompt.txt << 'EOF'
+          You are a senior TypeScript/Node.js developer. Fix the ESLint errors below.
+
+          Return ONLY a valid JSON array of fixes. Each fix:
+          {"file": "relative/path.ts", "original": "exact original line content", "fixed": "corrected line content"}
+
+          Rules:
+          - no-nested-ternary: refactor into if/else or separate variables
+          - unused-vars: remove the variable or prefix with underscore
+          - no-explicit-any: replace with proper type
+          - Preserve exact indentation (spaces)
+          - Do NOT add any comments about tools or bots
+          - Return ONLY the JSON array, nothing else
+          EOF
+
+          printf "\n\nERRORS:\n%s\n\nSOURCE FILES:\n%s\n" "$ERRORS" "$(cat /tmp/source-snippets.txt)" >> /tmp/prompt.txt
+
+      - name: "Check API key"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0'
+        id: apicheck
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning ::OPENAI_API_KEY not set. Will use local fix mode."
+            echo "mode=local" >> "$GITHUB_OUTPUT"
+          else
+            echo "API key present (${#OPENAI_API_KEY} chars)"
+            echo "mode=api" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Build API payload"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0' && steps.apicheck.outputs.mode == 'api'
+        run: |
+          # Truncate to keep payload manageable
+          head -300 /tmp/prompt.txt > /tmp/prompt-truncated.txt
+          echo "Prompt: $(wc -l < /tmp/prompt-truncated.txt) lines, $(wc -c < /tmp/prompt-truncated.txt) bytes"
+
+          # Build JSON payload via file
+          jq -n --rawfile p /tmp/prompt-truncated.txt '{
+            model: "gpt-4o",
+            messages: [
+              {role: "system", content: "Return only valid JSON array. No markdown fences. No explanation text."},
+              {role: "user", content: $p}
+            ],
+            temperature: 0.1,
+            max_tokens: 4096
+          }' > /tmp/api-payload.json
+
+          echo "Payload: $(wc -c < /tmp/api-payload.json) bytes"
+          echo "Payload valid JSON: $(jq empty /tmp/api-payload.json 2>&1 && echo 'yes' || echo 'no')"
+
+      - name: "Call ChatGPT API"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0' && steps.apicheck.outputs.mode == 'api'
+        id: chatgpt
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Call API, save response and HTTP code separately
+          HTTP_CODE=$(curl -s -o /tmp/api-response.json -w "%{http_code}" \
+            -X POST "https://api.openai.com/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${OPENAI_API_KEY}" \
+            -d @/tmp/api-payload.json)
+
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response size: $(wc -c < /tmp/api-response.json) bytes"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error ::ChatGPT API returned HTTP $HTTP_CODE"
+            cat /tmp/api-response.json
+            exit 1
+          fi
+
+          # Extract answer
+          ANSWER=$(jq -r '.choices[0].message.content // ""' /tmp/api-response.json)
+          USAGE=$(jq -r '.usage | "in:\(.prompt_tokens) out:\(.completion_tokens)"' /tmp/api-response.json 2>/dev/null || echo "unknown")
+          echo "Tokens: $USAGE"
+
+          if [ -z "$ANSWER" ]; then
+            echo "::error ::ChatGPT returned empty content"
+            cat /tmp/api-response.json
+            exit 1
+          fi
+
+          echo "$ANSWER" > /tmp/chatgpt-response.txt
+          echo "usage=$USAGE" >> "$GITHUB_OUTPUT"
+          echo "=== Response (first 50 lines) ==="
+          head -50 /tmp/chatgpt-response.txt
+
+      - name: "Local fix (no API)"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0' && steps.apicheck.outputs.mode == 'local'
+        working-directory: /tmp/source
+        run: |
+          echo "=== Running eslint --fix locally ==="
+          npx eslint src/ --fix 2>/dev/null || true
+          echo "=== Checking remaining errors ==="
+          REMAINING=$(npx eslint src/ --format json 2>/dev/null | jq '[.[] | .errorCount] | add // 0' 2>/dev/null || echo "?")
+          echo "Remaining errors after --fix: $REMAINING"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes from eslint --fix"
+            echo "local_applied=no-changes" >> "$GITHUB_ENV"
+          else
+            git commit -m "fix: auto-fix lint errors (eslint --fix)"
+            git push origin main
+            echo "local_applied=pushed" >> "$GITHUB_ENV"
+            echo "Fixes pushed"
+          fi
+          echo "local_remaining=$REMAINING" >> "$GITHUB_ENV"
+
+      - name: "Apply ChatGPT fixes"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0' && steps.apicheck.outputs.mode == 'api'
+        working-directory: /tmp/source
+        run: |
+          ANSWER=$(cat /tmp/chatgpt-response.txt)
+
+          python3 << 'PYEOF'
+          import json, re, sys
+
+          raw = open('/tmp/chatgpt-response.txt').read().strip()
+
+          # Clean markdown wrappers
+          raw = re.sub(r'^```json\s*', '', raw)
+          raw = re.sub(r'^```\s*', '', raw)
+          raw = re.sub(r'\s*```$', '', raw)
+
+          try:
+              fixes = json.loads(raw)
+          except json.JSONDecodeError:
+              m = re.search(r'\[.*\]', raw, re.DOTALL)
+              if m:
+                  fixes = json.loads(m.group())
+              else:
+                  print("Could not parse ChatGPT response as JSON")
+                  sys.exit(0)
+
+          applied = 0
+          for fix in fixes:
+              fpath = fix.get('file', '')
+              original = fix.get('original', '').rstrip()
+              fixed = fix.get('fixed', '').rstrip()
+              if not fpath or not original or not fixed:
+                  continue
+              try:
+                  content = open(fpath).read()
+                  if original in content:
+                      content = content.replace(original, fixed, 1)
+                      open(fpath, 'w').write(content)
+                      applied += 1
+                      print(f'  Fixed: {fpath}')
+                  else:
+                      print(f'  Skip: {fpath} (pattern not found)')
+              except Exception as e:
+                  print(f'  Error: {fpath}: {e}')
+
+          print(f'\nApplied {applied} fixes')
+          PYEOF
+
+      - name: "Verify and push"
+        if: steps.inputs.outputs.task == 'ci-fix' && steps.lint.outputs.error_count != '0' && steps.apicheck.outputs.mode == 'api'
+        id: push
+        working-directory: /tmp/source
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set +e
+          REMAINING=$(npx eslint src/ --format json 2>/dev/null | jq '[.[] | .errorCount] | add // 0')
+          set -e
+          echo "remaining=$REMAINING" >> "$GITHUB_OUTPUT"
+          echo "Remaining errors: $REMAINING"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "applied=no-changes" >> "$GITHUB_OUTPUT"
+            echo "No changes"
+          else
+            git commit -m "fix: resolve lint errors"
+            git push origin main
+            echo "applied=pushed" >> "$GITHUB_OUTPUT"
+            echo "Fix pushed"
+          fi
+
+      - name: "Audit"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          TASK="${{ steps.inputs.outputs.task }}"
+          USAGE="${{ steps.chatgpt.outputs.usage }}"
+          APPLIED="${{ steps.push.outputs.applied }}"
+          REMAINING="${{ steps.push.outputs.remaining }}"
+          AUDIT=$(jq -n \
+            --arg ws "${{ steps.inputs.outputs.ws_id }}" \
+            --arg task "$TASK" --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg usage "${USAGE:-n/a}" \
+            --arg applied "${APPLIED:-n/a}" \
+            --arg remaining "${REMAINING:-n/a}" \
+            '{operation:"agent-sync",workspaceId:$ws,task:$task,timestamp:$ts,runId:$run,model:"gpt-4o",usage:$usage,applied:$applied,remainingErrors:$remaining}')
+          gh api "repos/$AUTOPILOT_REPO/contents/${WS_PATH}/audit/agent-sync-${SN}.json" \
+            --method PUT -f "branch=$STATE_BRANCH" -f "message=audit: agent-sync $TASK [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" 2>/dev/null || true
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Agent Sync" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Task | $TASK |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Model | gpt-4o |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tokens | ${USAGE:-n/a} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Applied | ${APPLIED:-n/a} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Remaining | ${REMAINING:-n/a} |" >> "$GITHUB_STEP_SUMMARY"

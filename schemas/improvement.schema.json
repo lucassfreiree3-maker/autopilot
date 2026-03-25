@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/improvement.schema.json",
+  "title": "Improvement Record",
+  "type": "object",
+  "required": ["improvementId", "workspaceId", "createdAt", "category", "description"],
+  "properties": {
+    "improvementId": { "type": "string" },
+    "workspaceId": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "resolvedAt": { "type": "string", "format": "date-time" },
+    "category": { "type": "string", "enum": ["bug", "performance", "security", "process", "architecture", "documentation"] },
+    "description": { "type": "string" },
+    "source": { "type": "string", "enum": ["ci-failure", "health-check", "agent-observation", "manual"] },
+    "status": { "type": "string", "enum": ["open", "in-progress", "resolved", "wont-fix"], "default": "open" },
+    "recordedBy": { "type": "string", "enum": ["claude", "chatgpt", "codex", "human"] },
+    "resolution": { "type": "string" }
+  }
+}

@@ -1,0 +1,115 @@
+# =============================================================================
+# GitLab CI Template — Multi-stage pipeline with best practices
+# Copy and adapt for each project
+# =============================================================================
+stages:
+  - validate
+  - build
+  - test
+  - security
+  - deploy-staging
+  - deploy-production
+
+variables:
+  DOCKER_IMAGE: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+  DOCKER_IMAGE_LATEST: "${CI_REGISTRY_IMAGE}:latest"
+
+# --- Validate ---
+lint:
+  stage: validate
+  image: node:20-alpine
+  script:
+    - npm ci --prefer-offline
+    - npm run lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+terraform-validate:
+  stage: validate
+  image: hashicorp/terraform:1.7
+  script:
+    - terraform init -backend=false
+    - terraform validate
+    - terraform fmt -check -recursive
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "**/*.tf"
+
+# --- Build ---
+docker-build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$DOCKER_IMAGE" -t "$DOCKER_IMAGE_LATEST" .
+    - docker push "$DOCKER_IMAGE"
+    - docker push "$DOCKER_IMAGE_LATEST"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# --- Test ---
+unit-tests:
+  stage: test
+  image: node:20-alpine
+  script:
+    - npm ci --prefer-offline
+    - npm test -- --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      junit: junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+
+# --- Security ---
+sast:
+  stage: security
+  image: node:20-alpine
+  script:
+    - npm audit --audit-level=high
+  allow_failure: true
+
+trivy-scan:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL "$DOCKER_IMAGE"
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# --- Deploy Staging ---
+deploy-staging:
+  stage: deploy-staging
+  image: bitnami/kubectl:latest
+  environment:
+    name: staging
+    url: https://staging.example.com
+  script:
+    - kubectl set image deployment/$APP_NAME $APP_NAME=$DOCKER_IMAGE -n staging
+    - kubectl rollout status deployment/$APP_NAME -n staging --timeout=300s
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# --- Deploy Production ---
+deploy-production:
+  stage: deploy-production
+  image: bitnami/kubectl:latest
+  environment:
+    name: production
+    url: https://app.example.com
+  script:
+    - kubectl set image deployment/$APP_NAME $APP_NAME=$DOCKER_IMAGE -n production
+    - kubectl rollout status deployment/$APP_NAME -n production --timeout=300s
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual

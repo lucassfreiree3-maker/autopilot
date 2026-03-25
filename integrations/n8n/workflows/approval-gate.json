@@ -1,0 +1,139 @@
+{
+  "name": "Autopilot — Approval Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autopilot/approval-request",
+        "responseMode": "onReceived"
+      },
+      "id": "webhook-trigger",
+      "name": "Approval Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "autopilot-approval"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"blocks\": [\n    {\n      \"type\": \"header\",\n      \"text\": {\n        \"type\": \"plain_text\",\n        \"text\": \"🔐 Release Approval Required\"\n      }\n    },\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*Component:* {{ $json.body.component }}\\n*Version:* {{ $json.body.version }}\\n*Workspace:* {{ $json.body.workspace_id }}\\n*Requested by:* {{ $json.body.agent }}\"\n      }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"✅ Approve\" },\n          \"style\": \"primary\",\n          \"url\": \"{{ $env.WEBHOOK_URL }}webhook/autopilot/approval-response?action=approve&id={{ $json.body.approval_id }}\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"❌ Reject\" },\n          \"style\": \"danger\",\n          \"url\": \"{{ $env.WEBHOOK_URL }}webhook/autopilot/approval-response?action=reject&id={{ $json.body.approval_id }}\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "slack-approval",
+      "name": "Send Approval Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "autopilot/approval-response",
+        "responseMode": "onReceived"
+      },
+      "id": "approval-response",
+      "name": "Approval Response",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 520],
+      "webhookId": "autopilot-approval-response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "check-approved",
+              "leftValue": "={{ $json.query.action }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "outputPinData": true
+      },
+      "id": "is-approved",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 520]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/release-agent.yml/dispatches",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"ref\": \"main\", \"inputs\": {\"workspace_id\": \"ws-default\"}}",
+        "options": {}
+      },
+      "id": "trigger-release",
+      "name": "Trigger Release",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 440],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "github-pat",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=❌ Release *rejected* for approval {{ $json.query.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notify-rejected",
+      "name": "Notify Rejected",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 600]
+    }
+  ],
+  "connections": {
+    "Approval Request": {
+      "main": [
+        [{"node": "Send Approval Request", "type": "main", "index": 0}]
+      ]
+    },
+    "Approval Response": {
+      "main": [
+        [{"node": "Approved?", "type": "main", "index": 0}]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [{"node": "Trigger Release", "type": "main", "index": 0}],
+        [{"node": "Notify Rejected", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {"name": "autopilot"},
+    {"name": "approval"},
+    {"name": "human-in-the-loop"}
+  ]
+}

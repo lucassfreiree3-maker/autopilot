@@ -1,0 +1,24 @@
+# n8n self-hosted — 100% free, open-source
+# Runs locally or on any VPS/VM with Docker
+#
+# Usage:
+#   docker compose up -d
+#   Open http://localhost:5678
+#
+# Data persists in ./n8n-data/ (gitignored)
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: autopilot-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=autopilot
+      - N8N_BASIC_AUTH_PASSWORD=changeme
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - N8N_LOG_LEVEL=info
+    volumes:
+      - ./n8n-data:/home/node/.n8n

@@ -1,0 +1,201 @@
+name: "[Agent] CI Failure Analysis"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+      component:
+        description: "Component (controller or agent)"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+      run_id:
+        description: "Failed workflow run ID"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read workspace config
+        id: ws
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          COMPONENT="${{ github.event.inputs.component }}"
+          WS_PATH="state/workspaces/${WS_ID}"
+          WS_JSON=$(gh api "repos/$REPO/contents/${WS_PATH}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d 2>/dev/null || echo '{}')
+          if [ "$COMPONENT" = "controller" ]; then
+            SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.controller.sourceRepo // ""')
+          else
+            SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo // ""')
+          fi
+          echo "source_repo=$SOURCE_REPO" >> "$GITHUB_OUTPUT"
+          echo "ws_path=$WS_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch failed logs
+        id: logs
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SOURCE_REPO="${{ steps.ws.outputs.source_repo }}"
+          RUN_ID="${{ github.event.inputs.run_id }}"
+          if [ -z "$SOURCE_REPO" ]; then
+            echo "::error ::Source repo nao configurado no workspace"
+            exit 1
+          fi
+          # Get failed jobs
+          FAILED_JOBS=$(gh api "repos/$SOURCE_REPO/actions/runs/$RUN_ID/jobs" \
+            --jq '.jobs[] | select(.conclusion == "failure") | {id: .id, name: .name, steps: [.steps[] | select(.conclusion == "failure") | {name: .name, number: .number}]}' 2>/dev/null || echo "")
+          echo "$FAILED_JOBS" > /tmp/failed-jobs.json
+          # Get log excerpt (last 200 lines of failed job)
+          FIRST_JOB_ID=$(echo "$FAILED_JOBS" | jq -r '.id' 2>/dev/null | head -1)
+          if [ -n "$FIRST_JOB_ID" ] && [ "$FIRST_JOB_ID" != "null" ]; then
+            gh api "repos/$SOURCE_REPO/actions/jobs/$FIRST_JOB_ID/logs" \
+              2>/dev/null | tail -200 > /tmp/log-excerpt.txt || echo "Could not fetch logs" > /tmp/log-excerpt.txt
+          else
+            echo "No failed jobs found" > /tmp/log-excerpt.txt
+          fi
+
+      - name: Heuristic analysis
+        id: analysis
+        run: |
+          LOG=$(cat /tmp/log-excerpt.txt 2>/dev/null || echo "")
+          CATEGORY="unknown"
+          SUGGESTION=""
+          if echo "$LOG" | grep -qi "npm ERR\|yarn error\|ERESOLVE"; then
+            CATEGORY="dependency"
+            SUGGESTION="Check package.json and lock file. Run npm ci locally."
+          elif echo "$LOG" | grep -qi "ENOSPC\|disk quota\|No space"; then
+            CATEGORY="infrastructure"
+            SUGGESTION="Runner disk space issue. Check artifact/cache sizes."
+          elif echo "$LOG" | grep -qi "timeout\|ETIMEDOUT\|ECONNREFUSED"; then
+            CATEGORY="network"
+            SUGGESTION="Network timeout. Check registry access and proxy settings."
+          elif echo "$LOG" | grep -qi "SyntaxError\|TypeError\|ReferenceError"; then
+            CATEGORY="code-error"
+            SUGGESTION="JavaScript runtime error. Review recent commits."
+          elif echo "$LOG" | grep -qi "FAIL\|AssertionError\|Expected.*received"; then
+            CATEGORY="test-failure"
+            SUGGESTION="Test failure. Review test output and recent code changes."
+          elif echo "$LOG" | grep -qi "permission denied\|403\|401\|unauthorized"; then
+            CATEGORY="auth"
+            SUGGESTION="Permission/auth error. Check tokens and repo access."
+          elif echo "$LOG" | grep -qi "lint\|eslint\|prettier"; then
+            CATEGORY="lint"
+            SUGGESTION="Lint failure. Run linter locally and fix."
+          elif echo "$LOG" | grep -qi "build\|compile\|tsc"; then
+            CATEGORY="build"
+            SUGGESTION="Build/compile error. Check TypeScript or build config."
+          fi
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          ANALYSIS=$(jq -n \
+            --arg ws "${{ github.event.inputs.workspace_id }}" \
+            --arg comp "${{ github.event.inputs.component }}" \
+            --arg run "${{ github.event.inputs.run_id }}" \
+            --arg cat "$CATEGORY" \
+            --arg sug "$SUGGESTION" \
+            --arg ts "$NOW" \
+            --arg src "${{ steps.ws.outputs.source_repo }}" \
+            '{
+              workspaceId: $ws, component: $comp, runId: $run,
+              sourceRepo: $src, timestamp: $ts,
+              category: $cat, suggestion: $sug,
+              logExcerptLines: 200
+            }')
+          echo "$ANALYSIS" > /tmp/analysis.json
+          cat /tmp/analysis.json
+
+      - name: Try AI analysis
+        id: ai_analysis
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "No API key. Skipping AI analysis."
+            exit 0
+          fi
+          LOG_EXCERPT=$(cat /tmp/log-excerpt.txt | head -100 | jq -Rs .)
+          RESPONSE=$(curl -s -X POST "https://api.anthropic.com/v1/messages" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"model\": \"claude-haiku-4-5-20251001\",
+              \"max_tokens\": 500,
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Analyze this CI failure log excerpt and provide: 1) Root cause category 2) Specific issue 3) Suggested fix. Be concise. Log:\\n\"
+              }]
+            }" 2>/dev/null || echo "")
+          if [ -n "$RESPONSE" ]; then
+            AI_TEXT=$(echo "$RESPONSE" | jq -r '.content[0].text // "No response"' 2>/dev/null || echo "API error")
+            echo "$AI_TEXT" > /tmp/ai-analysis.txt
+          fi
+
+      - name: Save analysis to audit
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ github.event.inputs.workspace_id }}"
+          WS_PATH="${{ steps.ws.outputs.ws_path }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(echo "$NOW" | tr ':' '-')
+          RUN_ID="${{ github.event.inputs.run_id }}"
+          ANALYSIS=$(cat /tmp/analysis.json)
+          AI_TEXT=$(cat /tmp/ai-analysis.txt 2>/dev/null || echo "")
+          if [ -n "$AI_TEXT" ]; then
+            ANALYSIS=$(echo "$ANALYSIS" | jq --arg ai "$AI_TEXT" '.aiAnalysis = $ai')
+          fi
+          ENCODED=$(echo "$ANALYSIS" | base64 -w0)
+          gh api "repos/$REPO/contents/${WS_PATH}/audit/ci-failure-${RUN_ID}-${SAFE_NOW}.json" \
+            --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: ci-failure analysis $WS_ID run $RUN_ID [skip ci]" \
+            -f "content=$ENCODED" 2>/dev/null || echo "Failed to save audit"
+          {
+            echo "## CI Failure Analysis"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Workspace | $WS_ID |"
+            echo "| Component | ${{ github.event.inputs.component }} |"
+            echo "| Run ID | $RUN_ID |"
+            echo "| Category | $(echo "$ANALYSIS" | jq -r '.category') |"
+            echo "| Suggestion | $(echo "$ANALYSIS" | jq -r '.suggestion') |"
+            if [ -n "$AI_TEXT" ]; then
+              echo ""
+              echo "### AI Analysis"
+              echo "$AI_TEXT"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-analysis-${{ github.run_number }}
+          path: |
+            /tmp/analysis.json
+            /tmp/log-excerpt.txt
+            /tmp/ai-analysis.txt
+          retention-days: 90
+          if-no-files-found: ignore

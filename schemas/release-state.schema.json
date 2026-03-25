@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/release-state.schema.json",
+  "title": "Release State",
+  "type": "object",
+  "required": ["schemaVersion", "component", "workspaceId"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "workspaceId": { "type": "string" },
+    "component": { "type": "string", "enum": ["controller", "agent"] },
+    "lastReleasedSha": { "type": "string", "default": "" },
+    "lastTag": { "type": "string", "default": "" },
+    "lastVersion": { "type": "string", "default": "" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "runId": { "type": "string", "default": "" },
+    "runUrl": { "type": "string", "default": "" },
+    "promotions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target": { "type": "string", "enum": ["deploy", "cap"] },
+          "repo": { "type": "string" },
+          "branch": { "type": "string" },
+          "path": { "type": "string" },
+          "tag": { "type": "string" },
+          "sha": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["success", "failure", "skipped"] }
+        }
+      }
+    },
+    "status": { "type": "string", "enum": ["idle", "releasing", "promoted", "failed"], "default": "idle" },
+    "ciResult": { "type": "string", "enum": ["success", "failure", "unknown", "no-ci", "timeout"] },
+    "changeType": { "type": "string" },
+    "commitMessage": { "type": "string" },
+    "preExistingFailure": { "type": "boolean" },
+    "gateDecision": { "type": "string" },
+    "promoted": { "type": "boolean" }
+  }
+}

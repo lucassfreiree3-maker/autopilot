@@ -1,110 +1,24 @@
-# Runtime state — never commit
-cache/
-reports/
-spooler/
-repos/
-backups/
-
-# Secrets — never commit
+# Secrets
 secrets/
+.env
+.env.*
+*.secure.txt
 
-# Local npm/node
-node_modules/
-.npm-cache-mcp/
-.npm-cache-agent/
-.npm-cache-controller/
+# Local artifacts
+cache/
+repos/
+reports/
+state/
+*.sqlite
+*.sqlite-*
 
-# Temp & migration artifacts
-migration-backup-*/
-*.tmp
-*.log
+# OS
+.DS_Store
+Thumbs.db
 
-# VS Code local state
-.vscode/settings.json
+# IDE
+.vscode/
+.idea/
 
-# AI session context (operational, not product)
-ai-sync/EVENTS.jsonl
-ai-sync/STATE.json
-ai-sync/RUNTIME.json
-ai-sync/CANVAS.json
-ai-sync/CANVAS.md
-ai-sync/CLAUDE-CTX.md
-ai-sync/CODEX-CTX.md
-ai-sync/GEMINI-CTX.md
-ai-sync/HANDOFF.md
-ai-sync/LATEST.md
-ai-sync/AUTO.md
-
-# Company-specific operational docs (stay local)
-docs/repository-map.md
-docs/controller-cap-values-map.md
-docs/configuration-map.md
-docs/runbook.md
-docs/gemini-release-operations.md
-docs/ci-failure-probes.md
-
-# Company-specific operational scripts (internal repo refs)
-push-controller-main.cmd
-push-cap-agent-main.cmd
-push-deploy-agent-hml.cmd
-push-deploy-controller-hml.cmd
-push-agent-main.cmd
-controller-release-autopilot.ps1
-controller-release-autopilot.cmd
-controller-release-autopilot.json
-agent-release-autopilot.json
-agent-release-autopilot.cmd
-autopilot-manifest.json
-autopilot-manifest-agent.json
-run-controller-ci-failure-probes.ps1
-run-controller-ci-failure-probes.cmd
-test-recreate-automacao-workspace.ps1
-refresh-agent-repos.cmd
-refresh-managed-repos.ps1
-refresh-managed-repos.cmd
-prepare-agent-main.cmd
-prepare-controller-main.ps1
-prepare-controller-main.cmd
-preflight-controller-ci.ps1
-preflight-controller-ci.cmd
-test-controller-release-tooling.ps1
-test-controller-release-tooling.cmd
-watch-agent-release.ps1
-watch-and-release.ps1
-gdrive-backup-watcher.ps1
-services.json
-efficiency-policy.json
-export-docs-bundle.ps1
-export-complete-handoff-bundle.ps1
-
-# AI session decision/learning logs (operational, stay local)
-ai-sync/DECISIONS.md
-ai-sync/LEARNINGS.md
-ai-sync/MASTER-BRIEFING.md
-
-# Portable kit mirrors of excluded files
-portable-kit/docs/repository-map.md
-portable-kit/docs/controller-cap-values-map.md
-portable-kit/docs/configuration-map.md
-portable-kit/docs/runbook.md
-portable-kit/docs/gemini-release-operations.md
-portable-kit/docs/ci-failure-probes.md
-portable-kit/scripts/push-controller-main.cmd
-portable-kit/scripts/push-cap-agent-main.cmd
-portable-kit/scripts/push-deploy-agent-hml.cmd
-portable-kit/scripts/push-deploy-controller-hml.cmd
-portable-kit/scripts/push-agent-main.cmd
-portable-kit/scripts/controller-release-autopilot.*
-portable-kit/scripts/agent-release-autopilot.json
-portable-kit/scripts/run-controller-ci-failure-probes.*
-portable-kit/scripts/refresh-agent-repos.cmd
-portable-kit/manifest/autopilot-manifest.json
-portable-kit/manifest/autopilot-manifest-agent.json
-
-# Portable kit runtime
-portable-kit/cache/
-portable-kit/state/
-portable-kit/repos/
-
-# Claude project-level settings (tool internal)
-.claude/
+# Ops logs (auto-generated, not tracked)
+ops/logs/

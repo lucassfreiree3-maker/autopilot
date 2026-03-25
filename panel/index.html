@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autopilot Control Plane</title>
+  <style>
+    :root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --green: #3fb950; --yellow: #d29922; --red: #f85149; --blue: #58a6ff; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    header h1 { font-size: 20px; font-weight: 600; }
+    .auth-section { display: flex; gap: 8px; align-items: center; }
+    .auth-section input { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 14px; width: 280px; }
+    .auth-section button, .btn { background: var(--blue); color: #fff; border: none; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { opacity: 0.9; }
+    .btn-danger { background: var(--red); }
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+    .tab { padding: 8px 16px; border-radius: 6px 6px 0 0; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-bottom: none; color: var(--muted); }
+    .tab.active { background: var(--bg); color: var(--text); border-bottom: 1px solid var(--bg); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .card h3 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .badge-healthy, .badge-pass { background: rgba(63,185,80,0.15); color: var(--green); }
+    .badge-degraded, .badge-warn { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .badge-critical, .badge-fail { background: rgba(248,81,73,0.15); color: var(--red); }
+    .badge-unknown, .badge-skip { background: rgba(139,148,158,0.15); color: var(--muted); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-green { background: var(--green); }
+    .dot-yellow { background: var(--yellow); }
+    .dot-red { background: var(--red); }
+    .dot-gray { background: var(--muted); }
+    .empty { color: var(--muted); text-align: center; padding: 40px; }
+    /* Pipeline & Tools styles */
+    .pipeline-container { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .pipeline-stage { display: flex; align-items: stretch; gap: 0; position: relative; }
+    .stage-connector { width: 3px; background: var(--border); position: absolute; left: 24px; top: 0; bottom: 0; z-index: 0; }
+    .stage-dot { width: 16px; height: 16px; border-radius: 50%; border: 3px solid var(--border); background: var(--surface); z-index: 1; flex-shrink: 0; margin-top: 18px; margin-left: 17px; }
+    .stage-dot.active { border-color: var(--green); background: var(--green); box-shadow: 0 0 8px rgba(63,185,80,0.4); }
+    .stage-dot.warn { border-color: var(--yellow); background: var(--yellow); }
+    .stage-dot.error { border-color: var(--red); background: var(--red); }
+    .stage-content { flex: 1; margin-left: 16px; padding: 12px 0; }
+    .stage-header { font-size: 15px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .stage-desc { font-size: 13px; color: var(--muted); }
+    .stage-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tool-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; border: 1px solid var(--border); background: var(--surface); }
+    .tool-chip.gh { border-color: rgba(88,166,255,0.4); color: var(--blue); }
+    .tool-chip.lc { border-color: rgba(63,185,80,0.4); color: var(--green); }
+    .tool-chip.k8s { border-color: rgba(136,132,216,0.4); color: #8884d8; }
+    .tool-chip.n8n { border-color: rgba(255,106,0,0.4); color: #ff6a00; }
+    .tool-chip.ai { border-color: rgba(210,153,34,0.4); color: var(--yellow); }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 24px; }
+    .tool-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; position: relative; overflow: hidden; }
+    .tool-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .tool-card.gh-card::before { background: var(--blue); }
+    .tool-card.lc-card::before { background: var(--green); }
+    .tool-card.k8s-card::before { background: #8884d8; }
+    .tool-card.n8n-card::before { background: #ff6a00; }
+    .tool-card.ai-card::before { background: var(--yellow); }
+    .tool-card h4 { font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .tool-card p { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .tool-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .tool-status .status-dot { width: 6px; height: 6px; }
+    .tool-features { list-style: none; padding: 0; margin: 8px 0 0 0; }
+    .tool-features li { font-size: 12px; color: var(--muted); padding: 2px 0; padding-left: 14px; position: relative; }
+    .tool-features li::before { content: ''; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 12px 0; }
+    .warning-box { background: rgba(210,153,34,0.1); border: 1px solid var(--yellow); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+    .action-target { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    #loading { text-align: center; padding: 60px; color: var(--muted); }
+    footer { text-align: center; padding: 24px 0; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Autopilot Control Plane</h1>
+      <div class="auth-section">
+        <input type="password" id="tokenInput" placeholder="GitHub PAT (sessionStorage only)">
+        <button class="btn" onclick="connect()">Connect</button>
+        <button class="btn btn-danger" onclick="disconnect()" style="display:none" id="disconnectBtn">Disconnect</button>
+      </div>
+    </header>
+
+    <div class="warning-box" id="securityNote">
+      Token is stored in <strong>sessionStorage</strong> only (cleared on tab close). Never use localStorage.
+      For editing, use <a href="https://github.dev/lucassfreiree/autopilot" style="color:var(--blue)">github.dev</a>.
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('pipeline')">Pipeline & Tools</div>
+      <div class="tab" onclick="showTab('product')">Product</div>
+      <div class="tab" onclick="showTab('corporate')">Corporate</div>
+      <div class="tab" onclick="showTab('workspace')">Active Workspace</div>
+      <div class="tab" onclick="showTab('operations')">Operations</div>
+      <div class="tab" onclick="showTab('metrics')">Metrics</div>
+    </div>
+
+    <div id="loading" style="display:none">Loading state...</div>
+
+    <!-- PIPELINE & TOOLS TAB -->
+    <div class="panel active" id="panel-pipeline">
+
+      <!-- ═══ INTEGRATED TOOLS STATUS ═══ -->
+      <div class="card" style="grid-column: 1 / -1">
+        <h3>Integrated Tools</h3>
+        <div class="tools-grid">
+          <div class="tool-card gh-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> GitHub Actions</h4>
+            <p>CI/CD engine — workflows, triggers, state management</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span id="ghStatus">Core — always active</span></div>
+            <ul class="tool-features">
+              <li id="ghWorkflowCount">Loading workflows...</li>
+              <li>7 trigger files</li>
+              <li>State on autopilot-state branch</li>
+            </ul>
+          </div>
+          <div class="tool-card ai-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM6.5 8h3l-.5 5h-2l-.5-5z"/></svg> AI Agents</h4>
+            <p>Multi-agent orchestration — Claude, Codex, Copilot, ChatGPT</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span>4 agents registered</span></div>
+            <ul class="tool-features">
+              <li>Claude Code — architecture, workflows</li>
+              <li>Codex — implementation, refactoring</li>
+              <li>Copilot — dispatch, review, coordination</li>
+              <li>ChatGPT — docs, triage</li>
+            </ul>
+          </div>
+          <div class="tool-card lc-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1a1 1 0 00-1 1v2a1 1 0 001 1h1v2H4a1 1 0 00-1 1v2a1 1 0 001 1h1v2H4a1 1 0 00-1 1v1a1 1 0 001 1h8a1 1 0 001-1v-1a1 1 0 00-1-1h-1v-2h1a1 1 0 001-1V8a1 1 0 00-1-1h-1V5h1a1 1 0 001-1V2a1 1 0 00-1-1H4z"/></svg> LangChain</h4>
+            <p>Intelligent agent orchestration — context-aware decisions</p>
+            <div class="tool-status"><span class="status-dot dot-green"></span> <span>Ready — runs in GitHub Actions</span></div>
+            <ul class="tool-features">
+              <li>analyze-ci-failure — semantic triage</li>
+              <li>smart-release — safety-checked deploys</li>
+              <li>triage-handoff — intelligent delegation</li>
+              <li>health-response — auto-remediation</li>
+            </ul>
+          </div>
+          <div class="tool-card k8s-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0L1 4v8l7 4 7-4V4L8 0zm0 2.2L12.9 4.8 8 7.4 3.1 4.8 8 2.2zM2.5 5.8l5 2.8v5l-5-2.8v-5zm11 0v5l-5 2.8v-5l5-2.8z"/></svg> Kubernetes</h4>
+            <p>Self-hosted infra — runners, CronJobs, namespace isolation</p>
+            <div class="tool-status"><span class="status-dot dot-gray"></span> <span>Available — deploy when needed</span></div>
+            <ul class="tool-features">
+              <li>Self-hosted Actions runner</li>
+              <li>CronJobs: health, backup, lock GC</li>
+              <li>Namespace per workspace</li>
+              <li>Kustomize overlay ready</li>
+            </ul>
+          </div>
+          <div class="tool-card n8n-card">
+            <h4><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4a2 2 0 114 0 2 2 0 01-4 0zm6 0h6M8 8a2 2 0 114 0 2 2 0 01-4 0zm-6 0h6m0 4a2 2 0 114 0 2 2 0 01-4 0zm-6 0h6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg> n8n</h4>
+            <p>Visual automation — Slack alerts, approval gates, monitoring</p>
+            <div class="tool-status"><span class="status-dot dot-gray"></span> <span>Available — self-hosted, free</span></div>
+            <ul class="tool-features">
+              <li>CI failure → Slack + auto-fix</li>
+              <li>Release notification → Slack</li>
+              <li>Health monitor → periodic alert</li>
+              <li>Approval gate → interactive Slack</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ RELEASE PIPELINE ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Release Pipeline (apply-source-change) — 7 Stages</h3>
+        <div class="pipeline-container" style="padding: 16px 0; position: relative;">
+          <div class="stage-connector" style="top: 30px; bottom: 30px;"></div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1. Setup</div>
+              <div class="stage-desc">Read workspace config, resolve inputs, decode base64 content</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">GitHub Actions</span>
+                <span class="tool-chip gh">workspace.json</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1.5 Session Guard</div>
+              <div class="stage-desc">Acquire multi-agent lock — blocks if another agent is active</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">session-guard.yml</span>
+                <span class="tool-chip ai">Agent Lock</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">2. Apply & Push</div>
+              <div class="stage-desc">Clone corporate repo → Apply code change → Fix lint → Push</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">git clone/push</span>
+                <span class="tool-chip ai">Claude / Codex</span>
+                <span class="tool-chip lc">LangChain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">3. CI Gate</div>
+              <div class="stage-desc">Wait for CI completion + smart comparison (pre-existing failure detection)</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">CI Workflows</span>
+                <span class="tool-chip lc">analyze-ci-failure</span>
+                <span class="tool-chip n8n">CI failure alert</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">4. Promote</div>
+              <div class="stage-desc">Update CAP/deploy values.yaml with new image tag</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">CAP repo</span>
+                <span class="tool-chip n8n">Release notify</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">5. Save State</div>
+              <div class="stage-desc">Record release-state.json on autopilot-state branch</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">autopilot-state</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">6. Audit</div>
+              <div class="stage-desc">Immutable audit trail + release session lock</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">audit/*.json</span>
+                <span class="tool-chip ai">Agent ID</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CONTINUOUS IMPROVEMENT PIPELINE ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Continuous Improvement Pipeline — 6 Stages</h3>
+        <div class="pipeline-container" style="padding: 16px 0; position: relative;">
+          <div class="stage-connector" style="top: 30px; bottom: 30px;"></div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">1. Setup</div>
+              <div class="stage-desc">Read config + load previous improvement report for trend tracking</div>
+              <div class="stage-tools"><span class="tool-chip gh">GitHub Actions</span></div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">2. Analyze</div>
+              <div class="stage-desc">Scan workflows, schemas, contracts, state for issues</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">Scan engine</span>
+                <span class="tool-chip lc">LangChain</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">3. Auto-Fix</div>
+              <div class="stage-desc">Fix expired locks, missing schemaVersion, outdated contracts</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">Auto-remediation</span>
+                <span class="tool-chip ai">Claude / Codex</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">4. Learn</div>
+              <div class="stage-desc">Health score (0-100), trends (improving/degrading/stable)</div>
+              <div class="stage-tools"><span class="tool-chip gh">Report engine</span></div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">5. Alert</div>
+              <div class="stage-desc">Create GitHub Issue if critical issues or score drops</div>
+              <div class="stage-tools">
+                <span class="tool-chip gh">GitHub Issues</span>
+                <span class="tool-chip n8n">Health monitor</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pipeline-stage">
+            <div class="stage-dot active"></div>
+            <div class="stage-content">
+              <div class="stage-header">6. Audit</div>
+              <div class="stage-desc">Record improvement report (latest + historical)</div>
+              <div class="stage-tools"><span class="tool-chip gh">autopilot-state</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ALL WORKFLOWS ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>All Workflows</h3>
+        <table>
+          <tr><th>Category</th><th>Workflow</th><th>Purpose</th><th>Triggers</th><th>Tools</th></tr>
+          <tr><td rowspan="3" style="vertical-align:top;font-weight:600;color:var(--green)">Core</td>
+            <td>bootstrap.yml</td><td>Full setup (state, backup, workspace)</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>seed-workspace.yml</td><td>Create/update workspace</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>health-check.yml</td><td>Health validation</td><td>Scheduled / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span> <span class="tool-chip n8n">n8n</span></td></tr>
+
+          <tr><td rowspan="5" style="vertical-align:top;font-weight:600;color:var(--blue)">Release</td>
+            <td>release-controller.yml</td><td>Controller release (freeze-aware)</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>release-agent.yml</td><td>Agent release (freeze-aware)</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>release-freeze.yml</td><td>Freeze/unfreeze releases</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>release-approval.yml</td><td>Manual approval gate</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>release-metrics.yml</td><td>Daily metrics + SLO</td><td>Scheduled</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="4" style="vertical-align:top;font-weight:600;color:var(--yellow)">Source</td>
+            <td>apply-source-change.yml</td><td>7-stage code change pipeline</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span> <span class="tool-chip lc">LC</span></td></tr>
+          <tr><td>fix-corporate-ci.yml</td><td>Auto-fix lint errors</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip n8n">n8n</span></td></tr>
+          <tr><td>fix-and-validate.yml</td><td>Fix + full flow validation</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>drift-correction.yml</td><td>Detect/fix source-deploy drift</td><td>Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="1" style="vertical-align:top;font-weight:600;color:#8884d8">Improvement</td>
+            <td>continuous-improvement.yml</td><td>6-stage self-analysis pipeline</td><td>Weekly / Trigger file</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip lc">LC</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+
+          <tr><td rowspan="2" style="vertical-align:top;font-weight:600;color:var(--muted)">Testing</td>
+            <td>test-full-flow.yml</td><td>Full integration test</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+          <tr><td>test-corporate-flow.yml</td><td>Corporate flow test</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span></td></tr>
+
+          <tr><td rowspan="6" style="vertical-align:top;font-weight:600;color:var(--muted)">Infra</td>
+            <td>sync-codex-prompt.yml</td><td>Auto-regenerate Codex prompt (AGENTS.md)</td><td>Push (auto)</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">Codex</span></td></tr>
+          <tr><td>langchain-orchestrator.yml</td><td>Intelligent agent orchestration</td><td>Manual / Reusable</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip lc">LC</span> <span class="tool-chip ai">Claude</span></td></tr>
+          <tr><td>session-guard.yml</td><td>Multi-agent lock</td><td>Reusable</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span></td></tr>
+          <tr><td>agent-sync.yml</td><td>Sync state between agents</td><td>Trigger file / Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip ai">AI</span></td></tr>
+          <tr><td>backup-state.yml</td><td>Snapshot state</td><td>Manual</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+          <tr><td>workspace-lock-gc.yml</td><td>Clean expired locks</td><td>Scheduled</td><td><span class="tool-chip gh">GH</span> <span class="tool-chip k8s">K8s CJ</span></td></tr>
+        </table>
+      </div>
+
+      <!-- ═══ TRIGGER FILES ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Trigger Files</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Edit on <code>main</code> branch, bump the <code>run</code> field to trigger the associated workflow.</p>
+        <table>
+          <tr><th>File</th><th>Workflow</th><th>Key Fields</th></tr>
+          <tr><td><code>trigger/source-change.json</code></td><td>apply-source-change.yml</td><td>component, change_type, target_path, file_content, promote</td></tr>
+          <tr><td><code>trigger/full-test.json</code></td><td>test-full-flow.yml</td><td>test_type, include_lint_error</td></tr>
+          <tr><td><code>trigger/e2e-test.json</code></td><td>test-corporate-flow.yml</td><td>dry_run</td></tr>
+          <tr><td><code>trigger/fix-and-validate.json</code></td><td>fix-and-validate.yml</td><td>workspace_id</td></tr>
+          <tr><td><code>trigger/fix-ci.json</code></td><td>fix-corporate-ci.yml</td><td>workspace_id</td></tr>
+          <tr><td><code>trigger/improvement.json</code></td><td>continuous-improvement.yml</td><td>auto_fix, scope</td></tr>
+          <tr><td><code>trigger/agent-sync.json</code></td><td>agent-sync.yml</td><td>task, context</td></tr>
+        </table>
+      </div>
+
+      <!-- ═══ LIVE STATUS (requires connection) ═══ -->
+      <div class="card" style="margin-top: 16px">
+        <h3>Live Pipeline Status</h3>
+        <div id="pipelineStatus" class="empty">Connect with GitHub PAT to see live workflow runs</div>
+      </div>
+    </div>
+
+    <!-- PRODUCT TAB -->
+    <div class="panel" id="panel-product">
+      <div class="grid">
+        <div class="card">
+          <h3>Product Info</h3>
+          <table>
+            <tr><th>Repo</th><td><a href="https://github.com/lucassfreiree/autopilot" style="color:var(--blue)">lucassfreiree/autopilot</a></td></tr>
+            <tr><th>State Branch</th><td>autopilot-state</td></tr>
+            <tr><th>Backup Branch</th><td>autopilot-backups</td></tr>
+            <tr><th>Panel</th><td>GitHub Pages</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Governance</h3>
+          <table>
+            <tr><th>Allowed</th><td>State, audit, schemas, contracts, docs, panel</td></tr>
+            <tr><th>Forbidden</th><td>Corporate code, secrets, kubeconfig, internal URLs</td></tr>
+            <tr><th>Agents</th><td>Claude, ChatGPT, Codex</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Workspaces</h3>
+          <div id="workspaceList" class="empty">Connect to load workspaces</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CORPORATE TAB -->
+    <div class="panel" id="panel-corporate">
+      <div class="grid">
+        <div class="card">
+          <h3>Corporate Repos</h3>
+          <div id="corporateRepos" class="empty">Connect and select a workspace to see corporate repos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKSPACE TAB -->
+    <div class="panel" id="panel-workspace">
+      <div style="margin-bottom:16px">
+        <label style="color:var(--muted);font-size:14px">Workspace:</label>
+        <select id="wsSelect" onchange="loadWorkspace()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:14px">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3><span class="status-dot dot-gray" id="healthDot"></span> Health</h3>
+          <div id="healthContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Controller Release</h3>
+          <div id="controllerContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Agent Release</h3>
+          <div id="agentContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Active Locks</h3>
+          <div id="locksContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Recent Handoffs</h3>
+          <div id="handoffsContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Improvements</h3>
+          <div id="improvementsContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1">
+          <h3>Recent Audit</h3>
+          <div id="auditContent" class="empty">Select workspace</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPERATIONS TAB -->
+    <div class="panel" id="panel-operations">
+      <div style="margin-bottom:16px">
+        <label style="color:var(--muted);font-size:14px">Workspace:</label>
+        <select id="opsWsSelect" onchange="loadOperations()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:14px">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Release Freeze</h3>
+          <div id="freezeContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Recent Approvals</h3>
+          <div id="approvalsContent" class="empty">Select workspace</div>
+        </div>
+        <div class="card">
+          <h3>Quick Actions</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/release-freeze.yml" target="_blank" style="text-align:center;text-decoration:none">Freeze / Unfreeze</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/release-approval.yml" target="_blank" style="text-align:center;text-decoration:none">Approve Release</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/restore-state.yml" target="_blank" style="text-align:center;text-decoration:none">Rollback State</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/drift-correction.yml" target="_blank" style="text-align:center;text-decoration:none">Check Drift</a>
+            <a class="btn" href="https://github.com/lucassfreiree/autopilot/actions/workflows/backup-state.yml" target="_blank" style="text-align:center;text-decoration:none">Manual Backup</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Open Alerts</h3>
+          <div id="alertsContent" class="empty">Connect to load</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- METRICS TAB -->
+    <div class="panel" id="panel-metrics">
+      <div style="margin-bottom:16px">
+        <label style="color:var(--muted);font-size:14px">Workspace:</label>
+        <select id="metricsWsSelect" onchange="loadMetrics()" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:14px">
+          <option value="">Select...</option>
+        </select>
+      </div>
+      <div class="grid">
+        <div class="card" style="grid-column: 1 / -1">
+          <h3>Daily Metrics</h3>
+          <div id="metricsContent" class="empty">Select workspace</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Autopilot Control Plane &mdash; 100% web-only, GitHub-centric, zero local dependencies
+    </footer>
+  </div>
+
+  <script>
+    const REPO = 'lucassfreiree/autopilot';
+    const STATE_BRANCH = 'autopilot-state';
+    const API = 'https://api.github.com';
+
+    function getToken() { return sessionStorage.getItem('autopilot_token'); }
+    function setToken(t) { sessionStorage.setItem('autopilot_token', t); }
+    function clearToken() { sessionStorage.removeItem('autopilot_token'); }
+
+    async function ghGet(path) {
+      const token = getToken();
+      if (!token) return null;
+      const r = await fetch(`${API}/${path}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (!r.ok) return null;
+      return r.json();
+    }
+
+    async function ghContent(filePath) {
+      const data = await ghGet(`repos/${REPO}/contents/${filePath}?ref=${STATE_BRANCH}`);
+      if (!data || !data.content) return null;
+      return JSON.parse(atob(data.content));
+    }
+
+    async function connect() {
+      const token = document.getElementById('tokenInput').value.trim();
+      if (!token) return;
+      setToken(token);
+      document.getElementById('tokenInput').value = '';
+      document.getElementById('disconnectBtn').style.display = '';
+      await loadWorkspaces();
+      await populateSelectors();
+      await loadPipelineStatus();
+    }
+
+    function disconnect() {
+      clearToken();
+      document.getElementById('disconnectBtn').style.display = 'none';
+      document.getElementById('workspaceList').innerHTML = '<div class="empty">Connect to load workspaces</div>';
+      document.getElementById('wsSelect').innerHTML = '<option value="">Select...</option>';
+    }
+
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    async function loadWorkspaces() {
+      const data = await ghGet(`repos/${REPO}/contents/state/workspaces?ref=${STATE_BRANCH}`);
+      const list = document.getElementById('workspaceList');
+      const sel = document.getElementById('wsSelect');
+      sel.innerHTML = '<option value="">Select...</option>';
+      if (!data || !Array.isArray(data)) {
+        list.innerHTML = '<div class="empty">No workspaces found</div>';
+        return;
+      }
+      const dirs = data.filter(d => d.type === 'dir');
+      let html = '<table><tr><th>Workspace ID</th><th>Actions</th></tr>';
+      dirs.forEach(d => {
+        html += `<tr><td>${d.name}</td><td><button class="btn" onclick="selectWorkspace('${d.name}')">View</button></td></tr>`;
+        sel.innerHTML += `<option value="${d.name}">${d.name}</option>`;
+      });
+      html += '</table>';
+      list.innerHTML = html;
+    }
+
+    function selectWorkspace(wsId) {
+      document.getElementById('wsSelect').value = wsId;
+      document.querySelectorAll('.tab')[2].click();
+      loadWorkspace();
+    }
+
+    function badge(status) {
+      return `<span class="badge badge-${status}">${status}</span>`;
+    }
+
+    function dotColor(status) {
+      if (status === 'healthy' || status === 'pass') return 'dot-green';
+      if (status === 'degraded' || status === 'warn') return 'dot-yellow';
+      if (status === 'critical' || status === 'fail') return 'dot-red';
+      return 'dot-gray';
+    }
+
+    async function loadWorkspace() {
+      const wsId = document.getElementById('wsSelect').value;
+      if (!wsId) return;
+      const wsPath = `state/workspaces/${wsId}`;
+
+      // Health
+      const health = await ghContent(`${wsPath}/health.json`);
+      const healthEl = document.getElementById('healthContent');
+      const healthDot = document.getElementById('healthDot');
+      if (health) {
+        healthDot.className = `status-dot ${dotColor(health.overall)}`;
+        let html = `<p>${badge(health.overall)} &mdash; ${health.checkedAt || 'never'}</p>`;
+        if (health.checks) {
+          html += '<table><tr><th>Check</th><th>Status</th><th>Message</th></tr>';
+          Object.entries(health.checks).forEach(([k, v]) => {
+            html += `<tr><td>${k}</td><td>${badge(v.status)}</td><td>${v.message || ''}</td></tr>`;
+          });
+          html += '</table>';
+        }
+        healthEl.innerHTML = html;
+      } else {
+        healthEl.innerHTML = '<div class="empty">No health data</div>';
+      }
+
+      // Controller
+      const ctrl = await ghContent(`${wsPath}/controller-release-state.json`);
+      const ctrlEl = document.getElementById('controllerContent');
+      if (ctrl && ctrl.lastTag) {
+        ctrlEl.innerHTML = `<table>
+          <tr><th>Tag</th><td>${ctrl.lastTag}</td></tr>
+          <tr><th>SHA</th><td>${(ctrl.lastReleasedSha||'').substring(0,7)}</td></tr>
+          <tr><th>Updated</th><td>${ctrl.updatedAt}</td></tr>
+          <tr><th>Status</th><td>${badge(ctrl.status)}</td></tr>
+        </table>`;
+      } else { ctrlEl.innerHTML = '<div class="empty">Never released</div>'; }
+
+      // Agent
+      const agent = await ghContent(`${wsPath}/agent-release-state.json`);
+      const agentEl = document.getElementById('agentContent');
+      if (agent && agent.lastTag) {
+        agentEl.innerHTML = `<table>
+          <tr><th>Tag</th><td>${agent.lastTag}</td></tr>
+          <tr><th>SHA</th><td>${(agent.lastReleasedSha||'').substring(0,7)}</td></tr>
+          <tr><th>Updated</th><td>${agent.updatedAt}</td></tr>
+          <tr><th>Status</th><td>${badge(agent.status)}</td></tr>
+        </table>`;
+      } else { agentEl.innerHTML = '<div class="empty">Never released</div>'; }
+
+      // Workspace config for corporate tab
+      const wsConfig = await ghContent(`${wsPath}/workspace.json`);
+      if (wsConfig) {
+        const corpEl = document.getElementById('corporateRepos');
+        let html = '<table><tr><th>Component</th><th>Source</th><th>Deploy</th><th>CAP</th></tr>';
+        html += `<tr><td>Controller</td><td>${wsConfig.controller?.sourceRepo || '-'}</td><td>${wsConfig.controller?.deployRepo || '-'}</td><td>-</td></tr>`;
+        html += `<tr><td>Agent</td><td>${wsConfig.agent?.sourceRepo || '-'}</td><td>${wsConfig.agent?.deployRepo || '-'}</td><td>${wsConfig.agent?.capRepo || '-'}</td></tr>`;
+        html += '</table>';
+        html += `<div class="action-target" style="margin-top:12px">Workspace: ${wsId} | Promotion: ${wsConfig.settings?.promotionTarget || 'both'}</div>`;
+        corpEl.innerHTML = html;
+      }
+
+      // Locks
+      const locks = await ghGet(`repos/${REPO}/contents/${wsPath}/locks?ref=${STATE_BRANCH}`);
+      const locksEl = document.getElementById('locksContent');
+      if (locks && Array.isArray(locks) && locks.length > 0) {
+        let html = '<table><tr><th>Lock</th><th>Acquired</th><th>Status</th></tr>';
+        for (const f of locks.filter(x => x.name.endsWith('.json'))) {
+          const lc = await ghContent(`${wsPath}/locks/${f.name}`);
+          if (lc) html += `<tr><td>${lc.operation}</td><td>${lc.acquiredAt}</td><td>${lc.released ? badge('pass') : badge('warn')}</td></tr>`;
+        }
+        html += '</table>';
+        locksEl.innerHTML = html;
+      } else { locksEl.innerHTML = '<div class="empty">No active locks</div>'; }
+
+      // Handoffs
+      const handoffs = await ghGet(`repos/${REPO}/contents/${wsPath}/handoffs?ref=${STATE_BRANCH}`);
+      const handoffsEl = document.getElementById('handoffsContent');
+      if (handoffs && Array.isArray(handoffs) && handoffs.length > 0) {
+        let html = '<table><tr><th>From</th><th>To</th><th>Status</th><th>Created</th></tr>';
+        for (const f of handoffs.filter(x => x.name.endsWith('.json')).slice(-5)) {
+          const h = await ghContent(`${wsPath}/handoffs/${f.name}`);
+          if (h) html += `<tr><td>${h.fromAgent}</td><td>${h.toAgent}</td><td>${badge(h.status)}</td><td>${h.createdAt}</td></tr>`;
+        }
+        html += '</table>';
+        handoffsEl.innerHTML = html;
+      } else { handoffsEl.innerHTML = '<div class="empty">No handoffs</div>'; }
+
+      // Improvements
+      const imps = await ghGet(`repos/${REPO}/contents/${wsPath}/improvements?ref=${STATE_BRANCH}`);
+      const impsEl = document.getElementById('improvementsContent');
+      if (imps && Array.isArray(imps) && imps.length > 0) {
+        let html = '<table><tr><th>Category</th><th>Status</th><th>Description</th></tr>';
+        for (const f of imps.filter(x => x.name.endsWith('.json')).slice(-5)) {
+          const i = await ghContent(`${wsPath}/improvements/${f.name}`);
+          if (i) html += `<tr><td>${i.category}</td><td>${badge(i.status)}</td><td>${i.description}</td></tr>`;
+        }
+        html += '</table>';
+        impsEl.innerHTML = html;
+      } else { impsEl.innerHTML = '<div class="empty">No improvements</div>'; }
+
+      // Audit
+      const audit = await ghGet(`repos/${REPO}/contents/${wsPath}/audit?ref=${STATE_BRANCH}`);
+      const auditEl = document.getElementById('auditContent');
+      if (audit && Array.isArray(audit) && audit.length > 0) {
+        let html = '<table><tr><th>Operation</th><th>Timestamp</th><th>Run ID</th></tr>';
+        for (const f of audit.filter(x => x.name.endsWith('.json')).slice(-10).reverse()) {
+          const a = await ghContent(`${wsPath}/audit/${f.name}`);
+          if (a) html += `<tr><td>${a.operation}</td><td>${a.timestamp}</td><td>${a.runId || '-'}</td></tr>`;
+        }
+        html += '</table>';
+        auditEl.innerHTML = html;
+      } else { auditEl.innerHTML = '<div class="empty">No audit records</div>'; }
+    }
+
+    async function loadOperations() {
+      const wsId = document.getElementById('opsWsSelect').value;
+      if (!wsId) return;
+      const wsPath = `state/workspaces/${wsId}`;
+
+      // Freeze
+      const freeze = await ghContent(`${wsPath}/release-freeze.json`);
+      const freezeEl = document.getElementById('freezeContent');
+      if (freeze && freeze.frozen) {
+        freezeEl.innerHTML = `<table>
+          <tr><th>Status</th><td>${badge('critical')} FROZEN</td></tr>
+          <tr><th>Reason</th><td>${freeze.reason || '-'}</td></tr>
+          <tr><th>Since</th><td>${freeze.frozenAt || '-'}</td></tr>
+          <tr><th>By</th><td>${freeze.frozenBy || '-'}</td></tr>
+          <tr><th>Expires</th><td>${freeze.expiresAt || 'never'}</td></tr>
+        </table>`;
+      } else {
+        freezeEl.innerHTML = `<p>${badge('healthy')} No active freeze</p>`;
+      }
+
+      // Approvals
+      const approvals = await ghGet(`repos/${REPO}/contents/${wsPath}/approvals?ref=${STATE_BRANCH}`);
+      const appEl = document.getElementById('approvalsContent');
+      if (approvals && Array.isArray(approvals) && approvals.length > 0) {
+        let html = '<table><tr><th>Component</th><th>Version</th><th>By</th><th>Date</th></tr>';
+        for (const f of approvals.filter(x => x.name.endsWith('.json')).slice(-5).reverse()) {
+          const a = await ghContent(`${wsPath}/approvals/${f.name}`);
+          if (a) html += `<tr><td>${a.component}</td><td>${a.version}</td><td>${a.approvedBy}</td><td>${a.approvedAt}</td></tr>`;
+        }
+        html += '</table>';
+        appEl.innerHTML = html;
+      } else { appEl.innerHTML = '<div class="empty">No approvals recorded</div>'; }
+
+      // Alerts (GitHub Issues)
+      const issues = await ghGet(`repos/${REPO}/issues?state=open&labels=autopilot-alert&per_page=5`);
+      const alertsEl = document.getElementById('alertsContent');
+      if (issues && Array.isArray(issues) && issues.length > 0) {
+        let html = '<table><tr><th>Alert</th><th>Created</th></tr>';
+        issues.forEach(i => {
+          html += `<tr><td><a href="${i.html_url}" style="color:var(--blue)">${i.title}</a></td><td>${i.created_at?.substring(0,10)}</td></tr>`;
+        });
+        html += '</table>';
+        alertsEl.innerHTML = html;
+      } else { alertsEl.innerHTML = '<div class="empty">No open alerts</div>'; }
+    }
+
+    async function loadMetrics() {
+      const wsId = document.getElementById('metricsWsSelect').value;
+      if (!wsId) return;
+      const wsPath = `state/workspaces/${wsId}`;
+
+      const metricsDir = await ghGet(`repos/${REPO}/contents/${wsPath}/metrics?ref=${STATE_BRANCH}`);
+      const metricsEl = document.getElementById('metricsContent');
+      if (metricsDir && Array.isArray(metricsDir) && metricsDir.length > 0) {
+        let html = '<table><tr><th>Date</th><th>Health</th><th>Controller</th><th>Agent</th><th>Runs</th><th>Failures</th><th>Frozen</th></tr>';
+        for (const f of metricsDir.filter(x => x.name.endsWith('.json')).slice(-14).reverse()) {
+          const m = await ghContent(`${wsPath}/metrics/${f.name}`);
+          if (m) {
+            html += `<tr>
+              <td>${m.date}</td>
+              <td>${badge(m.health)}</td>
+              <td>v${m.controller?.version || '-'} ${badge(m.controller?.status || 'unknown')}</td>
+              <td>v${m.agent?.version || '-'} ${badge(m.agent?.status || 'unknown')}</td>
+              <td>${m.runsLast24h}</td>
+              <td>${m.failuresLast24h}</td>
+              <td>${m.frozen ? badge('critical') : badge('pass')}</td>
+            </tr>`;
+          }
+        }
+        html += '</table>';
+        metricsEl.innerHTML = html;
+      } else { metricsEl.innerHTML = '<div class="empty">No metrics collected yet. Runs daily at midnight UTC.</div>'; }
+    }
+
+    // Populate workspace selectors in all tabs
+    async function populateSelectors() {
+      const data = await ghGet(`repos/${REPO}/contents/state/workspaces?ref=${STATE_BRANCH}`);
+      if (!data || !Array.isArray(data)) return;
+      const dirs = data.filter(d => d.type === 'dir');
+      ['opsWsSelect', 'metricsWsSelect'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Select...</option>';
+        dirs.forEach(d => { sel.innerHTML += `<option value="${d.name}">${d.name}</option>`; });
+      });
+    }
+
+    // Pipeline live status
+    async function loadPipelineStatus() {
+      const token = getToken();
+      if (!token) return;
+
+      const statusEl = document.getElementById('pipelineStatus');
+      statusEl.innerHTML = '<div style="color:var(--muted)">Loading recent runs...</div>';
+
+      // Get recent workflow runs
+      const runs = await ghGet(`repos/${REPO}/actions/runs?per_page=15&status=completed`);
+      const activeRuns = await ghGet(`repos/${REPO}/actions/runs?per_page=5&status=in_progress`);
+
+      let html = '';
+
+      // Active runs first
+      if (activeRuns && activeRuns.workflow_runs && activeRuns.workflow_runs.length > 0) {
+        html += '<div class="section-title" style="margin-top:0">Running Now</div>';
+        html += '<table><tr><th>Workflow</th><th>Status</th><th>Started</th><th>Branch</th><th>Link</th></tr>';
+        activeRuns.workflow_runs.forEach(r => {
+          html += `<tr>
+            <td>${r.name}</td>
+            <td><span class="badge badge-warn">in progress</span></td>
+            <td>${r.created_at?.substring(0,19).replace('T',' ')}</td>
+            <td>${r.head_branch}</td>
+            <td><a href="${r.html_url}" style="color:var(--blue)" target="_blank">View</a></td>
+          </tr>`;
+        });
+        html += '</table>';
+      }
+
+      // Recent completed runs
+      if (runs && runs.workflow_runs && runs.workflow_runs.length > 0) {
+        html += '<div class="section-title">Recent Runs</div>';
+        html += '<table><tr><th>Workflow</th><th>Result</th><th>Completed</th><th>Duration</th><th>Tools</th><th>Link</th></tr>';
+        runs.workflow_runs.forEach(r => {
+          const conclusion = r.conclusion || 'unknown';
+          const badgeClass = conclusion === 'success' ? 'pass' : conclusion === 'failure' ? 'fail' : 'unknown';
+          const startTime = new Date(r.created_at);
+          const endTime = new Date(r.updated_at);
+          const durationMs = endTime - startTime;
+          const durationMin = Math.floor(durationMs / 60000);
+          const durationSec = Math.floor((durationMs % 60000) / 1000);
+          const duration = durationMin > 0 ? `${durationMin}m ${durationSec}s` : `${durationSec}s`;
+
+          // Map workflow to tools
+          const name = r.name.toLowerCase();
+          let tools = '<span class="tool-chip gh">GH</span>';
+          if (name.includes('langchain')) tools += ' <span class="tool-chip lc">LC</span>';
+          if (name.includes('source-change') || name.includes('fix')) tools += ' <span class="tool-chip ai">AI</span>';
+          if (name.includes('copilot') || name.includes('sync-copilot')) tools += ' <span class="tool-chip ai">Copilot</span>';
+          if (name.includes('improvement')) tools += ' <span class="tool-chip lc">LC</span>';
+
+          html += `<tr>
+            <td>${r.name}</td>
+            <td><span class="badge badge-${badgeClass}">${conclusion}</span></td>
+            <td>${r.updated_at?.substring(0,19).replace('T',' ')}</td>
+            <td>${duration}</td>
+            <td>${tools}</td>
+            <td><a href="${r.html_url}" style="color:var(--blue)" target="_blank">View</a></td>
+          </tr>`;
+        });
+        html += '</table>';
+      }
+
+      if (!html) {
+        html = '<div class="empty">No workflow runs found</div>';
+      }
+
+      statusEl.innerHTML = html;
+
+      // Update workflow count
+      const workflows = await ghGet(`repos/${REPO}/actions/workflows?per_page=50`);
+      if (workflows && workflows.total_count) {
+        document.getElementById('ghWorkflowCount').textContent = `${workflows.total_count} workflows registered`;
+      }
+    }
+
+    // Auto-connect if token exists in session
+    if (getToken()) {
+      document.getElementById('disconnectBtn').style.display = '';
+      loadWorkspaces();
+      populateSelectors();
+      loadPipelineStatus();
+    }
+  </script>
+</body>
+</html>

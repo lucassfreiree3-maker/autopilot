@@ -1,0 +1,10 @@
+{
+  "_context": "SHARED | all workspaces",
+  "workspace_id": "ws-default",
+  "task": "Analyze the autopilot architecture and suggest improvements. Review the overall structure: workflows, schemas, state management, multi-workspace isolation, deploy pipeline, and agent coordination. Identify: 1) Architectural strengths, 2) Potential bottlenecks or single points of failure, 3) Security improvements, 4) Scalability concerns for adding more workspaces/companies, 5) Suggestions for reducing deploy cycle time.",
+  "context": "Autopilot is a web-only CI/CD control plane for multi-workspace, multi-agent release orchestration. It manages multiple companies (Getronics, CIT) from a single GitHub repo. State is stored on autopilot-state branch. Deploy pipeline uses apply-source-change.yml (7 stages). Multiple agents (Claude, Codex, Copilot) can operate concurrently with session-guard locking.",
+  "model": "o3",
+  "include_session_memory": true,
+  "include_patches": true,
+  "run": 7
+}

@@ -1,0 +1,16 @@
+# Kustomize overlay for deploying all Autopilot K8s resources.
+# Usage: kubectl apply -k integrations/kubernetes/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: autopilot-ws-default
+
+resources:
+  - namespace.yml
+  - runner-deployment.yml
+  - cronjobs.yml
+  # NOTE: secrets.yml is NOT included — apply manually with real values
+
+commonLabels:
+  app: autopilot
+  managed-by: autopilot-k8s

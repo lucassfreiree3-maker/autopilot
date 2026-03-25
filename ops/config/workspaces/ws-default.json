@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "description": "Visual index for Getronics workspace — quick reference for agents",
+  "workspace_id": "ws-default",
+  "company": "Getronics",
+  "status": "active",
+  "identification": {
+    "token_secret": "BBVINET_TOKEN",
+    "data_classification": "Confidential",
+    "stack": "Node/TypeScript (NestJS, Jest, ESLint)",
+    "machine": "Getronics workstation"
+  },
+  "repos": {
+    "controller": "bbvinet/psc-sre-automacao-controller",
+    "agent": "bbvinet/psc-sre-automacao-agent",
+    "cap": "bbvinet/psc_releases_cap_sre-aut-agent"
+  },
+  "state_path": "state/workspaces/ws-default/",
+  "trigger_files": [
+    "trigger/source-change.json",
+    "trigger/ci-diagnose.json",
+    "trigger/fetch-files.json",
+    "trigger/fix-ci.json",
+    "trigger/fix-and-validate.json",
+    "trigger/full-test.json",
+    "trigger/e2e-test.json",
+    "trigger/agent-sync.json",
+    "trigger/improvement.json"
+  ],
+  "workflows_that_use_this_workspace": [
+    "apply-source-change.yml",
+    "ci-diagnose.yml",
+    "fix-corporate-ci.yml",
+    "fetch-files.yml",
+    "drift-correction.yml",
+    "fix-and-validate.yml",
+    "agent-sync.yml",
+    "check-repo-access.yml",
+    "test-full-flow.yml",
+    "test-corporate-flow.yml"
+  ],
+  "current_state": {
+    "controller_version": "3.5.12",
+    "last_successful_deploy_run": 38,
+    "last_trigger_run": 44,
+    "pipeline_status": "operational"
+  }
+}

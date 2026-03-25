@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lucassfreiree/autopilot/schemas/health-state.schema.json",
+  "title": "Health State",
+  "type": "object",
+  "required": ["schemaVersion", "workspaceId", "checkedAt"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "workspaceId": { "type": "string" },
+    "checkedAt": { "type": "string", "format": "date-time" },
+    "overall": { "type": "string", "enum": ["healthy", "degraded", "critical", "unknown"] },
+    "checks": {
+      "type": "object",
+      "properties": {
+        "stateBranch": { "$ref": "#/$defs/checkResult" },
+        "controllerRelease": { "$ref": "#/$defs/checkResult" },
+        "agentRelease": { "$ref": "#/$defs/checkResult" },
+        "stuckRuns": { "$ref": "#/$defs/checkResult" },
+        "workspace": { "$ref": "#/$defs/checkResult" },
+        "locks": { "$ref": "#/$defs/checkResult" },
+        "drift": { "$ref": "#/$defs/checkResult" },
+        "deployConsistency": { "$ref": "#/$defs/checkResult" }
+      }
+    },
+    "summary": { "type": "string" }
+  },
+  "$defs": {
+    "checkResult": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pass", "warn", "fail", "skip"] },
+        "message": { "type": "string" },
+        "detail": { "type": "string" }
+      }
+    }
+  }
+}

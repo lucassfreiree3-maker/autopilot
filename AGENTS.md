@@ -71,7 +71,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (195 files)
+  audit/ (196 files)
   improvements/ (1 files)
   metrics/ (3 files)
   handoffs/ (1 files)
@@ -109,8 +109,8 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
-| `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
-| `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
+| `trigger/fix-ci.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
+| `trigger/full-test.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
 | `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
@@ -216,6 +216,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-monitor-alerts.yml | Ops: Check Active Alerts | scheduled, manual |
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
+| ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
 | release-agent.yml | [Release] Agent | manual |
 | release-approval.yml | [Release] Approval Gate | manual |
@@ -254,6 +255,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-monitor-alerts.yml | platform, workspace_id |
 | ops-pipeline-diagnose.yml | platform, target, identifier, run_id, workspace_id |
 | ops-tf-plan.yml | path, action, workspace_id |
+| ops-workflow-observability.yml | workspace_id |
 | record-improvement.yml | workspace_id, category, description, source, recorded_by |
 | release-agent.yml | workspace_id, force |
 | release-approval.yml | workspace_id, component, version, approver |
@@ -310,4 +312,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-25T18:26:26Z | Run: 23557329736*
+*Last synced: 2026-03-25T18:33:53Z | Run: 23557663870*

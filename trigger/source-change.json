@@ -11,11 +11,6 @@
       "content_ref": "patches/oas-sre-controller.controller.ts"
     },
     {
-      "target_path": "src/controllers/execute.controller.ts",
-      "action": "replace-file",
-      "content_ref": "patches/execute.controller.fixed.ts"
-    },
-    {
       "target_path": "package.json",
       "action": "search-replace",
       "search": "\"version\": \"3.5.12\"",
@@ -37,5 +32,5 @@
   "commit_message": "fix(security): XSS sanitization + SSRF URL validation + error output hardening (3.5.13)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 46
+  "run": 47
 }

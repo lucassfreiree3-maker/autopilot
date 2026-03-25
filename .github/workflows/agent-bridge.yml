@@ -1,0 +1,340 @@
+name: "[Agent] Bridge: Claude ↔ Codex"
+
+# Ponte entre agentes via OpenAI API.
+# Claude envia tarefas para Codex e recebe respostas.
+# Respostas salvas no autopilot-state para leitura posterior.
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Tarefa para o Codex executar"
+        required: true
+        type: string
+      context:
+        description: "Contexto adicional (JSON ou texto)"
+        required: false
+        default: ""
+      workspace_id:
+        description: "Workspace ID"
+        required: false
+        default: "ws-default"
+      model:
+        description: "Modelo OpenAI"
+        required: false
+        default: "o3"
+        type: choice
+        options:
+          - o3
+          - o4-mini
+          - gpt-4.1
+          - codex-mini
+      include_session_memory:
+        description: "Incluir session memory no contexto"
+        required: false
+        default: true
+        type: boolean
+      include_patches:
+        description: "Incluir patches/ no contexto"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths: ['trigger/agent-bridge.json']
+
+permissions:
+  contents: write
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  bridge:
+    name: "Send task to Codex"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Resolve inputs"
+        id: cfg
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/agent-bridge.json ]; then
+            TRIG=$(cat trigger/agent-bridge.json)
+            TASK=$(echo "$TRIG" | jq -r '.task // ""')
+            CONTEXT=$(echo "$TRIG" | jq -r '.context // ""')
+            WS_ID=$(echo "$TRIG" | jq -r '.workspace_id // "ws-default"')
+            MODEL=$(echo "$TRIG" | jq -r '.model // "o3"')
+            INCLUDE_MEMORY=$(echo "$TRIG" | jq -r '.include_session_memory // true')
+            INCLUDE_PATCHES=$(echo "$TRIG" | jq -r '.include_patches // false')
+          else
+            TASK="${{ inputs.task }}"
+            CONTEXT="${{ inputs.context }}"
+            WS_ID="${{ inputs.workspace_id }}"
+            MODEL="${{ inputs.model }}"
+            INCLUDE_MEMORY="${{ inputs.include_session_memory }}"
+            INCLUDE_PATCHES="${{ inputs.include_patches }}"
+          fi
+
+          echo "task<<TASK_EOF" >> "$GITHUB_OUTPUT"
+          echo "$TASK" >> "$GITHUB_OUTPUT"
+          echo "TASK_EOF" >> "$GITHUB_OUTPUT"
+
+          echo "context<<CTX_EOF" >> "$GITHUB_OUTPUT"
+          echo "$CONTEXT" >> "$GITHUB_OUTPUT"
+          echo "CTX_EOF" >> "$GITHUB_OUTPUT"
+
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+          echo "include_memory=$INCLUDE_MEMORY" >> "$GITHUB_OUTPUT"
+          echo "include_patches=$INCLUDE_PATCHES" >> "$GITHUB_OUTPUT"
+
+          echo "::notice ::Task: $TASK | Model: $MODEL | WS: $WS_ID"
+
+      - name: "Build system prompt"
+        id: prompt
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          SYSTEM_PROMPT="You are Codex, an AI coding agent operating inside the Autopilot control plane (lucassfreiree/autopilot).
+
+          ## YOUR ROLE
+          - Code implementation, refactoring, security patching, CI monitoring
+          - You collaborate with Claude Code (another AI agent on the same repo)
+          - Your responses are saved to autopilot-state branch for Claude to read
+
+          ## CURRENT STATE
+          - Workspace: ${{ steps.cfg.outputs.ws_id }}
+          - Controller version: $(jq -r '.versioningRules.currentVersion // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo 'unknown')
+          - Last deploy status: $(jq -r '.deployFlow.pipelineStatus // "unknown"' contracts/claude-session-memory.json 2>/dev/null | head -c 200 || echo 'unknown')
+          "
+
+          # Include session memory if requested
+          if [ "${{ steps.cfg.outputs.include_memory }}" = "true" ]; then
+            MEMORY=$(cat contracts/claude-session-memory.json 2>/dev/null | jq -c '.' || echo '{}')
+            SYSTEM_PROMPT="$SYSTEM_PROMPT
+
+          ## SESSION MEMORY (shared with Claude)
+          $MEMORY"
+          fi
+
+          # Include patches if requested
+          if [ "${{ steps.cfg.outputs.include_patches }}" = "true" ]; then
+            PATCHES_LIST=$(ls patches/*.ts 2>/dev/null | head -10 || echo "none")
+            SYSTEM_PROMPT="$SYSTEM_PROMPT
+
+          ## PATCHES IN REPO
+          $PATCHES_LIST"
+
+            for f in patches/*.ts; do
+              if [ -f "$f" ] && [ "$(wc -c < "$f")" -lt 50000 ]; then
+                SYSTEM_PROMPT="$SYSTEM_PROMPT
+
+          ### $(basename $f)
+          $(cat "$f")"
+              fi
+            done
+          fi
+
+          # Include Codex contract
+          if [ -f contracts/codex-agent-contract.json ]; then
+            SYSTEM_PROMPT="$SYSTEM_PROMPT
+
+          ## YOUR CONTRACT
+          $(cat contracts/codex-agent-contract.json)"
+          fi
+
+          # Save to file (avoid shell quoting issues)
+          echo "$SYSTEM_PROMPT" > /tmp/system-prompt.txt
+          echo "Prompt size: $(wc -c < /tmp/system-prompt.txt) bytes"
+
+      - name: "Call OpenAI API"
+        id: call
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -uo pipefail
+
+          MODEL="${{ steps.cfg.outputs.model }}"
+          TASK="${{ steps.cfg.outputs.task }}"
+          CONTEXT="${{ steps.cfg.outputs.context }}"
+
+          SYSTEM=$(cat /tmp/system-prompt.txt)
+
+          USER_MSG="## TASK
+          $TASK"
+
+          if [ -n "$CONTEXT" ]; then
+            USER_MSG="$USER_MSG
+
+          ## ADDITIONAL CONTEXT
+          $CONTEXT"
+          fi
+
+          # Truncate system prompt if too large (API limit ~128k tokens)
+          SYSTEM_SIZE=$(echo "$SYSTEM" | wc -c)
+          echo "System prompt size: $SYSTEM_SIZE bytes"
+          if [ "$SYSTEM_SIZE" -gt 100000 ]; then
+            echo "::warning ::System prompt too large ($SYSTEM_SIZE bytes), truncating..."
+            SYSTEM=$(echo "$SYSTEM" | head -c 100000)
+          fi
+
+          # Build JSON payload for chat completions (most compatible)
+          PAYLOAD=$(jq -n \
+            --arg model "$MODEL" \
+            --arg system "$SYSTEM" \
+            --arg user "$USER_MSG" \
+            '{
+              model: $model,
+              messages: [
+                { role: "system", content: $system },
+                { role: "user", content: $user }
+              ],
+              max_tokens: 16000
+            }')
+
+          echo "Calling OpenAI Chat Completions API (model: $MODEL)..."
+          echo "Task: $TASK"
+          echo "Payload size: $(echo "$PAYLOAD" | wc -c) bytes"
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "https://api.openai.com/v1/chat/completions" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 180)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            CONTENT=$(echo "$BODY" | jq -r '.choices[0].message.content // "No response"')
+            echo "$CONTENT" > /tmp/codex-response.txt
+            echo "$BODY" > /tmp/codex-response.json
+          else
+            echo "::warning ::Chat Completions returned $HTTP_CODE"
+            echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+
+            # Fallback to responses API
+            echo "Trying Responses API..."
+            PAYLOAD_RESP=$(jq -n \
+              --arg model "$MODEL" \
+              --arg system "$SYSTEM" \
+              --arg user "$USER_MSG" \
+              '{
+                model: $model,
+                input: [
+                  { role: "system", content: $system },
+                  { role: "user", content: $user }
+                ],
+                max_output_tokens: 16000
+              }')
+
+            RESPONSE=$(curl -s -w "\n%{http_code}" \
+              "https://api.openai.com/v1/responses" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD_RESP" \
+              --max-time 180)
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+            echo "Responses API HTTP Status: $HTTP_CODE"
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              CONTENT=$(echo "$BODY" | jq -r '.output[0].content[0].text // .output // "No response"' 2>/dev/null || echo "$BODY")
+              echo "$CONTENT" > /tmp/codex-response.txt
+              echo "$BODY" > /tmp/codex-response.json
+            else
+              echo "::error ::Both APIs failed. Last response:"
+              echo "$BODY" | head -c 500
+              echo "API_ERROR: $HTTP_CODE" > /tmp/codex-response.txt
+              echo "$BODY" > /tmp/codex-response.json
+            fi
+          fi
+
+          echo ""
+          echo "=== CODEX RESPONSE (first 500 chars) ==="
+          head -c 500 /tmp/codex-response.txt
+          echo ""
+
+      - name: "Save response to autopilot-state"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          WS_ID="${{ steps.cfg.outputs.ws_id }}"
+          TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)
+
+          # Prepare response file
+          RESPONSE_FILE="state/workspaces/$WS_ID/agent-bridge-response-$TIMESTAMP.json"
+
+          jq -n \
+            --arg task "${{ steps.cfg.outputs.task }}" \
+            --arg model "${{ steps.cfg.outputs.model }}" \
+            --arg ws_id "$WS_ID" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --rawfile response /tmp/codex-response.txt \
+            --rawfile raw_json /tmp/codex-response.json \
+            '{
+              type: "agent-bridge-response",
+              from: "codex",
+              to: "claude",
+              task: $task,
+              model: $model,
+              workspaceId: $ws_id,
+              timestamp: $timestamp,
+              runId: $run_id,
+              runUrl: $run_url,
+              response: $response,
+              rawApiResponse: ($raw_json | fromjson? // $raw_json)
+            }' > /tmp/response-payload.json
+
+          # Clone state branch and save
+          git clone --depth 1 --branch "${{ env.STATE_BRANCH }}" \
+            "https://x-access-token:${GH_TOKEN}@github.com/${{ env.AUTOPILOT_REPO }}.git" \
+            /tmp/state-repo
+
+          mkdir -p "/tmp/state-repo/state/workspaces/$WS_ID"
+          cp /tmp/response-payload.json "/tmp/state-repo/$RESPONSE_FILE"
+
+          # Also save as "latest" for easy access
+          cp /tmp/response-payload.json "/tmp/state-repo/state/workspaces/$WS_ID/agent-bridge-latest.json"
+
+          cd /tmp/state-repo
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "agent-bridge: codex response for '${{ steps.cfg.outputs.task }}' [$TIMESTAMP]" || echo "No changes"
+          git push || echo "Push failed — will retry"
+
+      - name: "Summary"
+        if: always()
+        run: |
+          echo "## Agent Bridge: Claude ↔ Codex" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Task:** ${{ steps.cfg.outputs.task }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Model:** ${{ steps.cfg.outputs.model }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Workspace:** ${{ steps.cfg.outputs.ws_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f /tmp/codex-response.txt ]; then
+            echo "### Codex Response" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            head -c 2000 /tmp/codex-response.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Response saved to \`autopilot-state\` branch as \`agent-bridge-latest.json\`" >> $GITHUB_STEP_SUMMARY

@@ -84,8 +84,8 @@ lucassfreiree/autopilot (this repo)
   agent-release-state.json
   controller-release-state.json
   release-freeze.json
-  locks/ (1 files)
-  audit/ (205 files)
+  locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  audit/ (209 files)
   improvements/ (1 files)
   metrics/ (3 files)
   handoffs/ (1 files)
@@ -121,13 +121,14 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/agent-sync.json` | agent-sync.yml | GETRONICS | ws-default | BBVINET_TOKEN | context, task, workspace_id |
 | `trigger/ci-diagnose.json` | ci-diagnose.yml | GETRONICS | ws-default | BBVINET_TOKEN | commit_sha, component, note, workspace_id |
 | `trigger/codex-commit.json` | codex-apply.yml | SHARED | all workspaces | Codex agent commit automation | auto_merge, branch_suffix, model, target_files, task, workspace_id |
+| `trigger/codex-deploy.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_merge, component, corporate_files, model, task, workspace_id |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
 | `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
 | `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
-| `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
+| `trigger/source-change.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -207,7 +208,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 
 | File | Name | Triggers |
 |---|---|---|
-| agent-bridge.yml | [Agent] Bridge: Claude ↔ Codex | trigger file, manual |
+| agent-bridge.yml | agent-bridge.yml | unknown |
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
@@ -219,6 +220,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ci-failure-analysis.yml | [Agent] CI Failure Analysis | manual |
 | cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
 | codex-apply.yml | codex-apply.yml | unknown |
+| codex-deploy.yml | codex-deploy.yml | unknown |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
@@ -252,7 +254,6 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 
 | Workflow | Inputs |
 |---|---|
-| agent-bridge.yml | task, model, include_session_memory, include_patches |
 | agent-sync.yml | workspace_id, task, context |
 | alert-notify.yml | severity, title, body |
 | apply-source-change.yml | workspace_id, component, change_type, target_path, file_content, commit_message, skip_ci_wait, promote |
@@ -329,4 +330,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-25T19:54:11Z | Run: 23561047807*
+*Last synced: 2026-03-25T20:10:45Z | Run: 23561735221*

@@ -1,7 +1,9 @@
 {
-  "lockId": "released",
-  "agentId": "none",
-  "operation": "none",
-  "acquiredAt": "2026-03-26T18:48:38Z",
-  "expiresAt": "2026-03-26T18:48:38Z"
+  "lockId": "claude-code-1774552669-32654",
+  "agentId": "claude-code",
+  "operation": "source-change",
+  "workspaceId": "ws-default",
+  "acquiredAt": "2026-03-26T19:17:49Z",
+  "expiresAt": "2026-03-26T19:47:50Z",
+  "runId": "23613461570"
 }

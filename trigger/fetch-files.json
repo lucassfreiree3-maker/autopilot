@@ -1,7 +1,7 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "controller",
-  "files": "package.json,src/controllers/agents-execute-logs.controller.ts,src/controllers/oas-sre-controller.controller.ts,src/swagger/swagger.json",
-  "run": 19
+  "component": "agent",
+  "files": "package.json,src/controllers/execute.controller.ts,src/swagger/swagger.json",
+  "run": 20
 }

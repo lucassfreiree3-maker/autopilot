@@ -1,35 +1,30 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "agent",
+  "component": "controller",
   "change_type": "multi-file",
-  "version": "2.2.8",
+  "version": "3.6.6",
   "changes": [
     {
       "action": "replace-file",
-      "target_path": "src/routes/cronjob-callback.ts",
-      "content_ref": "patches/cronjob-callback.ts"
-    },
-    {
-      "action": "replace-file",
-      "target_path": "src/routes/apis.ts",
-      "content_ref": "patches/agent-apis.ts"
+      "target_path": "src/swagger/swagger.json",
+      "content_ref": "patches/controller-swagger.json"
     },
     {
       "action": "search-replace",
       "target_path": "package.json",
-      "search": "\"version\": \"2.2.7\"",
-      "replace": "\"version\": \"2.2.8\""
+      "search": "\"version\": \"3.6.5\"",
+      "replace": "\"version\": \"3.6.6\""
     },
     {
       "action": "search-replace",
       "target_path": "package-lock.json",
-      "search": "\"version\": \"2.2.7\"",
-      "replace": "\"version\": \"2.2.8\""
+      "search": "\"version\": \"3.6.5\"",
+      "replace": "\"version\": \"3.6.6\""
     }
   ],
-  "commit_message": "fix(agent): fix no-nested-ternary ESLint error in cronjob-callback (2.2.8)",
+  "commit_message": "feat(controller): add cronjob routes to swagger + version 3.6.6",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 61
+  "run": 62
 }

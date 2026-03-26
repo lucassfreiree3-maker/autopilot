@@ -1,0 +1,358 @@
+{
+    "openapi":  "3.0.0",
+    "components":  {
+                       "examples":  {
+
+                                    },
+                       "headers":  {
+
+                                   },
+                       "parameters":  {
+
+                                      },
+                       "requestBodies":  {
+
+                                         },
+                       "responses":  {
+
+                                     },
+                       "schemas":  {
+                                       "IAgent":  {
+                                                      "properties":  {
+                                                                         "id":  {
+                                                                                    "type":  "string"
+                                                                                },
+                                                                         "version":  {
+                                                                                         "type":  "string"
+                                                                                     },
+                                                                         "createdAt":  {
+                                                                                           "type":  "string",
+                                                                                           "format":  "date-time"
+                                                                                       },
+                                                                         "description":  {
+                                                                                             "type":  "string"
+                                                                                         },
+                                                                         "availableRoutes":  {
+                                                                                                 "items":  {
+                                                                                                               "type":  "string"
+                                                                                                           },
+                                                                                                 "type":  "array"
+                                                                                             },
+                                                                         "status":  {
+                                                                                        "type":  "string"
+                                                                                    }
+                                                                     },
+                                                      "required":  [
+                                                                       "id",
+                                                                       "version",
+                                                                       "createdAt",
+                                                                       "description",
+                                                                       "availableRoutes",
+                                                                       "status"
+                                                                   ],
+                                                      "type":  "object",
+                                                      "additionalProperties":  false
+                                                  },
+                                       "IErrorAgentExecution":  {
+                                                                    "properties":  {
+                                                                                       "id":  {
+                                                                                                  "anyOf":  [
+                                                                                                                {
+                                                                                                                    "type":  "string"
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "type":  "number",
+                                                                                                                    "format":  "double"
+                                                                                                                }
+                                                                                                            ]
+                                                                                              },
+                                                                                       "functionName":  {
+                                                                                                            "type":  "string"
+                                                                                                        },
+                                                                                       "cluster":  {
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                       "namespace":  {
+                                                                                                         "type":  "string"
+                                                                                                     },
+                                                                                       "timestamp":  {
+                                                                                                         "type":  "string",
+                                                                                                         "format":  "date-time"
+                                                                                                     },
+                                                                                       "success":  {
+                                                                                                       "type":  "boolean"
+                                                                                                   }
+                                                                                   },
+                                                                    "required":  [
+                                                                                     "id",
+                                                                                     "timestamp",
+                                                                                     "success"
+                                                                                 ],
+                                                                    "type":  "object",
+                                                                    "additionalProperties":  false
+                                                                },
+                                       "IExecutionRequest":  {
+                                                                 "properties":  {
+                                                                                    "execId":  {
+                                                                                                   "type":  "string"
+                                                                                               },
+                                                                                    "namespace":  {
+                                                                                                      "type":  "string"
+                                                                                                  },
+                                                                                    "cluster":  {
+                                                                                                    "type":  "string"
+                                                                                                },
+                                                                                    "function":  {
+                                                                                                     "type":  "string"
+                                                                                                 }
+                                                                                },
+                                                                 "required":  [
+                                                                                  "execId",
+                                                                                  "namespace",
+                                                                                  "cluster",
+                                                                                  "function"
+                                                                              ],
+                                                                 "type":  "object",
+                                                                 "additionalProperties":  false
+                                                             },
+                                       "IAgentRegisterData":  {
+                                                                  "properties":  {
+                                                                                     "namespace":  {
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                                     "cluster":  {
+                                                                                                     "type":  "string"
+                                                                                                 },
+                                                                                     "environment":  {
+                                                                                                         "type":  "string"
+                                                                                                     },
+                                                                                     "DataRegistro":  {
+                                                                                                          "type":  "string",
+                                                                                                          "format":  "date-time"
+                                                                                                      }
+                                                                                 },
+                                                                  "required":  [
+                                                                                   "namespace",
+                                                                                   "cluster",
+                                                                                   "environment",
+                                                                                   "DataRegistro"
+                                                                               ],
+                                                                  "type":  "object",
+                                                                  "additionalProperties":  false
+                                                              }
+                                   },
+                       "securitySchemes":  {
+
+                                           }
+                   },
+    "info":  {
+                 "title":  "psc-sre-automacao-agent",
+                 "version":  "2.0.9",
+                 "description":  "psc-sre-automacao-agent in node with expressjs",
+                 "license":  {
+                                 "name":  "ISC"
+                             },
+                 "contact":  {
+                                 "name":  "Equipe DS"
+                             }
+             },
+    "paths":  {
+                  "/create-cronjob":  {
+                                          "get":  {
+                                                      "operationId":  "GetMessage",
+                                                      "responses":  {
+                                                                        "200":  {
+                                                                                    "description":  "Cronjob criado com sucesso",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "type":  "string",
+                                                                                                                                            "nullable":  true
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                }
+                                                                                }
+                                                                    },
+                                                      "description":  "Endpoint para exemplo de requisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes GET",
+                                                      "summary":  "Endpoint para exemplo de requisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes GET",
+                                                      "tags":  [
+                                                                   "General"
+                                                               ],
+                                                      "security":  [
+
+                                                                   ],
+                                                      "parameters":  [
+
+                                                                     ]
+                                                  }
+                                      },
+                  "/agent/info":  {
+                                      "get":  {
+                                                  "operationId":  "GetInfo",
+                                                  "responses":  {
+                                                                    "200":  {
+                                                                                "description":  "Dados do agent recuperados com sucesso",
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "properties":  {
+                                                                                                                                                           "Agente":  {
+                                                                                                                                                                          "$ref":  "#/components/schemas/IAgent"
+                                                                                                                                                                      },
+                                                                                                                                                           "summary":  {
+                                                                                                                                                                           "type":  "string"
+                                                                                                                                                                       }
+                                                                                                                                                       },
+                                                                                                                                        "required":  [
+                                                                                                                                                         "Agente",
+                                                                                                                                                         "summary"
+                                                                                                                                                     ],
+                                                                                                                                        "type":  "object"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                            }
+                                                                            }
+                                                                },
+                                                  "tags":  [
+                                                               "Agent"
+                                                           ],
+                                                  "security":  [
+
+                                                               ],
+                                                  "parameters":  [
+
+                                                                 ]
+                                              }
+                                  },
+                  "/agent/errors":  {
+                                        "get":  {
+                                                    "operationId":  "GetErrorExecutions",
+                                                    "responses":  {
+                                                                      "200":  {
+                                                                                  "description":  "ExecuÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes de agent que falharam recuperadas com sucesso",
+                                                                                  "content":  {
+                                                                                                  "application/json":  {
+                                                                                                                           "schema":  {
+                                                                                                                                          "properties":  {
+                                                                                                                                                             "errors":  {
+                                                                                                                                                                            "items":  {
+                                                                                                                                                                                          "$ref":  "#/components/schemas/IErrorAgentExecution"
+                                                                                                                                                                                      },
+                                                                                                                                                                            "type":  "array"
+                                                                                                                                                                        }
+                                                                                                                                                         },
+                                                                                                                                          "required":  [
+                                                                                                                                                           "errors"
+                                                                                                                                                       ],
+                                                                                                                                          "type":  "object"
+                                                                                                                                      }
+                                                                                                                       }
+                                                                                              }
+                                                                              }
+                                                                  },
+                                                    "tags":  [
+                                                                 "Agent"
+                                                             ],
+                                                    "security":  [
+
+                                                                 ],
+                                                    "parameters":  [
+
+                                                                   ]
+                                                }
+                                    },
+                  "/agent/execute":  {
+                                         "post":  {
+                                                      "operationId":  "ExecuteAutomation",
+                                                      "responses":  {
+                                                                        "200":  {
+                                                                                    "description":  "RequisiÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o recebida com sucesso",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "properties":  {
+                                                                                                                                                               "message":  {
+                                                                                                                                                                               "type":  "string"
+                                                                                                                                                                           }
+                                                                                                                                                           },
+                                                                                                                                            "required":  [
+                                                                                                                                                             "message"
+                                                                                                                                                         ],
+                                                                                                                                            "type":  "object"
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                }
+                                                                                }
+                                                                    },
+                                                      "tags":  [
+                                                                   "Agent"
+                                                               ],
+                                                      "security":  [
+
+                                                                   ],
+                                                      "parameters":  [
+
+                                                                     ],
+                                                      "requestBody":  {
+                                                                          "required":  true,
+                                                                          "content":  {
+                                                                                          "application/json":  {
+                                                                                                                   "schema":  {
+                                                                                                                                  "$ref":  "#/components/schemas/IExecutionRequest"
+                                                                                                                              }
+                                                                                                               }
+                                                                                      }
+                                                                      }
+                                                  }
+                                     },
+                  "/register":  {
+                                    "post":  {
+                                                 "operationId":  "RegisterAgent",
+                                                 "responses":  {
+                                                                   "200":  {
+                                                                               "description":  "Registro enviado com sucesso",
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "properties":  {
+                                                                                                                                                          "message":  {
+                                                                                                                                                                          "type":  "string"
+                                                                                                                                                                      }
+                                                                                                                                                      },
+                                                                                                                                       "required":  [
+                                                                                                                                                        "message"
+                                                                                                                                                    ],
+                                                                                                                                       "type":  "object"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                           }
+                                                                           }
+                                                               },
+                                                 "tags":  [
+                                                              "Register"
+                                                          ],
+                                                 "security":  [
+
+                                                              ],
+                                                 "parameters":  [
+
+                                                                ],
+                                                 "requestBody":  {
+                                                                     "required":  true,
+                                                                     "content":  {
+                                                                                     "application/json":  {
+                                                                                                              "schema":  {
+                                                                                                                             "$ref":  "#/components/schemas/IAgentRegisterData"
+                                                                                                                         }
+                                                                                                          }
+                                                                                 }
+                                                                 }
+                                             }
+                                }
+              },
+    "servers":  [
+                    {
+                        "url":  "/"
+                    }
+                ]
+}

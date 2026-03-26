@@ -349,6 +349,7 @@ Sincronizacao automatica recomendada:
 - Fluxo: detecta alteracoes locais -> commit automatico -> push -> PR -> merge -> aguarda estado `MERGED`.
 - Rastreabilidade: commits do repo autopilot devem incluir marcador `[claude]` para facilitar leitura na esteira.
 - Restricao: **nao** usar esse marcador em commits das esteiras/repositorios empresariais.
+- Teste operacional (2026-03-26): commit de validacao pode usar marcador `[codex-autopilot]` quando solicitado explicitamente pelo usuario para auditoria da esteira.
 
 ### Disparar E2E Release
 Editar `trigger/e2e-test.json` e fazer push em main:

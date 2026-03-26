@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (219 files)
+  audit/ (220 files)
   improvements/ (1 files)
   metrics/ (4 files)
   handoffs/ (1 files)
@@ -125,10 +125,10 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
-| `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
-| `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
+| `trigger/fix-ci.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
+| `trigger/full-test.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
-| `trigger/source-change.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
+| `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -336,4 +336,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-26T13:50:03Z | Run: 23597867435*
+*Last synced: 2026-03-26T13:50:59Z | Run: 23597906476*

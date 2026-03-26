@@ -353,6 +353,18 @@ Sincronizacao automatica recomendada:
 - Teste operacional (2026-03-26): commit de validacao pode usar marcador `[codex-autopilot]` quando solicitado explicitamente pelo usuario para auditoria da esteira.
 - Se workflow `[Agent] Auto PR + Auto-Merge (Codex)` receber 403 `GitHub Actions is not permitted to create or approve pull requests`, tratar como bloqueio de policy do repo para `GITHUB_TOKEN` (nao erro de codigo) e orientar habilitar essa permissao ou usar PAT dedicado.
 
+### Mapeamento do fluxo real (aprendizado de execucao)
+
+Referencia analisada: run `23599281735` (2026-03-26) e cadeia do mesmo `headSha`:
+- `23599267663` — `[Agent] Auto PR + Auto-Merge (Codex)` (`push`)
+- `23599276946` — `[Core] Auto-Merge PR to main` (`pull_request_target`)
+- `23599281735` — `[Infra] Cleanup: Stale Branches` (`pull_request`)
+
+Leituras operacionais:
+1. Step "Enable auto-merge" pode aparecer **skipped** e ainda assim ser fluxo valido (merge pode ocorrer por fallback/squash direto).
+2. Validacao de sucesso deve considerar a cadeia inteira do commit (Auto PR + Auto-Merge + Cleanup branch) e nao apenas um run isolado.
+3. Pos-merge obrigatorio: confirmar branch removida e ausencia de run com `conclusion=failure` para o mesmo `headSha`.
+
 ### Disparar E2E Release
 Editar `trigger/e2e-test.json` e fazer push em main:
 ```json

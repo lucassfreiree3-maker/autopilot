@@ -202,6 +202,12 @@
       "9. Realizar squash merge quando policy gates passarem",
       "10. Monitorar pos-merge (workflows + esteira corporativa quando aplicavel)"
     ],
+    "autopilotCommitWorkflowChain": [
+      "[Agent] Auto PR + Auto-Merge (Codex) (push)",
+      "[Core] Auto-Merge PR to main (pull_request_target)",
+      "[Infra] Cleanup: Stale Branches (pull_request)"
+    ],
+    "autopilotCommitValidationRule": "Para commits do autopilot, validar sucesso da cadeia por headSha. Steps 'Enable auto-merge' podem ser skipped sem invalidar o fluxo se PR estiver merged e branch limpa.",
     "defaultMode": "automatico e continuo; interromper apenas quando faltar informacao critica ou houver bloqueio de seguranca",
     "automationScript": {
       "path": "scripts/codex/auto-pr-merge.sh",

@@ -347,6 +347,8 @@ Regra de produto Autopilot: **nunca** manter apenas local; toda mudanca necessar
 Sincronizacao automatica recomendada:
 - `scripts/codex/sync-autopilot-product.sh`
 - Fluxo: detecta alteracoes locais -> commit automatico -> push -> PR -> merge -> aguarda estado `MERGED`.
+- Rastreabilidade: commits do repo autopilot devem incluir marcador `[codex-autopilot]` para facilitar leitura na esteira.
+- Restricao: **nao** usar esse marcador em commits das esteiras/repositorios empresariais.
 
 ### Disparar E2E Release
 Editar `trigger/e2e-test.json` e fazer push em main:

@@ -176,6 +176,7 @@
     "description": "Fluxo padrao obrigatorio para execucao autonoma do Codex em alteracoes tecnicas",
     "rule": "Com contexto suficiente, executar sem pedir confirmacao: commit -> push -> PR -> merge (squash)",
     "autopilotProductRule": "Toda alteracao local relevante no repo autopilot deve ser sincronizada com GitHub automaticamente no mesmo ciclo; nao deixar conhecimento apenas local/sessao.",
+    "autopilotCommitTraceabilityRule": "Commits no repo autopilot devem incluir marcador de rastreio '[codex-autopilot]' para facilitar visualizacao na esteira. Nao aplicar esse marcador em commits de esteiras/repositorios empresariais.",
     "guardrails": [
       "Nunca operar sem workspace_id identificado",
       "Nunca misturar contextos entre workspaces",
@@ -203,7 +204,7 @@
     "automationScript": {
       "path": "scripts/codex/auto-pr-merge.sh",
       "usage": "GITHUB_TOKEN=<token> scripts/codex/auto-pr-merge.sh (ou GH_TOKEN / gh auth login). Opcional: AUTO_COMMIT=true COMMIT_MESSAGE='chore: ...'",
-      "does": "Opcionalmente cria commit automatico (git add -A + commit) quando houver alteracoes locais, configura origin se ausente, resolve token (GITHUB_TOKEN/GH_TOKEN/gh auth token), faz push da branch atual, cria/atualiza PR para main e tenta auto-merge; se indisponivel, faz squash merge direto"
+      "does": "Opcionalmente cria commit automatico (git add -A + commit) quando houver alteracoes locais, aplica marcador '[codex-autopilot]' automaticamente quando REPO=lucassfreiree/autopilot, configura origin se ausente, resolve token (GITHUB_TOKEN/GH_TOKEN/gh auth token), faz push da branch atual, cria/atualiza PR para main e tenta auto-merge; se indisponivel, faz squash merge direto"
     },
     "autopilotSyncScript": {
       "path": "scripts/codex/sync-autopilot-product.sh",

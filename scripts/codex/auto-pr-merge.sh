@@ -10,12 +10,17 @@ MERGE_MODE="${MERGE_MODE:-squash}"
 AUTO_MERGE="${AUTO_MERGE:-true}"
 AUTO_COMMIT="${AUTO_COMMIT:-true}"
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-chore: codex autonomous update}"
+COMMIT_MARKER="${COMMIT_MARKER:-[codex-autopilot]}"
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 if [[ "$BRANCH" == "$BASE_BRANCH" ]]; then
   echo "[ERROR] Current branch is '$BASE_BRANCH'. Create/use a feature branch first." >&2
   exit 1
+fi
+
+if [[ "$REPO" == "lucassfreiree/autopilot" ]] && [[ "$COMMIT_MESSAGE" != *"$COMMIT_MARKER"* ]]; then
+  COMMIT_MESSAGE="${COMMIT_MARKER} ${COMMIT_MESSAGE}"
 fi
 
 if [[ "$AUTO_COMMIT" == "true" ]]; then

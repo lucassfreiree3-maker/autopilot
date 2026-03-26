@@ -172,7 +172,8 @@
     "CLAUDE.md",
     "scripts/codex/auto-pr-merge.sh",
     "scripts/codex/sync-autopilot-product.sh",
-    "scripts/codex/monitor-commit-builds.sh"
+    "scripts/codex/monitor-commit-builds.sh",
+    "scripts/codex/preflight-autopilot.sh"
   ],
   "autonomousExecutionPolicy": {
     "description": "Fluxo padrao obrigatorio para execucao autonoma do Codex em alteracoes tecnicas",
@@ -208,6 +209,7 @@
       "[Infra] Cleanup: Stale Branches (pull_request)"
     ],
     "autopilotCommitValidationRule": "Para commits do autopilot, validar sucesso da cadeia por headSha. Steps 'Enable auto-merge' podem ser skipped sem invalidar o fluxo se PR estiver merged e branch limpa.",
+    "prePipelineRule": "Antes de enviar para a esteira, executar validacoes locais obrigatorias (scripts/json/yaml). Nao subir commit para PR se preflight falhar.",
     "defaultMode": "automatico e continuo; interromper apenas quando faltar informacao critica ou houver bloqueio de seguranca",
     "automationScript": {
       "path": "scripts/codex/auto-pr-merge.sh",
@@ -223,6 +225,11 @@
       "path": "scripts/codex/monitor-commit-builds.sh",
       "usage": "REPO=lucassfreiree/autopilot COMMIT_SHA=<sha> scripts/codex/monitor-commit-builds.sh",
       "does": "Monitora runs de GitHub Actions referentes a um commit especifico; se falhar, lista runs/jobs com erro e imprime logs de jobs falhos para diagnostico automatico."
+    },
+    "preflightScript": {
+      "path": "scripts/codex/preflight-autopilot.sh",
+      "usage": "scripts/codex/preflight-autopilot.sh",
+      "does": "Executa validacoes locais obrigatorias antes da esteira (shellcheck sintatico, JSON contracts e parse de workflow YAML)."
     }
   }
 }

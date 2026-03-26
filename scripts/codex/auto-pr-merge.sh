@@ -11,12 +11,24 @@ AUTO_MERGE="${AUTO_MERGE:-true}"
 AUTO_COMMIT="${AUTO_COMMIT:-true}"
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-chore: codex autonomous update}"
 COMMIT_MARKER="${COMMIT_MARKER:-[claude]}"
+REQUIRE_PREFLIGHT="${REQUIRE_PREFLIGHT:-true}"
+PREFLIGHT_CMD="${PREFLIGHT_CMD:-scripts/codex/preflight-autopilot.sh}"
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 if [[ "$BRANCH" == "$BASE_BRANCH" ]]; then
   echo "[ERROR] Current branch is '$BASE_BRANCH'. Create/use a feature branch first." >&2
   exit 1
+fi
+
+if [[ "$REPO" == "lucassfreiree/autopilot" ]] && [[ "$REQUIRE_PREFLIGHT" == "true" ]]; then
+  if [[ -x "$PREFLIGHT_CMD" ]]; then
+    echo "[INFO] running preflight validations before push/PR/merge"
+    "$PREFLIGHT_CMD"
+  else
+    echo "[ERROR] preflight command not found or not executable: $PREFLIGHT_CMD" >&2
+    exit 1
+  fi
 fi
 
 if [[ "$REPO" == "lucassfreiree/autopilot" ]] && [[ "$COMMIT_MESSAGE" != *"$COMMIT_MARKER"* ]]; then

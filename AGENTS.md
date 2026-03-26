@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (268 files)
+  audit/ (269 files)
   improvements/ (1 files)
   metrics/ (4 files)
   handoffs/ (1 files)
@@ -121,16 +121,17 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/agent-sync.json` | agent-sync.yml | GETRONICS | ws-default | BBVINET_TOKEN | context, task, workspace_id |
 | `trigger/ci-diagnose.json` | ci-diagnose.yml | GETRONICS | ws-default | BBVINET_TOKEN | commit_sha, component, note, workspace_id |
 | `trigger/ci-status.json` | ci-status-check.yml | GETRONICS | ws-default | BBVINET_TOKEN | commit_sha, component, note, workspace_id |
+| `trigger/clone-repos.json` | clone-corporate-repos.yml | GETRONICS | ws-default | BBVINET_TOKEN | note, repos |
 | `trigger/codex-commit.json` | codex-apply.yml | SHARED | all workspaces | Codex agent commit automation | auto_merge, branch_suffix, model, target_files, task, workspace_id |
 | `trigger/codex-deploy.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_merge, component, corporate_files, model, task, workspace_id |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
-| `trigger/fix-ci.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
-| `trigger/full-test.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
+| `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
+| `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
 | `trigger/promote-cap.json` | promote-cap.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, version, workspace_id |
-| `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
+| `trigger/source-change.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -224,6 +225,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ci-monitor-loop.yml | [Core] CI Monitor Loop | manual |
 | ci-status-check.yml | [Corp] CI: Status Check | trigger file, manual |
 | cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
+| clone-corporate-repos.yml | [Infra] Clone Corporate Repos | trigger file, manual |
 | codex-apply.yml | [Agent] Codex Apply: Task → Code → PR | trigger file, manual |
 | codex-autonomous-pr.yml | Codex autonomous PR | manual |
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
@@ -270,6 +272,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ci-failure-analysis.yml | workspace_id, component, run_id |
 | ci-monitor-loop.yml | workspace_id, component, commit_sha, version |
 | ci-status-check.yml | workspace_id, component, commit_sha |
+| clone-corporate-repos.yml | repos |
 | codex-apply.yml | task, target_files, model, auto_merge, workspace_id, run |
 | codex-autonomous-pr.yml | task |
 | codex-deploy.yml | task, component, workspace_id, model, auto_merge, run |
@@ -344,4 +347,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-26T23:10:27Z | Run: 23622546492*
+*Last synced: 2026-03-26T23:14:24Z | Run: 23622679383*

@@ -465,6 +465,8 @@ Edit `trigger/source-change.json`:
 ```
 
 ### Phase 4: Commit + PR + Merge
+
+**Autonomy rule:** com contexto suficiente, executar `commit -> push -> PR -> merge` sem pedir confirmacao adicional ao usuario.
 ```
 1. git add patches/ trigger/source-change.json references/ CLAUDE.md contracts/
 2. git commit -m "feat: <description> + deploy <version>"

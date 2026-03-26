@@ -1,0 +1,86 @@
+name: "[Core] Auto-Merge PR to main"
+run-name: "${{ github.workflow }} • PR #${{ github.event.pull_request.number }} • ${{ github.event.pull_request.head.ref }} → main"
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - ready_for_review
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-main-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable-auto-merge:
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate policy for auto-merge
+        id: policy
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = (pr.labels || []).map(l => l.name);
+            const hasAutomergeLabel = labels.includes('automerge') || labels.includes('auto-merge');
+            const sameRepository = pr.head.repo.full_name === pr.base.repo.full_name;
+            const trustedAuthor = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association);
+
+            if (!sameRepository) {
+              core.notice(`PR #${pr.number} is from fork (${pr.head.repo.full_name}); skipping for safety.`);
+              core.setOutput('allow', 'false');
+              return;
+            }
+
+            if (!trustedAuthor) {
+              core.notice(`PR #${pr.number} author association ${pr.author_association} is not trusted; skipping.`);
+              core.setOutput('allow', 'false');
+              return;
+            }
+
+            if (pr.draft) {
+              core.notice(`PR #${pr.number} is draft; skipping.`);
+              core.setOutput('allow', 'false');
+              return;
+            }
+
+            if (!hasAutomergeLabel) {
+              core.notice(`PR #${pr.number} missing automerge label; skipping.`);
+              core.setOutput('allow', 'false');
+              return;
+            }
+
+            core.notice(`PR #${pr.number} eligible for auto-merge after checks pass.`);
+            core.setOutput('allow', 'true');
+            core.setOutput('pr_node_id', pr.node_id);
+
+      - name: Enable auto-merge to main (squash)
+        if: steps.policy.outputs.allow == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNodeId = `${{ steps.policy.outputs.pr_node_id }}`;
+            try {
+              await github.graphql(`
+                mutation($pullRequestId: ID!) {
+                  enablePullRequestAutoMerge(input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: SQUASH
+                  }) {
+                    pullRequest { number }
+                  }
+                }
+              `, { pullRequestId: prNodeId });
+              core.notice('Auto-merge enabled successfully.');
+            } catch (error) {
+              core.warning(`Could not enable auto-merge: ${error.message}`);
+            }

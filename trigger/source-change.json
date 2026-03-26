@@ -1,30 +1,35 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "agent",
+  "component": "controller",
   "change_type": "multi-file",
-  "version": "2.2.9",
+  "version": "3.6.7",
   "changes": [
     {
       "action": "replace-file",
-      "target_path": "src/swagger/swagger.json",
-      "content_ref": "patches/agent-swagger.json"
+      "target_path": "src/__tests__/controllers/cronjob-result.controller.test.ts",
+      "content_ref": "patches/cronjob-result.controller.test.ts"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/__tests__/routes/agentsRouter.test.ts",
+      "content_ref": "patches/agentsRouter.test.ts"
     },
     {
       "action": "search-replace",
       "target_path": "package.json",
-      "search": "\"version\": \"2.2.8\"",
-      "replace": "\"version\": \"2.2.9\""
+      "search": "\"version\": \"3.6.6\"",
+      "replace": "\"version\": \"3.6.7\""
     },
     {
       "action": "search-replace",
       "target_path": "package-lock.json",
-      "search": "\"version\": \"2.2.8\"",
-      "replace": "\"version\": \"2.2.9\""
+      "search": "\"version\": \"3.6.6\"",
+      "replace": "\"version\": \"3.6.7\""
     }
   ],
-  "commit_message": "feat(agent): add cronjob callback route to swagger + version 2.2.9",
+  "commit_message": "test(controller): add cronjob unit tests + version 3.6.7",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 63
+  "run": 64
 }

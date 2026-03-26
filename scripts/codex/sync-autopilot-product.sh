@@ -27,8 +27,8 @@ fi
 echo "[INFO] syncing local Autopilot changes to GitHub (${REPO})"
 SYNC_OUTPUT="$(
   AUTO_COMMIT="${AUTO_COMMIT:-true}" \
-  COMMIT_MESSAGE="${COMMIT_MESSAGE:-[codex-autopilot] chore: sync autopilot product state}" \
-  PR_TITLE="${PR_TITLE:-[codex-autopilot] chore: sync autopilot product updates}" \
+  COMMIT_MESSAGE="${COMMIT_MESSAGE:-[claude] chore: sync autopilot product state}" \
+  PR_TITLE="${PR_TITLE:-[claude] chore: sync autopilot product updates}" \
   PR_BODY="${PR_BODY:-Automatic sync executed by scripts/codex/sync-autopilot-product.sh}" \
   scripts/codex/auto-pr-merge.sh
 )"

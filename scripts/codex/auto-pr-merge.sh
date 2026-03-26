@@ -10,7 +10,7 @@ MERGE_MODE="${MERGE_MODE:-squash}"
 AUTO_MERGE="${AUTO_MERGE:-true}"
 AUTO_COMMIT="${AUTO_COMMIT:-true}"
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-chore: codex autonomous update}"
-COMMIT_MARKER="${COMMIT_MARKER:-[codex-autopilot]}"
+COMMIT_MARKER="${COMMIT_MARKER:-[claude]}"
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 

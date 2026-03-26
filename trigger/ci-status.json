@@ -1,8 +1,8 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "controller",
-  "commit_sha": "6c60897",
-  "note": "Check esteira #220 status for controller 3.6.5",
-  "run": 1
+  "component": "agent",
+  "commit_sha": "fbf8b70",
+  "note": "Check agent 2.2.7 CI status — deploy failed at CI Gate",
+  "run": 2
 }

@@ -26,9 +26,12 @@
     "deployRepo": "",
     "deployBranch": "main",
     "deployValuesPath": "",
-    "ciWorkflowName": "",
-    "imagePattern": "",
-    "note": "Controller CI is via internal GitLab. Promotion manual for now."
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-controller",
+    "capBranch": "main",
+    "capValuesPath": "releases/openshift/hml/deploy/values.yaml",
+    "ciWorkflowName": "Esteira de Build NPM",
+    "imagePattern": "image: .*psc-sre-automacao-controller:",
+    "note": "Controller CAP now on GitHub. Auto-promote enabled after corporate CI passes."
   },
   "agent": {
     "sourceRepo": "bbvinet/psc-sre-automacao-agent",

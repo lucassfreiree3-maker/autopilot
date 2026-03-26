@@ -325,11 +325,6 @@ Registro de melhorias: category, description, source, status.
 9. Squash merge apos gates
 10. Monitoramento pos-merge
 
-Automacao local do ciclo:
-- `scripts/codex/auto-pr-merge.sh`
-- Uso: `GITHUB_TOKEN=<token> scripts/codex/auto-pr-merge.sh`
-- Faz: configura `origin` (se ausente), push da branch atual, cria PR para `main` e habilita auto-merge.
-
 > O agente so deve interromper esse fluxo quando faltar informacao critica ou houver bloqueio de seguranca/isolamento de workspace.
 
 ### Disparar E2E Release

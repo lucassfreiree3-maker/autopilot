@@ -113,7 +113,8 @@
       "6. Commit tudo em 1 commit, push branch claude/*, PR, squash merge",
       "7. Monitorar workflow apply-source-change (polling 30-60s)",
       "8. Monitorar esteira corporativa ate imagem Docker ser publicada",
-      "9. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
+      "9. Stage 4 (Promote) atualiza tag AUTOMATICAMENTE no CAP repo apos CI passar — agent (bbvinet/psc_releases_cap_sre-aut-agent) E controller (bbvinet/psc_releases_cap_sre-aut-controller)",
+      "10. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
     ],
     "preDeployValidation": {
       "workflow": "validate-patches.yml",
@@ -168,8 +169,7 @@
     "contracts/codex-deploy-guide.md",
     "schemas/*.schema.json",
     "contracts/codex-agent-contract.json",
-    "CLAUDE.md",
-    "scripts/codex/auto-pr-merge.sh"
+    "CLAUDE.md"
   ],
   "autonomousExecutionPolicy": {
     "description": "Fluxo padrao obrigatorio para execucao autonoma do Codex em alteracoes tecnicas",
@@ -197,11 +197,6 @@
       "9. Realizar squash merge quando policy gates passarem",
       "10. Monitorar pos-merge (workflows + esteira corporativa quando aplicavel)"
     ],
-    "defaultMode": "automatico e continuo; interromper apenas quando faltar informacao critica ou houver bloqueio de seguranca",
-    "automationScript": {
-      "path": "scripts/codex/auto-pr-merge.sh",
-      "usage": "GITHUB_TOKEN=<token> scripts/codex/auto-pr-merge.sh",
-      "does": "Configura origin se ausente, faz push da branch atual, cria/atualiza PR para main e habilita auto-merge"
-    }
+    "defaultMode": "automatico e continuo; interromper apenas quando faltar informacao critica ou houver bloqueio de seguranca"
   }
 }

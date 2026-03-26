@@ -15,11 +15,12 @@
         "repos": [
           "bbvinet/psc-sre-automacao-controller",
           "bbvinet/psc-sre-automacao-agent",
-          "bbvinet/psc_releases_cap_sre-aut-agent"
+          "bbvinet/psc_releases_cap_sre-aut-agent",
+          "bbvinet/psc_releases_cap_sre-aut-controller"
         ],
         "status": "active",
         "lastDeploy": "3.6.3 (current deployed — security fixes)",
-        "notes": "Pipeline completo e funcional. Controller no GitLab (sem auto-promote). Esteira de Build NPM. Controller v3.6.3 operacional no cluster k8shmlbb111b (HML). Security fixes: XSS sanitizeForOutput, DoS MAX_RESULTS=1000, error detail hardening. Pre-deploy validation workflow criado."
+        "notes": "Pipeline completo e funcional. Controller CAP agora no GitHub (bbvinet/psc_releases_cap_sre-aut-controller) com auto-promote HABILITADO no Stage 4 do apply-source-change. Esteira de Build NPM. Controller v3.6.3 operacional no cluster k8shmlbb111b (HML). Security fixes: XSS sanitizeForOutput, DoS MAX_RESULTS=1000, error detail hardening. Pre-deploy validation workflow criado."
       },
       "cit": {
         "workspaceId": "ws-cit",
@@ -1094,7 +1095,7 @@
       ]
     },
     "lessons": [
-      "Controller esta no GitLab. Auto-promote NAO funciona.",
+      "Controller CAP agora no GitHub (bbvinet/psc_releases_cap_sre-aut-controller). Auto-promote HABILITADO no Stage 4 apos esteira corporativa passar.",
       "trigger/source-change.json e editado por VARIOS workflows. Conflitos COMUNS.",
       "Ao resolver conflito: run = max(HEAD, main) + 1.",
       "SEMPRE fetch origin/main antes de criar branch.",
@@ -1442,6 +1443,11 @@
   },
   "capValuesYaml": {
     "referenceFile": "references/controller-cap/values.yaml",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-controller",
+    "capBranch": "main",
+    "capValuesPath": "releases/openshift/hml/deploy/values.yaml",
+    "autoPromote": true,
+    "autoPromoteCondition": "Stage 4 of apply-source-change.yml — runs ONLY after CI Gate passes (corporate Esteira de Build NPM green)",
     "imageLinePattern": "image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:<TAG>",
     "envStructure": {
       "plainValues": [
@@ -1698,7 +1704,8 @@
         "steps": [
           "1. Atualizar references/controller-cap/values.yaml com nova image tag (se promote=true)",
           "2. Atualizar CLAUDE.md secao 'Controller CAP' com nova versao deployed",
-          "3. Atualizar contracts/claude-session-memory.json com nova versao em versioningRules"
+          "3. Atualizar contracts/claude-session-memory.json com nova versao em versioningRules",
+          "4. NOTA: A tag no CAP repo (bbvinet/psc_releases_cap_sre-aut-controller) sera atualizada AUTOMATICAMENTE pelo Stage 4 do workflow apos CI passar — NAO fazer manualmente"
         ],
         "output": "Todas as referencias apontam para nova versao"
       },
@@ -1794,7 +1801,7 @@
         },
         {
           "stage": "4. Promote",
-          "does": "Atualiza image tag no CAP values.yaml (se promote=true). NAO funciona automaticamente — controller esta no GitLab."
+          "does": "Atualiza image tag no CAP values.yaml (se promote=true). Funciona para AGENT (bbvinet/psc_releases_cap_sre-aut-agent) E CONTROLLER (bbvinet/psc_releases_cap_sre-aut-controller). Executa SOMENTE apos CI Gate passar (esteira corporativa verde)."
         },
         {
           "stage": "5. Save State",

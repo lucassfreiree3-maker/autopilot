@@ -28,7 +28,7 @@ Zero local dependencies. 100% GitHub-native.
 - `snapshots/` — Local state snapshots for rollback (e.g., `snapshots/20260321-214500/`)
 - `patches/` — Source code patches applied to corporate repos via apply-source-change pipeline
 - `references/` — Reference files from corporate repos not yet migrated to GitHub
-  - `references/controller-cap/values.yaml` — Controller CAP values.yaml (source: GitLab, image tag updated here)
+  - `references/controller-cap/values.yaml` — Controller CAP values.yaml (source: GitHub `bbvinet/psc_releases_cap_sre-aut-controller`, auto-promoted by Stage 4)
 - `ops/` — Operational environment (scripts, runbooks, templates, checklists)
   - `ops/ops-config.json` — Operational environment master config
   - `ops/scripts/` — Executable operational scripts by domain
@@ -152,7 +152,7 @@ Full separation guide: `ops/docs/workspace-separation.md`
 1. Esteira de Build NPM (runner corporativo) — monitorar via `ci-diagnose.yml`
 2. Logs reais: `ci-logs-controller-*.txt` no autopilot-state (NAO `ci-diagnosis-controller.json`)
 3. CI Gate pode passar com "pre-existing detection" mesmo quando esteira falha
-4. Controller CAP no GitLab — auto-promote NAO funciona ate migracao
+4. Controller CAP now on GitHub (`bbvinet/psc_releases_cap_sre-aut-controller`) — auto-promote ENABLED in Stage 4 after corporate CI passes
 
 ### CIT-Specific Rules
 1. Stack DevOps — foco em infraestrutura, automacao, containers, IaC
@@ -290,14 +290,17 @@ ops/terraform/
 9. Always validate jq output with fallbacks: `jq -r '.field // ""' 2>/dev/null || echo ""`
 10. Use base64 encoding when passing content between workflow jobs (avoids shell quoting issues)
 
-## Controller CAP (GitLab — not yet migrated to GitHub)
+## Controller CAP (GitHub — auto-promote enabled)
+- **CAP repo**: `bbvinet/psc_releases_cap_sre-aut-controller` (GitHub)
+- **CAP values path**: `releases/openshift/hml/deploy/values.yaml`
 - **Reference file**: `references/controller-cap/values.yaml`
 - **Image**: `docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller`
 - **Current deployed tag**: `3.6.3`
+- **Image line**: `image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:<TAG>`
 - **K8s Secret**: `psc-sre-automacao-controller-runtime` (11 keys: JWT_SECRET, AUTH_API_KEYS_SCOPES, SCOPE_*, AWS_REGION, OSS_*)
 - **K8s Secret**: `sre-controller-auth` (4 keys: OAS_TRUSTED_NAMESPACE, OAS_TRUSTED_SERVICE_ACCOUNT, OAS_ORIGIN_NAMESPACE_HEADERS, OAS_ORIGIN_SERVICE_ACCOUNT_HEADERS)
 - **Trusted caller**: namespace=`sgh-oaas-playbook-jobs`, serviceAccount=`default`, header=`x-techbb-namespace`/`x-techbb-service-account`
-- **Note**: This CAP repo is on GitLab, not GitHub. The autopilot pipeline cannot auto-promote controller releases until migration.
+- **Auto-promote**: Stage 4 of `apply-source-change.yml` updates tag in CAP repo **after corporate CI passes** (Esteira de Build NPM green). Reads `controller.capRepo` from `workspace.json`, uses `BBVINET_TOKEN` to commit via GitHub API.
 
 ## Workspaces
 
@@ -535,7 +538,7 @@ The corporate "Esteira de Build NPM" runs INDEPENDENTLY after code is pushed.
 1.5  Session Guard  → Acquire lock (blocks if another agent active)
 2.   Apply & Push   → Clone → Apply change → Fix lint → Push
 3.   CI Gate        → Wait CI + Smart comparison (pre-existing detection)
-4.   Promote        → Update CAP values.yaml
+4.   Promote        → Update CAP values.yaml (agent + controller — both auto-promote via GitHub API)
 5.   Save State     → Record on autopilot-state
 6.   Audit          → Audit trail + Release lock
 ```
@@ -603,7 +606,7 @@ Every new Claude Code session MUST:
 ### Workflow: check-repo-access.yml
 | Trigger | Secret Used | Repos Checked |
 |---------|-------------|---------------|
-| `workflow_dispatch` or push to `main` (self-path) | `BBVINET_TOKEN` | `bbvinet/psc-sre-automacao-agent`, `bbvinet/psc-sre-automacao-controller`, `bbvinet/psc_releases_cap_sre-aut-agent` |
+| `workflow_dispatch` or push to `main` (self-path) | `BBVINET_TOKEN` | `bbvinet/psc-sre-automacao-agent`, `bbvinet/psc-sre-automacao-controller`, `bbvinet/psc_releases_cap_sre-aut-agent`, `bbvinet/psc_releases_cap_sre-aut-controller` |
 
 ### Repository Secrets Available
 | Secret | Company | Purpose |

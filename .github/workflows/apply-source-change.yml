@@ -82,6 +82,10 @@ jobs:
       cap_branch: ${{ steps.cfg.outputs.cap_branch }}
       cap_values: ${{ steps.cfg.outputs.cap_values }}
       image_pattern: ${{ steps.cfg.outputs.image_pattern }}
+      controller_cap_repo: ${{ steps.cfg.outputs.controller_cap_repo }}
+      controller_cap_branch: ${{ steps.cfg.outputs.controller_cap_branch }}
+      controller_cap_values: ${{ steps.cfg.outputs.controller_cap_values }}
+      controller_image_pattern: ${{ steps.cfg.outputs.controller_image_pattern }}
     steps:
       - uses: actions/checkout@v4
       - name: "Read workspace config"
@@ -141,6 +145,10 @@ jobs:
           echo "cap_branch=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')" >> "$GITHUB_OUTPUT"
           echo "cap_values=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath')" >> "$GITHUB_OUTPUT"
           echo "image_pattern=$(echo "$WS_JSON" | jq -r '.agent.imagePattern')" >> "$GITHUB_OUTPUT"
+          echo "controller_cap_repo=$(echo "$WS_JSON" | jq -r '.controller.capRepo // ""')" >> "$GITHUB_OUTPUT"
+          echo "controller_cap_branch=$(echo "$WS_JSON" | jq -r '.controller.capBranch // "main"')" >> "$GITHUB_OUTPUT"
+          echo "controller_cap_values=$(echo "$WS_JSON" | jq -r '.controller.capValuesPath // ""')" >> "$GITHUB_OUTPUT"
+          echo "controller_image_pattern=$(echo "$WS_JSON" | jq -r '.controller.imagePattern // ""')" >> "$GITHUB_OUTPUT"
           # Base64 encode file_content to avoid shell quoting issues
           echo "file_content_b64=$(echo "$FILE_CONTENT" | base64 -w0)" >> "$GITHUB_OUTPUT"
 
@@ -679,8 +687,8 @@ jobs:
       matrix:
         component: ${{ fromJson(needs.setup.outputs.components_json) }}
     outputs:
-      promoted: ${{ steps.cap.outputs.promoted }}
-      tag: ${{ steps.cap.outputs.tag }}
+      promoted: ${{ steps.cap.outputs.promoted || steps.cap_controller.outputs.promoted }}
+      tag: ${{ steps.cap.outputs.tag || steps.cap_controller.outputs.tag }}
     steps:
       - name: "Promote"
         id: cap
@@ -730,18 +738,60 @@ jobs:
             echo "promoted=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "Skip (controller)"
+      - name: "Promote (controller)"
+        id: cap_controller
         if: matrix.component == 'controller'
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          echo "Controller has no CAP promotion configured"
-          echo "promoted=skipped" >> "$GITHUB_OUTPUT"
+          CAP_REPO="${{ needs.setup.outputs.controller_cap_repo }}"
+          CAP_BRANCH="${{ needs.setup.outputs.controller_cap_branch }}"
+          CAP_VALUES="${{ needs.setup.outputs.controller_cap_values }}"
+          IMAGE_PATTERN="${{ needs.setup.outputs.controller_image_pattern }}"
+          SOURCE_REPO="${{ needs.apply-and-push.outputs.repo }}"
+
+          if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ] || [ "$CAP_REPO" = "" ]; then
+            echo "No controller CAP repo configured — skipping"
+            echo "promoted=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Get version from source repo
+          VERSION=$(gh api "repos/$SOURCE_REPO/contents/package.json?ref=main" \
+            --jq '.content' | base64 -d | jq -r '.version')
+          TAG="$VERSION"
+          echo "=== Promoting controller $TAG to $CAP_REPO ==="
+
+          # Read current values.yaml
+          VALUES=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
+          VSHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+          echo "=== Current values.yaml ===" && echo "$VALUES"
+
+          # Update image tag
+          UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
+          [ "$VALUES" = "$UPDATED" ] && UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+
+          if [ "$VALUES" != "$UPDATED" ]; then
+            echo "=== Updated values.yaml ===" && echo "$UPDATED"
+            gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
+              -f "branch=$CAP_BRANCH" \
+              -f "message=chore(release): controller -> ${TAG} (source change)" \
+              -f "content=$(echo "$UPDATED" | base64 -w0)" \
+              -f "sha=$VSHA"
+            echo "promoted=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "Promoted controller to $TAG!"
+          else
+            echo "::warning ::Image pattern didn't match in controller values.yaml"
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: "Summary"
         if: always()
         run: |
           echo "## 4. Promote (${{ matrix.component }})" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Promoted: ${{ steps.cap.outputs.promoted || 'skipped' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tag: \`${{ steps.cap.outputs.tag || 'n/a' }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Promoted: ${{ steps.cap.outputs.promoted || steps.cap_controller.outputs.promoted || 'skipped' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${{ steps.cap.outputs.tag || steps.cap_controller.outputs.tag || 'n/a' }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ═══════════════════════════════════════════════════════════════
   #  STAGE 5 → Save State: record release state on autopilot-state

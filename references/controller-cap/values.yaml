@@ -1,10 +1,12 @@
 # ============================================================
-# Controller CAP Values - GitLab (not yet migrated to GitHub)
-# Source: GitLab CAP repo (psc_releases_cap_sre-aut-controller)
+# Controller CAP Values - GitHub (auto-promote enabled)
+# Source: bbvinet/psc_releases_cap_sre-aut-controller (GitHub)
 # Path: releases/openshift/hml/deploy/values.yaml
 # Image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller
-# Current tag: 3.5.5
+# Current tag: 3.6.3
 # Secret: psc-sre-automacao-controller-runtime
+# Auto-promote: Stage 4 of apply-source-change.yml updates tag
+#   after corporate CI passes (Esteira de Build NPM green)
 # ============================================================
 global:
   clusterSolucao: ''

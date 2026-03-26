@@ -2,7 +2,7 @@
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
   "component": "agent",
-  "commit_sha": "fbf8b70",
-  "note": "Diagnose agent 2.2.7 CI failure",
-  "run": 24
+  "commit_sha": "fbf8b7050d8dc93be411a17c66ffdcd8f187af29",
+  "note": "Diagnose agent 2.2.7 CI failure with FULL SHA",
+  "run": 25
 }

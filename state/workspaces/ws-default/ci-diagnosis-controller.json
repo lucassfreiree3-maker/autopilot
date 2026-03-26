@@ -2,18 +2,18 @@
   "workspaceId": "ws-default",
   "component": "controller",
   "sourceRepo": "bbvinet/psc-sre-automacao-controller",
-  "commitSha": "a02a305",
-  "commitMessage": "fix(security): XSS sanitizeForOutput + DoS MAX_RESULTS + remove validateTrustedUrl from fetch (3.6.2)",
+  "commitSha": "6c60897",
+  "commitMessage": "feat(controller): cronjob callback result endpoint + OAS query (3.6.5) #930217",
   "commitAuthor": "github-actions",
-  "diagnosedAt": "2026-03-25T16:42:28Z",
-  "runId": "23552675935",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23552675935",
+  "diagnosedAt": "2026-03-26T17:47:45Z",
+  "runId": "23609456199",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23609456199",
   "reproduction": {
     "scripts": "  build: tsc -p ./tsconfig.json\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  prestart: npm run build\n  dev: nodemon --watch src --exec ts-node-dev src/server.ts\n  test: jest\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --passWithNoTests --forceExit\n",
     "lintErrors": [],
     "buildSuccess": false,
-    "buildLog": "\n> psc-sre-automacao-controller@3.6.2 build\n> tsc -p ./tsconfig.json\n\ntsconfig.json(5,25): error TS5107: Option 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\nBuild failed or not available\n",
+    "buildLog": "  The file is in the program because:\n    Entry point for implicit type library 'strip-bom'\nerror TS2688: Cannot find type definition file for 'strip-json-comments'.\n  The file is in the program because:\n    Entry point for implicit type library 'strip-json-comments'\nerror TS2688: Cannot find type definition file for 'superagent'.\n  The file is in the program because:\n    Entry point for implicit type library 'superagent'\nerror TS2688: Cannot find type definition file for 'supertest'.\n  The file is in the program because:\n    Entry point for implicit type library 'supertest'\nerror TS2688: Cannot find type definition file for 'swagger-jsdoc'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-jsdoc'\nerror TS2688: Cannot find type definition file for 'swagger-ui-express'.\n  The file is in the program because:\n    Entry point for implicit type library 'swagger-ui-express'\nerror TS2688: Cannot find type definition file for 'uuid'.\n  The file is in the program because:\n    Entry point for implicit type library 'uuid'\nerror TS2688: Cannot find type definition file for 'validator'.\n  The file is in the program because:\n    Entry point for implicit type library 'validator'\nerror TS2688: Cannot find type definition file for 'yargs'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs'\nerror TS2688: Cannot find type definition file for 'yargs-parser'.\n  The file is in the program because:\n    Entry point for implicit type library 'yargs-parser'\nBuild failed or not available\n",
     "testSuccess": false,
-    "testLog": "\n> psc-sre-automacao-controller@3.6.2 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
+    "testLog": "\n> psc-sre-automacao-controller@3.6.5 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
   }
 }

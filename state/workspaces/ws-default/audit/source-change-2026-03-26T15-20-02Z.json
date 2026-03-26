@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-26T15:20:02Z",
+  "runId": "23602340678",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23602340678",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "feat(controller): cronjob callback result endpoint + OAS query (3.6.5) #930217",
+  "commitSha": "",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "failure",
+    "ci": "skipped",
+    "promote": "success",
+    "state": "skipped"
+  }
+}

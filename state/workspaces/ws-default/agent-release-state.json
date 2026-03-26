@@ -2,24 +2,16 @@
   "schemaVersion": 2,
   "workspaceId": "ws-default",
   "component": "agent",
-  "lastReleasedSha": "7dac1092949cef20897ec523e0a1f39f37834d82",
-  "lastTag": "2.2.6",
-  "lastVersion": "2.2.6",
-  "updatedAt": "2026-03-25T20:21:34Z",
-  "runId": "23561693791",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23561693791",
-  "promotions": [
-    {
-      "target": "cap",
-      "repo": "bbvinet/psc_releases_cap_sre-aut-agent",
-      "branch": "main",
-      "path": "releases/openshift/hml/deploy/values.yaml",
-      "tag": "2.2.6",
-      "sha": "7dac1092949cef20897ec523e0a1f39f37834d82",
-      "timestamp": "2026-03-25T20:21:34Z",
-      "status": "success"
-    }
-  ],
+  "lastReleasedSha": "04bc2008435d88dac207d50b3c3b0c0a0e68c800",
+  "lastTag": "2.2.9",
+  "updatedAt": "2026-03-26T19:45:19Z",
+  "runId": "23614164586",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23614164586",
   "ciResult": "success",
-  "status": "promoted"
+  "status": "promoted",
+  "changeType": "source-code",
+  "commitMessage": "feat(agent): add cronjob callback route to swagger + version 2.2.9",
+  "promoted": true,
+  "preExistingFailure": false,
+  "gateDecision": "pass"
 }

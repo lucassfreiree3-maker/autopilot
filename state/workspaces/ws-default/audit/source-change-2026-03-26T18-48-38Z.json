@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-26T18:48:38Z",
+  "runId": "23611757665",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23611757665",
+  "component": "agent",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(agent): fix no-nested-ternary ESLint error in cronjob-callback (2.2.8)",
+  "commitSha": "2814d3ba400fe0bc37b1881407f2ee923faed3aa",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

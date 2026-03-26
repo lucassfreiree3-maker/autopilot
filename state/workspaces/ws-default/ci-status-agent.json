@@ -1,0 +1,58 @@
+{
+  "workspaceId": "ws-default",
+  "component": "agent",
+  "sourceRepo": "bbvinet/psc-sre-automacao-agent",
+  "commitSha": "fbf8b70",
+  "commitMessage": "feat(agent): cronjob callback endpoint + forward to controller (2.2.7) #930217",
+  "checkedAt": "2026-03-26T18:28:57Z",
+  "overall": "no_runs",
+  "counts": {
+    "total": 0,
+    "success": 0,
+    "failed": 0,
+    "in_progress": 0
+  },
+  "checkRuns": [
+    {
+      "name": "CD (desenvolvimento)",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "CI / Análise Motor Liberação",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "CI / xRay",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "CI / checkmarx",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "CI / sonarQube",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "CI / sincronizacao",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "CI / workflow-npm",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "CI / valida-workflow",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "workflowRuns": []
+}

@@ -1,6 +1,6 @@
 {
   "name": "psc-sre-automacao-controller",
-  "version": "3.5.3",
+  "version": "3.6.4",
   "private": true,
   "description": "psc-sre-automacao-controller in node with expressjs",
   "repository": {
@@ -28,17 +28,33 @@
   "jest": {
     "collectCoverage": true,
     "coverageDirectory": "coverage/typescript",
-    "coverageReporters": ["json", "html", "lcov"],
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+    "coverageReporters": [
+      "json",
+      "html",
+      "lcov"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ],
     "testEnvironment": "node",
-    "testPathIgnorePatterns": ["<rootDir>/node_modules/", "<rootDir>/dist/"],
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/dist/"
+    ],
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(tsx?)$",
     "testResultsProcessor": "jest-sonar-reporter",
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
     "verbose": true,
-    "setupFiles": ["<rootDir>/src/jest.setup.ts"]
+    "setupFiles": [
+      "<rootDir>/src/jest.setup.ts"
+    ]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.645.0",

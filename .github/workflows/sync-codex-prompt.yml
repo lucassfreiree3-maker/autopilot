@@ -1,5 +1,5 @@
 name: "[Infra] Sync Codex Prompt"
-run-name: "${{ github.workflow }} • ${{ github.event_name }} • ws=${{ github.event.inputs.workspace_id || 'n/a' }} • ref=${{ github.ref_name }}"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ${{ github.event.head_commit && (startsWith(github.event.head_commit.message, '[claude]') && '(Claude)' || startsWith(github.event.head_commit.message, '[codex]') && '(Codex)' || '') || '' }} ref=${{ github.ref_name }}"
 
 # Auto-regenerates AGENTS.md whenever
 # workflows, schemas, contracts, or triggers change.
@@ -396,8 +396,17 @@ jobs:
           else
             LINES=$(wc -l < AGENTS.md)
             git commit -m "docs: auto-sync codex prompt ($LINES lines) [skip ci]"
-            git push origin main
-            echo "Pushed updated codex prompt ($LINES lines)"
+            # Retry with rebase to handle race conditions (other workflows pushing to main concurrently)
+            for i in 1 2 3 4; do
+              if git push origin main; then
+                echo "Pushed updated codex prompt ($LINES lines)"
+                break
+              else
+                echo "::warning ::Push attempt $i failed, rebasing and retrying..."
+                git pull --rebase origin main
+                sleep $((i * 2))
+              fi
+            done
           fi
 
       - name: "Summary"

@@ -1,5 +1,5 @@
 name: "[Core] Auto-Merge PR to main"
-run-name: "${{ github.workflow }} • PR #${{ github.event.pull_request.number }} • ${{ github.event.pull_request.head.ref }} → main"
+run-name: "${{ github.workflow }} • PR #${{ github.event.pull_request.number }} • ${{ startsWith(github.event.pull_request.head.ref, 'claude/') && '(Claude)' || startsWith(github.event.pull_request.head.ref, 'codex/') && '(Codex)' || '' }} ${{ github.event.pull_request.head.ref }} → main"
 
 on:
   pull_request_target:

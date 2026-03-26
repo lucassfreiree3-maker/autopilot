@@ -113,7 +113,8 @@
       "6. Commit tudo em 1 commit, push branch claude/*, PR, squash merge",
       "7. Monitorar workflow apply-source-change (polling 30-60s)",
       "8. Monitorar esteira corporativa ate imagem Docker ser publicada",
-      "9. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
+      "9. Stage 4 (Promote) atualiza tag AUTOMATICAMENTE no CAP repo apos CI passar — agent (bbvinet/psc_releases_cap_sre-aut-agent) E controller (bbvinet/psc_releases_cap_sre-aut-controller)",
+      "10. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
     ],
     "preDeployValidation": {
       "workflow": "validate-patches.yml",

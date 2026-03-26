@@ -1070,10 +1070,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 54,
+    "lastTriggerRun": 53,
     "lastSuccessfulRun": 38,
     "lastDeployPR": 144,
-    "pipelineStatus": "IN_PROGRESS — trigger/source-change preparado para 3.6.6 (run #54), aguardando execucao/monitoramento remoto via API.",
+    "pipelineStatus": "IDLE — last trigger run 53 (3.6.4). Trigger file run=53.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [

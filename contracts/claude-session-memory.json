@@ -18,8 +18,50 @@
           "bbvinet/psc_releases_cap_sre-aut-agent",
           "bbvinet/psc_releases_cap_sre-aut-controller"
         ],
+        "repoDetails": {
+          "bbvinet/psc-sre-automacao-controller": {
+            "role": "Controller — orquestra automacoes, despacha para agents, gerencia logs de execucao",
+            "type": "source-code",
+            "currentVersion": "3.6.6",
+            "stack": "Node 22, TypeScript, Express, Jest, SQLite, S3",
+            "ci": "Esteira de Build NPM (corporate runner)",
+            "actionsUrl": "https://github.com/bbvinet/psc-sre-automacao-controller/actions",
+            "howToRead": "fetch-files.yml com component=controller",
+            "howToPush": "apply-source-change.yml com component=controller",
+            "howToCheckCI": "ci-status-check.yml com component=controller + commit_sha"
+          },
+          "bbvinet/psc-sre-automacao-agent": {
+            "role": "Agent — executa automacoes nos clusters, recebe callbacks de cronjob, envia logs ao controller",
+            "type": "source-code",
+            "currentVersion": "2.2.9",
+            "stack": "Node 22, TypeScript, Express, Jest, K8s client",
+            "ci": "Esteira de Build NPM (corporate runner)",
+            "actionsUrl": "https://github.com/bbvinet/psc-sre-automacao-agent/actions",
+            "howToRead": "fetch-files.yml com component=agent",
+            "howToPush": "apply-source-change.yml com component=agent",
+            "howToCheckCI": "ci-status-check.yml com component=agent + commit_sha"
+          },
+          "bbvinet/psc_releases_cap_sre-aut-controller": {
+            "role": "Controller CAP — manifesto K8s (Deployment, Service, Ingress, RBAC, Secrets)",
+            "type": "cap-deploy",
+            "valuesPath": "releases/openshift/hml/deploy/values.yaml",
+            "imagePattern": "image: .*psc-sre-automacao-controller:",
+            "actionsUrl": "https://github.com/bbvinet/psc_releases_cap_sre-aut-controller/actions",
+            "howToPromote": "promote-cap.yml com component=controller, OU automatico via Stage 4 do apply-source-change",
+            "workspaceJsonField": "controller.capRepo"
+          },
+          "bbvinet/psc_releases_cap_sre-aut-agent": {
+            "role": "Agent CAP — manifesto K8s de deploy do agent",
+            "type": "cap-deploy",
+            "valuesPath": "releases/openshift/hml/deploy/values.yaml",
+            "imagePattern": "image: .*psc-sre-automacao-agent:",
+            "actionsUrl": "https://github.com/bbvinet/psc_releases_cap_sre-aut-agent/actions",
+            "howToPromote": "promote-cap.yml com component=agent, OU automatico via Stage 4 do apply-source-change",
+            "workspaceJsonField": "agent.capRepo"
+          }
+        },
         "status": "active",
-        "lastDeploy": "3.6.3 (current deployed — security fixes)",
+        "lastDeploy": "controller 3.6.6, agent 2.2.9 (historia #930217 — cronjob callback)",
         "notes": "Pipeline completo e funcional. Controller CAP agora no GitHub (bbvinet/psc_releases_cap_sre-aut-controller) com auto-promote HABILITADO no Stage 4 do apply-source-change. Esteira de Build NPM. Controller v3.6.3 operacional no cluster k8shmlbb111b (HML). Security fixes: XSS sanitizeForOutput, DoS MAX_RESULTS=1000, error detail hardening. Pre-deploy validation workflow criado."
       },
       "cit": {

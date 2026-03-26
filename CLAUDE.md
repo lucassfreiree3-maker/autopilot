@@ -299,6 +299,53 @@ ops/terraform/
 9. Always validate jq output with fallbacks: `jq -r '.field // ""' 2>/dev/null || echo ""`
 10. Use base64 encoding when passing content between workflow jobs (avoids shell quoting issues)
 
+## Corporate Repos — Getronics (ws-default)
+
+All 4 repos below are on GitHub under `bbvinet` org. Access via `BBVINET_TOKEN`.
+
+### Source Code Repos (where application code lives)
+
+| Repo | Role | Current Version | Stack | CI |
+|------|------|-----------------|-------|----|
+| [`bbvinet/psc-sre-automacao-controller`](https://github.com/bbvinet/psc-sre-automacao-controller) | Controller — orchestrates automations, dispatches to agents, manages execution logs | 3.6.6 | Node 22, TypeScript, Express, Jest | Esteira de Build NPM (corporate runner) |
+| [`bbvinet/psc-sre-automacao-agent`](https://github.com/bbvinet/psc-sre-automacao-agent) | Agent — executes automations on clusters, receives cronjob callbacks, pushes logs to controller | 2.2.9 | Node 22, TypeScript, Express, Jest, K8s client | Esteira de Build NPM (corporate runner) |
+
+**How to work with source repos:**
+- **Read files**: `fetch-files.yml` workflow (trigger via `trigger/fetch-files.json`)
+- **Push changes**: `apply-source-change.yml` workflow (trigger via `trigger/source-change.json`)
+- **Check CI status**: `ci-status-check.yml` (trigger via `trigger/ci-status.json`) — reads check-runs + workflow-runs for a commit
+- **Diagnose CI failure**: `ci-diagnose.yml` (trigger via `trigger/ci-diagnose.json`) — downloads logs, reproduces locally
+- **CI logs**: saved in `state/workspaces/ws-default/ci-logs-<component>-<job_id>.txt` on autopilot-state
+- **CI status result**: saved in `state/workspaces/ws-default/ci-status-<component>.json` on autopilot-state
+- **NEVER push directly** — always via `apply-source-change.yml` with `BBVINET_TOKEN`
+
+### CAP/Deploy Repos (where K8s deploy manifests live)
+
+| Repo | Role | Values Path | Auto-Promote |
+|------|------|-------------|:---:|
+| [`bbvinet/psc_releases_cap_sre-aut-controller`](https://github.com/bbvinet/psc_releases_cap_sre-aut-controller) | Controller CAP — K8s deployment manifest (Deployment, Service, Ingress, RBAC, Secrets) | `releases/openshift/hml/deploy/values.yaml` | Yes (Stage 4) |
+| [`bbvinet/psc_releases_cap_sre-aut-agent`](https://github.com/bbvinet/psc_releases_cap_sre-aut-agent) | Agent CAP — K8s deployment manifest | `releases/openshift/hml/deploy/values.yaml` | Yes (Stage 4) |
+
+**How to work with CAP repos:**
+- **Auto-promote**: Stage 4 of `apply-source-change.yml` updates image tag after corporate CI passes
+- **Manual promote**: `promote-cap.yml` workflow (trigger via `trigger/promote-cap.json`)
+- **Image tag line**: `image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-<component>:<TAG>`
+- **Config source**: `workspace.json` fields `controller.capRepo` / `agent.capRepo` (on autopilot-state branch)
+- **Reference file**: `references/controller-cap/values.yaml` (local copy for reference)
+
+### Workspace Config Location
+```
+# autopilot-state branch (SOURCE OF TRUTH for workflows)
+state/workspaces/ws-default/workspace.json
+  → controller.sourceRepo, controller.capRepo, controller.capValuesPath, controller.imagePattern
+  → agent.sourceRepo, agent.capRepo, agent.capValuesPath, agent.imagePattern
+
+# main branch (local reference, may be in .gitignore)
+state/workspaces/ws-default/workspace.json
+```
+
+**CRITICAL**: When adding new fields to workspace.json, update BOTH the local file AND the autopilot-state branch via GitHub API.
+
 ## Controller CAP (GitHub — auto-promote enabled)
 - **CAP repo**: `bbvinet/psc_releases_cap_sre-aut-controller` (GitHub)
 - **CAP values path**: `releases/openshift/hml/deploy/values.yaml`

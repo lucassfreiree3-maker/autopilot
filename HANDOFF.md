@@ -5,6 +5,26 @@
 
 ---
 
+## Segregacao critica de contextos (OBRIGATORIO)
+
+Regra operacional confirmada pelo proprietario da conta (2026-03-26):
+
+- **Contextos do usuario principal (NUNCA misturar entre si):**
+  - `ws-default` (Getronics)
+  - `ws-cit`
+- **Contextos de terceiro (irmao, totalmente separados):**
+  - `ws-corp-1`
+  - `ws-socnew`
+
+### Politica de isolamento
+
+1. Sempre validar `workspace_id` antes de qualquer acao com mudanca de estado.
+2. Nunca reutilizar triggers, handoffs, estado, auditoria ou contexto tecnico entre grupos diferentes.
+3. Se houver ambiguidade na solicitacao, interromper e pedir confirmacao explicita do `workspace_id`.
+4. Qualquer automacao nova deve preservar isolamento por `workspace_id` como chave primaria.
+
+---
+
 ## O que e o Autopilot
 
 Control plane web-only para orquestracao de releases multi-workspace, multi-agent.
@@ -292,6 +312,21 @@ Registro de melhorias: category, description, source, status.
 
 ## Como Operar
 
+### Ciclo operacional automatico do agente (padrao)
+
+1. Clone/fetch e branch a partir de `main` atualizado
+2. Pull/rebase antes de editar
+3. Alteracoes + validacao tecnica
+4. Commit atomico
+5. Push da branch
+6. PR para `main`
+7. Monitoramento de checks/workflows
+8. Correcao automatica de falhas quando possivel
+9. Squash merge apos gates
+10. Monitoramento pos-merge
+
+> O agente so deve interromper esse fluxo quando faltar informacao critica ou houver bloqueio de seguranca/isolamento de workspace.
+
 ### Disparar E2E Release
 Editar `trigger/e2e-test.json` e fazer push em main:
 ```json
@@ -303,6 +338,16 @@ Editar `trigger/fix-ci.json` e fazer push em main:
 ```json
 {"workspace_id": "ws-default", "run": 2}
 ```
+
+### Auto-merge para main (apos checks com sucesso)
+Workflow: `.github/workflows/auto-merge-to-main.yml`
+
+Regras:
+1. PR deve ter base `main`
+2. PR nao pode estar em draft
+3. PR deve ter label `automerge` ou `auto-merge`
+4. PR deve ser interno (sem fork) e autoria confiavel (`OWNER`, `MEMBER` ou `COLLABORATOR`)
+5. Auto-merge (squash) e habilitado e o GitHub conclui merge automaticamente quando todos os checks obrigatorios passarem
 
 ### Criar Workspace
 Usar workflow `seed-workspace.yml` via workflow_dispatch.

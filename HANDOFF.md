@@ -347,6 +347,7 @@ Regra de produto Autopilot: **nunca** manter apenas local; toda mudanca necessar
 Sincronizacao automatica recomendada:
 - `scripts/codex/sync-autopilot-product.sh`
 - Fluxo: detecta alteracoes locais -> commit automatico -> push -> PR -> merge -> aguarda estado `MERGED`.
+- Pos-merge automatico: resolve `mergeCommit` da PR e monitora os builds desse commit ate conclusao com `scripts/codex/monitor-commit-builds.sh`.
 - Rastreabilidade: commits do repo autopilot devem incluir marcador `[claude]` para facilitar leitura na esteira.
 - Restricao: **nao** usar esse marcador em commits das esteiras/repositorios empresariais.
 - Teste operacional (2026-03-26): commit de validacao pode usar marcador `[codex-autopilot]` quando solicitado explicitamente pelo usuario para auditoria da esteira.

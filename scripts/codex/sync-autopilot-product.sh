@@ -52,8 +52,8 @@ echo "[INFO] waiting for PR #${PR_NUMBER} to reach merged state"
 while true; do
   PR_STATE="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state --jq .state)"
   if [[ "$PR_STATE" == "MERGED" ]]; then
-    echo "[DONE] PR #${PR_NUMBER} merged successfully."
-    exit 0
+    echo "[INFO] PR #${PR_NUMBER} merged successfully."
+    break
   fi
 
   NOW_TS="$(date +%s)"
@@ -66,3 +66,13 @@ while true; do
   echo "[INFO] PR #${PR_NUMBER} state=${PR_STATE}; retrying in ${POLL_INTERVAL_SECONDS}s"
   sleep "$POLL_INTERVAL_SECONDS"
 done
+
+MERGE_COMMIT_SHA="$(gh pr view "$PR_NUMBER" --repo "$REPO" --json mergeCommit --jq '.mergeCommit.oid // empty')"
+if [[ -n "$MERGE_COMMIT_SHA" ]] && [[ -x "scripts/codex/monitor-commit-builds.sh" ]]; then
+  echo "[INFO] monitoring workflows for merged commit ${MERGE_COMMIT_SHA}"
+  REPO="$REPO" COMMIT_SHA="$MERGE_COMMIT_SHA" scripts/codex/monitor-commit-builds.sh
+else
+  echo "[WARN] merge commit sha not found or monitor script unavailable; skipping workflow monitoring."
+fi
+
+echo "[DONE] sync + merge + workflow monitoring completed."

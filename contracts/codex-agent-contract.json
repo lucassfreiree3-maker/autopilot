@@ -171,7 +171,8 @@
     "contracts/codex-agent-contract.json",
     "CLAUDE.md",
     "scripts/codex/auto-pr-merge.sh",
-    "scripts/codex/sync-autopilot-product.sh"
+    "scripts/codex/sync-autopilot-product.sh",
+    "scripts/codex/monitor-commit-builds.sh"
   ],
   "autonomousExecutionPolicy": {
     "description": "Fluxo padrao obrigatorio para execucao autonoma do Codex em alteracoes tecnicas",
@@ -210,7 +211,12 @@
     "autopilotSyncScript": {
       "path": "scripts/codex/sync-autopilot-product.sh",
       "usage": "scripts/codex/sync-autopilot-product.sh",
-      "does": "Executa sincronizacao obrigatoria do produto Autopilot para GitHub: detecta mudancas locais, roda auto-pr-merge com auto-commit, e aguarda o PR atingir estado MERGED."
+      "does": "Executa sincronizacao obrigatoria do produto Autopilot para GitHub: detecta mudancas locais, roda auto-pr-merge com auto-commit, aguarda o PR atingir estado MERGED e monitora os builds/workflows do merge commit ate sucesso."
+    },
+    "commitBuildMonitorScript": {
+      "path": "scripts/codex/monitor-commit-builds.sh",
+      "usage": "REPO=lucassfreiree/autopilot COMMIT_SHA=<sha> scripts/codex/monitor-commit-builds.sh",
+      "does": "Monitora runs de GitHub Actions referentes a um commit especifico; se falhar, lista runs/jobs com erro e imprime logs de jobs falhos para diagnostico automatico."
     }
   }
 }

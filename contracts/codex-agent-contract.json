@@ -160,6 +160,8 @@
     "AGENTS.md",
     "contracts/shared-agent-contract.json",
     "contracts/claude-session-memory.json",
+    "contracts/shared-agent-context.md",
+    "contracts/codex-deploy-guide.md",
     "schemas/*.schema.json"
   ]
 }

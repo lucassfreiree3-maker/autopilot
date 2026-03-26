@@ -3,49 +3,46 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.6.4",
+  "version": "3.6.5",
   "changes": [
     {
-      "target_path": "src/controllers/oas-sre-controller.controller.ts",
       "action": "replace-file",
-      "content_ref": "patches/oas-sre-controller.controller.ts"
+      "target_path": "src/controllers/cronjob-result.controller.ts",
+      "content_ref": "patches/cronjob-result.controller.ts"
     },
     {
-      "target_path": "src/controllers/execute.controller.ts",
-      "action": "replace-file",
-      "content_ref": "patches/execute.controller.fixed.ts"
+      "action": "search-replace",
+      "target_path": "src/routes/agentsRouter.ts",
+      "search": "import { getAgentErrors } from \"../controllers/agent-errors.controller\";",
+      "replace": "import { getAgentErrors } from \"../controllers/agent-errors.controller\";\nimport {\n  receiveCronjobResult,\n  getCronjobStatus,\n} from \"../controllers/cronjob-result.controller\";"
     },
     {
-      "target_path": "src/controllers/oas-execute.controller.ts",
-      "action": "replace-file",
-      "content_ref": "patches/oas-execute.controller.ts"
+      "action": "search-replace",
+      "target_path": "src/routes/agentsRouter.ts",
+      "search": "router.get(\"/agent/errors\", getAgentErrors);",
+      "replace": "router.get(\"/agent/errors\", getAgentErrors);\n\n// ── Cronjob result endpoints (historia #930217) ──\nrouter.post(\n  \"/api/cronjob/result\",\n  requireAgentCallbackJwt,\n  requireAgentCallbackScopes([SCOPES.SEND]),\n  receiveCronjobResult,\n);\n\nrouter.get(\n  \"/api/cronjob/status/:execId\",\n  requireJwt,\n  requireScopes([SCOPES.READ]),\n  getCronjobStatus,\n);"
     },
     {
-      "target_path": "src/controllers/agents-execute-logs.controller.ts",
-      "action": "replace-file",
-      "content_ref": "patches/agents-execute-logs.controller.ts"
-    },
-    {
+      "action": "search-replace",
       "target_path": "package.json",
-      "action": "search-replace",
-      "search": "\"version\": \"3.6.3\"",
-      "replace": "\"version\": \"3.6.4\""
+      "search": "\"version\": \"3.6.4\"",
+      "replace": "\"version\": \"3.6.5\""
     },
     {
+      "action": "search-replace",
       "target_path": "package-lock.json",
-      "action": "search-replace",
-      "search": "\"version\": \"3.6.3\"",
-      "replace": "\"version\": \"3.6.4\""
+      "search": "\"version\": \"3.6.4\"",
+      "replace": "\"version\": \"3.6.5\""
     },
     {
-      "target_path": "src/swagger/swagger.json",
       "action": "search-replace",
-      "search": "\"version\": \"3.6.3\"",
-      "replace": "\"version\": \"3.6.4\""
+      "target_path": "src/swagger/swagger.json",
+      "search": "\"version\": \"3.6.4\"",
+      "replace": "\"version\": \"3.6.5\""
     }
   ],
-  "commit_message": "fix(controller): ajuste timeout padrão de chamada do agent (3.6.4)",
+  "commit_message": "feat(controller): cronjob callback result endpoint + OAS query (3.6.5) #930217",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 53
+  "run": 54
 }

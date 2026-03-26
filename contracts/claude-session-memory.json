@@ -1014,8 +1014,8 @@
     ]
   },
   "versioningRules": {
-    "currentVersion": "3.6.3",
-    "previousVersion": "3.6.2",
+    "currentVersion": "3.6.5",
+    "previousVersion": "3.6.4",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
     "versionFiles": [
@@ -1070,10 +1070,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 53,
+    "lastTriggerRun": 54,
     "lastSuccessfulRun": 38,
-    "lastDeployPR": 144,
-    "pipelineStatus": "IDLE — last trigger run 53 (3.6.4). Trigger file run=53.",
+    "lastDeployPR": 197,
+    "pipelineStatus": "IN_PROGRESS — deploy controller 3.6.5 (run #54). Historia #930217 cronjob callback.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [

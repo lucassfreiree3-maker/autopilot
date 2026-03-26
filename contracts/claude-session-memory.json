@@ -1022,24 +1022,38 @@
       {
         "file": "package.json",
         "line": 3,
-        "field": "version"
+        "field": "version",
+        "searchReplace": true,
+        "note": "1 ocorrencia"
       },
       {
         "file": "package-lock.json",
         "line": 3,
-        "field": "version (top-level)"
+        "field": "version (top-level)",
+        "searchReplace": true,
+        "note": "1a ocorrencia — topo do arquivo"
       },
       {
         "file": "package-lock.json",
         "line": 9,
-        "field": "version (packages[\"\"])"
+        "field": "version (packages[\"\"])",
+        "searchReplace": true,
+        "note": "2a ocorrencia — dentro de packages. sed com g flag pega ambas."
       },
       {
         "file": "src/swagger/swagger.json",
-        "field": "info.version"
+        "field": "info.version",
+        "searchReplace": false,
+        "note": "CRITICO: versao no swagger pode estar DIFERENTE da versao no package.json (ex: 3.5.14 vs 3.6.4). SEMPRE usar replace-file com swagger completo, NUNCA search-replace cego."
+      },
+      {
+        "file": "references/controller-cap/values.yaml",
+        "field": "image tag",
+        "searchReplace": false,
+        "note": "5o lugar — tag da imagem no deploy. Atualizar localmente E o promote-cap atualiza no CAP repo."
       }
     ],
-    "lesson": "TODOS os 4 pontos DEVEM estar alinhados. Verificar ultima tag no registry ANTES de bumpar."
+    "lesson": "SAO 5 LUGARES para trocar versao. TODOS devem estar alinhados. O swagger pode ter versao diferente do package.json — SEMPRE verificar antes de search-replace. Se divergiu: usar replace-file."
   },
   "swaggerRules": {
     "encoding": "ASCII puro. NUNCA acentos. Swagger UI quebra com UTF-8 nao-ASCII.",
@@ -1571,7 +1585,9 @@
     "lesson": "Validacao especifica de campos por imagem: responsabilidade da imagem Docker."
   },
   "historia930217": {
-    "status": "pending",
+    "status": "in_progress",
+    "controllerDeploy": "3.6.5 — deployed, esteira passed (8/8 checks), CAP promoted. Swagger NOT updated (still 3.5.14, needs replace-file with new routes).",
+    "agentDeploy": "2.2.7 — code pushed (SHA fbf8b70), CI FAILED at workflow-npm. Needs diagnosis and fix.",
     "title": "Cronjob callback endpoint + resultado final para OAS",
     "createdAt": "2026-03-25",
     "description": "Implementar no Agent endpoint para receber resultado final de cronjobs e encaminhar ao Controller. Controller armazena e disponibiliza para consulta OAS.",

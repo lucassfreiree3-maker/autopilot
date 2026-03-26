@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (262 files)
+  audit/ (264 files)
   improvements/ (1 files)
   metrics/ (4 files)
   handoffs/ (1 files)
@@ -342,4 +342,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-26T19:34:38Z | Run: 23614164539*
+*Last synced: 2026-03-26T20:13:18Z | Run: 23615801498*

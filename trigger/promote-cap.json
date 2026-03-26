@@ -1,0 +1,8 @@
+{
+  "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
+  "workspace_id": "ws-default",
+  "component": "controller",
+  "version": "3.6.5",
+  "note": "Promote controller 3.6.5 — esteira passed all 8 checks",
+  "run": 1
+}

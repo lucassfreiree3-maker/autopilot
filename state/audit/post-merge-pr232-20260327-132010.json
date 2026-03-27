@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr232-20260327-132010",
+  "event": "post-merge-monitor",
+  "prNumber": 232,
+  "branch": "copilot/fix-invalid-workflow-yaml",
+  "mergeSha": "4922aa5c13173cb72d12481047784c937327c921",
+  "timestamp": "2026-03-27T13:20:10Z",
+  "runId": "23648154560",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

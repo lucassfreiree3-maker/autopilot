@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 229,
+  "branch": "copilot/create-autonomous-pr-lane-workflow",
+  "mergeSha": "3ae865267255856a82ef984043b2fd2543d9a162",
+  "timestamp": "2026-03-27T12:45:53Z",
+  "runId": "23646832808",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

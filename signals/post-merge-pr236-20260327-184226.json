@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 236,
+  "branch": "copilot/update-swagger-json-version",
+  "timestamp": "2026-03-27T18:42:26Z",
+  "runId": "23662039863",
+  "healthStatus": "degraded"
+}

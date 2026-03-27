@@ -1,0 +1,167 @@
+name: "[Corp] CI: Status Check"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ref=${{ github.ref_name }}"
+
+# Checks the status of corporate CI (Esteira de Build NPM) for a specific commit
+# and saves the result to autopilot-state for agents to read.
+# Trigger: push to main changing trigger/ci-status.json OR workflow_dispatch
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/ci-status.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      component:
+        description: "Component"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+      commit_sha:
+        description: "Commit SHA to check"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  check-status:
+    name: "Check Corporate CI Status"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Read inputs"
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/ci-status.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/ci-status.json)
+            COMPONENT=$(jq -r '.component // "controller"' trigger/ci-status.json)
+            COMMIT_SHA=$(jq -r '.commit_sha // ""' trigger/ci-status.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            COMMIT_SHA="${{ github.event.inputs.commit_sha }}"
+          fi
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: "Check CI status"
+        id: check
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          SHA="${{ steps.inputs.outputs.commit_sha }}"
+
+          # Read workspace config
+          WS_JSON=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r ".${COMPONENT}.sourceRepo")
+
+          echo "=== Checking CI for $SOURCE_REPO commit $SHA ==="
+
+          # Get commit info
+          COMMIT_MSG=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA" \
+            --jq '.commit.message' 2>/dev/null | head -1 || echo "unknown")
+          echo "Commit: $COMMIT_MSG"
+
+          # Get check-runs
+          CHECKS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$SHA/check-runs" 2>/dev/null || echo '{"check_runs":[]}')
+          TOTAL_CHECKS=$(echo "$CHECKS" | jq '.total_count // 0')
+          echo "Total checks: $TOTAL_CHECKS"
+
+          CHECK_SUMMARY=$(echo "$CHECKS" | jq -c '[.check_runs[] | {name, status, conclusion: (.conclusion // "pending")}]' 2>/dev/null || echo "[]")
+          echo "$CHECK_SUMMARY" | jq '.'
+
+          # Get workflow runs
+          RUNS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/actions/runs?head_sha=$SHA&per_page=5" 2>/dev/null || echo '{"workflow_runs":[]}')
+          RUN_SUMMARY=$(echo "$RUNS" | jq -c '[.workflow_runs[] | {id, name, status, conclusion: (.conclusion // "running"), html_url}]' 2>/dev/null || echo "[]")
+          echo "Workflow runs:"
+          echo "$RUN_SUMMARY" | jq '.'
+
+          # Determine overall status
+          COMPLETED_RUNS=$(echo "$RUNS" | jq '[.workflow_runs[] | select(.status == "completed")] | length')
+          TOTAL_RUNS=$(echo "$RUNS" | jq '.workflow_runs | length')
+          FAILED_RUNS=$(echo "$RUNS" | jq '[.workflow_runs[] | select(.conclusion == "failure")] | length')
+          SUCCESS_RUNS=$(echo "$RUNS" | jq '[.workflow_runs[] | select(.conclusion == "success")] | length')
+          IN_PROGRESS=$(echo "$RUNS" | jq '[.workflow_runs[] | select(.status != "completed")] | length')
+
+          if [ "$SUCCESS_RUNS" -gt 0 ]; then
+            OVERALL="success"
+          elif [ "$FAILED_RUNS" -gt 0 ] && [ "$IN_PROGRESS" -eq 0 ]; then
+            OVERALL="failure"
+          elif [ "$IN_PROGRESS" -gt 0 ]; then
+            OVERALL="in_progress"
+          elif [ "$TOTAL_RUNS" -eq 0 ]; then
+            OVERALL="no_runs"
+          else
+            OVERALL="unknown"
+          fi
+
+          echo "Overall: $OVERALL (total=$TOTAL_RUNS, success=$SUCCESS_RUNS, failed=$FAILED_RUNS, in_progress=$IN_PROGRESS)"
+
+          # Save result to autopilot-state
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          RESULT=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg comp "$COMPONENT" \
+            --arg repo "$SOURCE_REPO" \
+            --arg sha "$SHA" \
+            --arg msg "$COMMIT_MSG" \
+            --arg ts "$NOW" \
+            --arg overall "$OVERALL" \
+            --arg total "$TOTAL_RUNS" \
+            --arg success "$SUCCESS_RUNS" \
+            --arg failed "$FAILED_RUNS" \
+            --arg in_progress "$IN_PROGRESS" \
+            --argjson checks "$CHECK_SUMMARY" \
+            --argjson runs "$RUN_SUMMARY" \
+            '{
+              workspaceId: $ws, component: $comp, sourceRepo: $repo,
+              commitSha: $sha, commitMessage: $msg, checkedAt: $ts,
+              overall: $overall,
+              counts: {total: ($total|tonumber), success: ($success|tonumber), failed: ($failed|tonumber), in_progress: ($in_progress|tonumber)},
+              checkRuns: $checks, workflowRuns: $runs
+            }')
+
+          STATE_FILE="state/workspaces/${WS_ID}/ci-status-${COMPONENT}.json"
+          EXISTING_SHA=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          ARGS=(-f "branch=$STATE_BRANCH" \
+            -f "message=ci-status: $COMPONENT $SHA $OVERALL [skip ci]" \
+            -f "content=$(echo "$RESULT" | base64 -w0)")
+          [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+
+          GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}" \
+            --method PUT "${ARGS[@]}" > /dev/null 2>&1 || echo "::warning ::Failed to save status"
+
+          echo "=== Status saved to $STATE_FILE ==="
+
+          # Summary
+          echo "## CI Status Check: $COMPONENT" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Repo | \`$SOURCE_REPO\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`$SHA\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Message | $COMMIT_MSG |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Overall | **$OVERALL** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Success | $SUCCESS_RUNS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Failed | $FAILED_RUNS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| In Progress | $IN_PROGRESS |" >> "$GITHUB_STEP_SUMMARY"

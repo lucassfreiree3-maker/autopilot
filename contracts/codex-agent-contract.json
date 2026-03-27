@@ -12,7 +12,8 @@
     "ci-monitoring",
     "handoff-consumption",
     "pre-deploy-validation",
-    "security-patching"
+    "security-patching",
+    "direct-commits-via-codex-apply"
   ],
   "tools": {
     "primary": "codex-web",
@@ -60,9 +61,38 @@
         "gh pr merge {pr_number} --squash"
       ],
       "rules": [
-        "Branch DEVE comecar com claude/ (protecao de branch)",
+        "Branch DEVE comecar com claude/ ou codex/ (protecao de branch)",
         "SEMPRE squash merge",
         "NUNCA push direto para main (403)"
+      ]
+    },
+    "codexApplyWorkflow": {
+      "description": "Workflow que permite Codex fazer commits automaticamente via OpenAI API. Codex recebe a task, gera codigo, cria branch codex/*, commita, abre PR e opcionalmente faz auto-merge.",
+      "workflow": "codex-apply.yml",
+      "triggerFile": "trigger/codex-commit.json",
+      "triggerFormat": {
+        "task": "Descricao da tarefa para o Codex implementar",
+        "target_files": "Arquivos alvo separados por virgula (opcional — Codex ve o conteudo atual)",
+        "model": "Modelo OpenAI (default: o3)",
+        "branch_suffix": "Sufixo do branch codex/ (opcional)",
+        "auto_merge": "true para merge automatico, false para apenas criar PR",
+        "run": "Incrementar para disparar"
+      },
+      "flow": [
+        "1. Trigger file alterado em main (ou workflow_dispatch)",
+        "2. Workflow le task + arquivos alvo",
+        "3. Chama OpenAI com prompt estruturado pedindo JSON com changes",
+        "4. Codex retorna: branch_name, commit_message, pr_title, pr_body, changes[]",
+        "5. Workflow aplica changes (create/modify/delete files)",
+        "6. Cria branch codex/*, commita, push",
+        "7. Cria PR com labels [codex, auto-pr]",
+        "8. Se auto_merge=true: faz squash merge automatico",
+        "9. Resultado salvo em autopilot-state (state/bridges/codex-apply-latest.json)"
+      ],
+      "securityRules": [
+        "Paths com .. ou absolutos sao rejeitados",
+        "Commit identifica codex-agent como autor",
+        "Resultado auditado no autopilot-state"
       ]
     },
     "dispatchWorkflow": {
@@ -83,7 +113,8 @@
       "6. Commit tudo em 1 commit, push branch claude/*, PR, squash merge",
       "7. Monitorar workflow apply-source-change (polling 30-60s)",
       "8. Monitorar esteira corporativa ate imagem Docker ser publicada",
-      "9. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
+      "9. Stage 4 (Promote) atualiza tag AUTOMATICAMENTE no CAP repo apos CI passar — agent (bbvinet/psc_releases_cap_sre-aut-agent) E controller (bbvinet/psc_releases_cap_sre-aut-controller)",
+      "10. Se falhar: ler logs, diagnosticar, corrigir, re-deploy AUTOMATICAMENTE"
     ],
     "preDeployValidation": {
       "workflow": "validate-patches.yml",
@@ -95,7 +126,11 @@
       "currentVersion": "3.6.3",
       "pattern": "Apos X.Y.9 vai para X.(Y+1).0 — NUNCA X.Y.10",
       "checkRegistry": "SEMPRE verificar se tag ja existe antes de bumpar",
-      "versionFiles": ["package.json", "package-lock.json", "src/swagger/swagger.json"]
+      "versionFiles": [
+        "package.json",
+        "package-lock.json",
+        "src/swagger/swagger.json"
+      ]
     }
   },
   "securityPatterns": {
@@ -130,6 +165,71 @@
     "AGENTS.md",
     "contracts/shared-agent-contract.json",
     "contracts/claude-session-memory.json",
-    "schemas/*.schema.json"
-  ]
+    "contracts/shared-agent-context.md",
+    "contracts/codex-deploy-guide.md",
+    "schemas/*.schema.json",
+    "contracts/codex-agent-contract.json",
+    "CLAUDE.md",
+    "scripts/codex/auto-pr-merge.sh",
+    "scripts/codex/sync-autopilot-product.sh",
+    "scripts/codex/monitor-commit-builds.sh",
+    "scripts/codex/preflight-autopilot.sh"
+  ],
+  "autonomousExecutionPolicy": {
+    "description": "Fluxo padrao obrigatorio para execucao autonoma do Codex em alteracoes tecnicas",
+    "rule": "Com contexto suficiente, executar sem pedir confirmacao: commit -> push -> PR -> merge (squash)",
+    "autopilotProductRule": "Toda alteracao local relevante no repo autopilot deve ser sincronizada com GitHub automaticamente no mesmo ciclo; nao deixar conhecimento apenas local/sessao.",
+    "autopilotCommitTraceabilityRule": "Commits no repo autopilot devem incluir marcador de rastreio '[claude]' para facilitar visualizacao na esteira. Nao aplicar esse marcador em commits de esteiras/repositorios empresariais.",
+    "guardrails": [
+      "Nunca operar sem workspace_id identificado",
+      "Nunca misturar contextos entre workspaces",
+      "Nunca mergear PR de deploy se validate-patches falhar",
+      "Sempre monitorar workflows e esteira corporativa apos merge"
+    ],
+    "sourceOfTruth": [
+      "contracts/claude-session-memory.json#deployFlowGuide",
+      "contracts/codex-agent-contract.json#deployFlow",
+      "CLAUDE.md#Deploy Flow — Complete Guide"
+    ],
+    "operationalChecklist": [
+      "1. Clone/fetch do repo e checkout de branch a partir de main atualizado",
+      "2. Pull/rebase de main antes de iniciar alteracoes",
+      "3. Implementar alteracoes + validar (linters/testes/checks relevantes)",
+      "4. Commit atomico com mensagem clara",
+      "5. Push da branch de trabalho",
+      "6. Abrir PR para main com contexto tecnico completo",
+      "7. Monitorar checks/workflows ate conclusao",
+      "8. Resolver conflitos/falhas automaticamente quando possivel",
+      "9. Realizar squash merge quando policy gates passarem",
+      "10. Monitorar pos-merge (workflows + esteira corporativa quando aplicavel)"
+    ],
+    "autopilotCommitWorkflowChain": [
+      "[Agent] Auto PR + Auto-Merge (Codex) (push)",
+      "[Core] Auto-Merge PR to main (pull_request_target)",
+      "[Infra] Cleanup: Stale Branches (pull_request)"
+    ],
+    "autopilotCommitValidationRule": "Para commits do autopilot, validar sucesso da cadeia por headSha. Steps 'Enable auto-merge' podem ser skipped sem invalidar o fluxo se PR estiver merged e branch limpa.",
+    "prePipelineRule": "Antes de enviar para a esteira, executar validacoes locais obrigatorias (scripts/json/yaml). Nao subir commit para PR se preflight falhar.",
+    "defaultMode": "automatico e continuo; interromper apenas quando faltar informacao critica ou houver bloqueio de seguranca",
+    "automationScript": {
+      "path": "scripts/codex/auto-pr-merge.sh",
+      "usage": "GITHUB_TOKEN=<token> scripts/codex/auto-pr-merge.sh (ou GH_TOKEN / gh auth login). Opcional: AUTO_COMMIT=true COMMIT_MESSAGE='chore: ...'",
+      "does": "Opcionalmente cria commit automatico (git add -A + commit) quando houver alteracoes locais, aplica marcador '[claude]' automaticamente quando REPO=lucassfreiree/autopilot, configura origin se ausente, resolve token (GITHUB_TOKEN/GH_TOKEN/gh auth token), faz push da branch atual, cria/atualiza PR para main e tenta auto-merge; se indisponivel, faz squash merge direto"
+    },
+    "autopilotSyncScript": {
+      "path": "scripts/codex/sync-autopilot-product.sh",
+      "usage": "scripts/codex/sync-autopilot-product.sh",
+      "does": "Executa sincronizacao obrigatoria do produto Autopilot para GitHub: detecta mudancas locais, roda auto-pr-merge com auto-commit, aguarda o PR atingir estado MERGED e monitora os builds/workflows do merge commit ate sucesso."
+    },
+    "commitBuildMonitorScript": {
+      "path": "scripts/codex/monitor-commit-builds.sh",
+      "usage": "REPO=lucassfreiree/autopilot COMMIT_SHA=<sha> scripts/codex/monitor-commit-builds.sh",
+      "does": "Monitora runs de GitHub Actions referentes a um commit especifico; se falhar, lista runs/jobs com erro e imprime logs de jobs falhos para diagnostico automatico."
+    },
+    "preflightScript": {
+      "path": "scripts/codex/preflight-autopilot.sh",
+      "usage": "scripts/codex/preflight-autopilot.sh",
+      "does": "Executa validacoes locais obrigatorias antes da esteira (shellcheck sintatico, JSON contracts e parse de workflow YAML)."
+    }
+  }
 }

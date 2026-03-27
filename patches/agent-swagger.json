@@ -1,0 +1,207 @@
+{
+    "openapi":  "3.0.0",
+    "components":  {
+        "examples":  {},
+        "headers":  {},
+        "parameters":  {},
+        "requestBodies":  {},
+        "responses":  {},
+        "schemas":  {
+            "IAgent":  {
+                "properties":  {
+                    "id":  { "type":  "string" },
+                    "version":  { "type":  "string" },
+                    "createdAt":  { "type":  "string", "format":  "date-time" },
+                    "description":  { "type":  "string" },
+                    "availableRoutes":  { "items":  { "type":  "string" }, "type":  "array" },
+                    "status":  { "type":  "string" }
+                },
+                "required":  ["id", "version", "createdAt", "description", "availableRoutes", "status"],
+                "type":  "object",
+                "additionalProperties":  false
+            },
+            "IErrorAgentExecution":  {
+                "properties":  {
+                    "id":  { "anyOf":  [{ "type":  "string" }, { "type":  "number", "format":  "double" }] },
+                    "functionName":  { "type":  "string" },
+                    "cluster":  { "type":  "string" },
+                    "namespace":  { "type":  "string" },
+                    "timestamp":  { "type":  "string", "format":  "date-time" },
+                    "success":  { "type":  "boolean" }
+                },
+                "required":  ["id", "timestamp", "success"],
+                "type":  "object",
+                "additionalProperties":  false
+            },
+            "IExecutionRequest":  {
+                "properties":  {
+                    "execId":  { "type":  "string" },
+                    "namespace":  { "type":  "string" },
+                    "cluster":  { "type":  "string" },
+                    "function":  { "type":  "string" }
+                },
+                "required":  ["execId", "namespace", "cluster", "function"],
+                "type":  "object",
+                "additionalProperties":  false
+            },
+            "IAgentRegisterData":  {
+                "properties":  {
+                    "namespace":  { "type":  "string" },
+                    "cluster":  { "type":  "string" },
+                    "environment":  { "type":  "string" },
+                    "DataRegistro":  { "type":  "string", "format":  "date-time" }
+                },
+                "required":  ["namespace", "cluster", "environment", "DataRegistro"],
+                "type":  "object",
+                "additionalProperties":  false
+            },
+            "ICronjobCallbackPayload":  {
+                "properties":  {
+                    "compliance_status":  { "type":  "string", "enum":  ["success", "failed", "error"], "description":  "Status da execucao do cronjob" },
+                    "namespace":  { "type":  "string", "description":  "Namespace onde o cronjob executou" },
+                    "cluster_type":  { "type":  "string", "description":  "Tipo do cluster (ex: origem, destino)" },
+                    "timestamp":  { "type":  "string", "format":  "date-time", "description":  "Timestamp da execucao" },
+                    "execId":  { "type":  "string", "description":  "ID unico da execucao" },
+                    "captured_data":  { "type":  "object", "description":  "Dados capturados (quando compliance_status=success)" },
+                    "failures":  { "type":  "array", "items":  { "type":  "object" }, "description":  "Lista de falhas (quando compliance_status=failed)" },
+                    "errors":  { "type":  "array", "items":  { "type":  "object" }, "description":  "Lista de erros (quando compliance_status=error)" }
+                },
+                "required":  ["compliance_status", "namespace", "cluster_type", "timestamp", "execId"],
+                "type":  "object"
+            }
+        },
+        "securitySchemes":  {}
+    },
+    "info":  {
+        "title":  "psc-sre-automacao-agent",
+        "version":  "2.2.9",
+        "description":  "psc-sre-automacao-agent in node with expressjs",
+        "license":  { "name":  "ISC" },
+        "contact":  { "name":  "Equipe DS" }
+    },
+    "paths":  {
+        "/create-cronjob":  {
+            "get":  {
+                "operationId":  "GetMessage",
+                "responses":  { "200":  { "description":  "Cronjob criado com sucesso", "content":  { "application/json":  { "schema":  { "type":  "string", "nullable":  true } } } } },
+                "description":  "Endpoint para exemplo de requisicoes GET",
+                "summary":  "Endpoint para exemplo de requisicoes GET",
+                "tags":  ["General"],
+                "security":  [],
+                "parameters":  []
+            }
+        },
+        "/agent/info":  {
+            "get":  {
+                "operationId":  "GetInfo",
+                "responses":  { "200":  { "description":  "Dados do agent recuperados com sucesso", "content":  { "application/json":  { "schema":  { "properties":  { "Agente":  { "$ref":  "#/components/schemas/IAgent" }, "summary":  { "type":  "string" } }, "required":  ["Agente", "summary"], "type":  "object" } } } } },
+                "tags":  ["Agent"],
+                "security":  [],
+                "parameters":  []
+            }
+        },
+        "/agent/errors":  {
+            "get":  {
+                "operationId":  "GetErrorExecutions",
+                "responses":  { "200":  { "description":  "Execucoes de agent que falharam recuperadas com sucesso", "content":  { "application/json":  { "schema":  { "properties":  { "errors":  { "items":  { "$ref":  "#/components/schemas/IErrorAgentExecution" }, "type":  "array" } }, "required":  ["errors"], "type":  "object" } } } } },
+                "tags":  ["Agent"],
+                "security":  [],
+                "parameters":  []
+            }
+        },
+        "/agent/execute":  {
+            "post":  {
+                "operationId":  "ExecuteAutomation",
+                "responses":  { "200":  { "description":  "Requisicao recebida com sucesso", "content":  { "application/json":  { "schema":  { "properties":  { "message":  { "type":  "string" } }, "required":  ["message"], "type":  "object" } } } } },
+                "tags":  ["Agent"],
+                "security":  [],
+                "parameters":  [],
+                "requestBody":  { "required":  true, "content":  { "application/json":  { "schema":  { "$ref":  "#/components/schemas/IExecutionRequest" } } } }
+            }
+        },
+        "/register":  {
+            "post":  {
+                "operationId":  "RegisterAgent",
+                "responses":  { "200":  { "description":  "Registro enviado com sucesso", "content":  { "application/json":  { "schema":  { "properties":  { "message":  { "type":  "string" } }, "required":  ["message"], "type":  "object" } } } } },
+                "tags":  ["Register"],
+                "security":  [],
+                "parameters":  [],
+                "requestBody":  { "required":  true, "content":  { "application/json":  { "schema":  { "$ref":  "#/components/schemas/IAgentRegisterData" } } } }
+            }
+        },
+        "/api/cronjob/callback":  {
+            "post":  {
+                "operationId":  "CronjobCallback",
+                "summary":  "Recebe resultado final de execucao de cronjob",
+                "description":  "Endpoint para receber o payload final da execucao do cronjob, validar e encaminhar ao Controller para armazenamento e consulta pela automacao OAS. Suporta 3 tipos de resultado: success (captured_data), failed (failures[]) e error (errors[]).",
+                "tags":  ["Cronjob"],
+                "security":  [],
+                "parameters":  [],
+                "requestBody":  {
+                    "required":  true,
+                    "content":  {
+                        "application/json":  {
+                            "schema":  { "$ref":  "#/components/schemas/ICronjobCallbackPayload" }
+                        }
+                    }
+                },
+                "responses":  {
+                    "200":  {
+                        "description":  "Callback recebido e encaminhado ao Controller com sucesso",
+                        "content":  {
+                            "application/json":  {
+                                "schema":  {
+                                    "type":  "object",
+                                    "properties":  {
+                                        "ok":  { "type":  "boolean", "example":  true },
+                                        "execId":  { "type":  "string" },
+                                        "namespace":  { "type":  "string" },
+                                        "compliance_status":  { "type":  "string", "enum":  ["success", "failed", "error"] },
+                                        "forwarded":  { "type":  "boolean", "example":  true },
+                                        "controllerStatus":  { "type":  "integer", "example":  200 }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400":  {
+                        "description":  "Payload invalido - campos obrigatorios ausentes ou tipo incorreto",
+                        "content":  {
+                            "application/json":  {
+                                "schema":  {
+                                    "type":  "object",
+                                    "properties":  {
+                                        "ok":  { "type":  "boolean", "example":  false },
+                                        "error":  { "type":  "string" },
+                                        "details":  { "type":  "array", "items":  { "type":  "string" } }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "502":  {
+                        "description":  "Falha ao encaminhar para o Controller",
+                        "content":  {
+                            "application/json":  {
+                                "schema":  {
+                                    "type":  "object",
+                                    "properties":  {
+                                        "ok":  { "type":  "boolean", "example":  false },
+                                        "error":  { "type":  "string" },
+                                        "execId":  { "type":  "string" },
+                                        "controllerStatus":  { "type":  "integer" },
+                                        "detail":  { "type":  "string" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500":  {
+                        "description":  "Erro interno ao processar callback"
+                    }
+                }
+            }
+        }
+    },
+    "servers":  [{ "url":  "/" }]
+}

@@ -1,8 +1,8 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "controller",
-  "commit_sha": "a02a305",
-  "note": "Diagnose esteira #216 (3.6.2 run 51) - commit a02a305",
-  "run": 21
+  "component": "agent",
+  "commit_sha": "fbf8b7050d8dc93be411a17c66ffdcd8f187af29",
+  "note": "Diagnose agent 2.2.7 CI failure with FULL SHA",
+  "run": 25
 }

@@ -36,6 +36,7 @@ jobs:
             "bbvinet/psc-sre-automacao-agent"
             "bbvinet/psc-sre-automacao-controller"
             "bbvinet/psc_releases_cap_sre-aut-agent"
+            "bbvinet/psc_releases_cap_sre-aut-controller"
           )
 
           RESULTS=()

@@ -1,0 +1,10 @@
+{
+  "_context": "SHARED | all workspaces | Codex agent commit automation",
+  "workspace_id": "ws-default",
+  "task": "Create a simple health-check script at ops/scripts/utils/health-ping.sh that checks if the GitHub API is reachable and returns OK/FAIL status",
+  "target_files": "",
+  "model": "o3",
+  "branch_suffix": "health-ping-script",
+  "auto_merge": false,
+  "run": 2
+}

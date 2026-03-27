@@ -1,0 +1,104 @@
+0 verbose cli C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node.exe C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.4
+2 info using node@v22.22.0
+3 silly config load:file:C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npmrc
+5 silly config load:file:C:\Users\jlimafreire\.npmrc
+6 silly config load:file:C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\etc\npmrc
+7 verbose title npm exec eslint . --quiet --resolve-plugins-relative-to .
+8 verbose argv "exec" "--yes" "--package" "eslint@8.57.0" "--package" "@typescript-eslint/parser@8.0.1" "--package" "@typescript-eslint/eslint-plugin@8.0.1" "--package" "eslint-plugin-import@2.29.1" "--package" "eslint-config-airbnb-base@15.0.0" "--package" "eslint-config-prettier@9.1.0" "--package" "eslint-plugin-prettier@5.2.1" "--" "eslint" "." "--quiet" "--resolve-plugins-relative-to" "."
+9 verbose logfile logs-max:10 dir:C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-
+10 verbose logfile C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-debug-0.log
+0 verbose cli C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node.exe C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.4
+2 info using node@v22.22.0
+3 silly config load:file:C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npmrc
+5 silly config load:file:C:\Users\jlimafreire\.npmrc
+6 silly config load:file:C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\etc\npmrc
+7 verbose title npm exec tsc --noEmit
+8 verbose argv "exec" "--yes" "--package" "typescript@5.5.4" "--" "tsc" "--noEmit"
+9 verbose logfile logs-max:10 dir:C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-
+10 verbose logfile C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-debug-0.log
+11 silly logfile done cleaning log files
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 1 failed with ENOTFOUND
+13 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 1 failed with ENOTFOUND
+14 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/typescript attempt 1 failed with ENOTFOUND
+14 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint attempt 1 failed with ENOTFOUND
+15 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2fparser attempt 1 failed with ENOTFOUND
+16 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2feslint-plugin attempt 1 failed with ENOTFOUND
+17 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-import attempt 1 failed with ENOTFOUND
+18 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-airbnb-base attempt 1 failed with ENOTFOUND
+19 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-prettier attempt 1 failed with ENOTFOUND
+20 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-prettier attempt 1 failed with ENOTFOUND
+15 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 2 failed with ENOTFOUND
+21 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 2 failed with ENOTFOUND
+16 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/typescript attempt 2 failed with ENOTFOUND
+22 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint attempt 2 failed with ENOTFOUND
+23 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2fparser attempt 2 failed with ENOTFOUND
+24 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-import attempt 2 failed with ENOTFOUND
+25 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2feslint-plugin attempt 2 failed with ENOTFOUND
+26 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-airbnb-base attempt 2 failed with ENOTFOUND
+27 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-prettier attempt 2 failed with ENOTFOUND
+28 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-prettier attempt 2 failed with ENOTFOUND
+17 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 3 failed with ENOTFOUND
+29 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/npm attempt 3 failed with ENOTFOUND
+18 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/typescript attempt 3 failed with ENOTFOUND
+19 verbose type system
+20 verbose stack FetchError: request to https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/typescript failed, reason: getaddrinfo ENOTFOUND binarios.intranet.bb.com.br
+20 verbose stack     at ClientRequest.<anonymous> (C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\node_modules\minipass-fetch\lib\index.js:130:14)
+20 verbose stack     at ClientRequest.emit (node:events:519:28)
+20 verbose stack     at emitErrorEvent (node:_http_client:107:11)
+20 verbose stack     at _destroy (node:_http_client:954:9)
+20 verbose stack     at onSocketNT (node:_http_client:974:5)
+20 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+21 error code ENOTFOUND
+22 error syscall getaddrinfo
+23 error errno ENOTFOUND
+24 error network request to https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/typescript failed, reason: getaddrinfo ENOTFOUND binarios.intranet.bb.com.br
+25 error network This is a problem related to network connectivity.
+25 error network In most cases you are behind a proxy or have bad network settings.
+25 error network
+25 error network If you are behind a proxy, please make sure that the
+25 error network 'proxy' config is set properly.  See: 'npm help config'
+26 verbose cwd C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent
+27 verbose os Windows_NT 10.0.26200
+28 verbose node v22.22.0
+29 verbose npm  v10.9.4
+30 verbose exit 1
+31 verbose code 1
+32 error A complete log of this run can be found in: C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-debug-0.log
+30 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint attempt 3 failed with ENOTFOUND
+31 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2fparser attempt 3 failed with ENOTFOUND
+32 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-import attempt 3 failed with ENOTFOUND
+33 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/@typescript-eslint%2feslint-plugin attempt 3 failed with ENOTFOUND
+34 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-airbnb-base attempt 3 failed with ENOTFOUND
+35 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-config-prettier attempt 3 failed with ENOTFOUND
+36 http fetch GET https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint-plugin-prettier attempt 3 failed with ENOTFOUND
+37 verbose type system
+38 verbose stack FetchError: request to https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint failed, reason: getaddrinfo ENOTFOUND binarios.intranet.bb.com.br
+38 verbose stack     at ClientRequest.<anonymous> (C:\Users\jlimafreire\AppData\Local\Programs\node-v22.22.0-win-x64\node_modules\npm\node_modules\minipass-fetch\lib\index.js:130:14)
+38 verbose stack     at ClientRequest.emit (node:events:519:28)
+38 verbose stack     at emitErrorEvent (node:_http_client:107:11)
+38 verbose stack     at _destroy (node:_http_client:954:9)
+38 verbose stack     at onSocketNT (node:_http_client:974:5)
+38 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:91:21)
+39 error code ENOTFOUND
+40 error syscall getaddrinfo
+41 error errno ENOTFOUND
+42 error network request to https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/eslint failed, reason: getaddrinfo ENOTFOUND binarios.intranet.bb.com.br
+43 error network This is a problem related to network connectivity.
+43 error network In most cases you are behind a proxy or have bad network settings.
+43 error network
+43 error network If you are behind a proxy, please make sure that the
+43 error network 'proxy' config is set properly.  See: 'npm help config'
+44 verbose cwd C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent
+45 verbose os Windows_NT 10.0.26200
+46 verbose node v22.22.0
+47 verbose npm  v10.9.4
+48 verbose exit 1
+49 verbose code 1
+50 error A complete log of this run can be found in: C:\Users\jlimafreire\.bbdevops-autopilot-safe\BBDevOpsAutopilot\repos\psc-sre-automacao-agent\.npm-cache\_logs\2026-03-19T18_53_00_641Z-debug-0.log

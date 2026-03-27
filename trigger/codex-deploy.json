@@ -1,0 +1,10 @@
+{
+  "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
+  "workspace_id": "ws-default",
+  "component": "controller",
+  "task": "Example: Fix XSS vulnerability in oas-sre-controller by adding sanitizeForOutput to all user input reflections",
+  "corporate_files": "src-controllers-oas-sre-controller.controller.ts",
+  "model": "o3",
+  "auto_merge": false,
+  "run": 0
+}

@@ -1,0 +1,157 @@
+name: "[Release] Promote CAP Tag"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ref=${{ github.ref_name }}"
+
+# Promotes a version tag in the CAP values.yaml for controller or agent.
+# Can be triggered via trigger file or workflow_dispatch.
+# Uses BBVINET_TOKEN to commit to CAP repo via GitHub API.
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/promote-cap.json']
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+      component:
+        description: "Component to promote"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+      version:
+        description: "Version tag to set (e.g., 3.6.5)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  promote:
+    name: "Promote ${{ github.event.inputs.component || 'from-trigger' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Read inputs"
+        id: inputs
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/promote-cap.json ]; then
+            WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/promote-cap.json)
+            COMPONENT=$(jq -r '.component // "controller"' trigger/promote-cap.json)
+            VERSION=$(jq -r '.version // ""' trigger/promote-cap.json)
+          else
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+
+          # Read workspace config
+          WS_JSON=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+
+          if [ "$COMPONENT" = "controller" ]; then
+            CAP_REPO=$(echo "$WS_JSON" | jq -r '.controller.capRepo // ""')
+            CAP_BRANCH=$(echo "$WS_JSON" | jq -r '.controller.capBranch // "main"')
+            CAP_VALUES=$(echo "$WS_JSON" | jq -r '.controller.capValuesPath // ""')
+            IMAGE_PATTERN=$(echo "$WS_JSON" | jq -r '.controller.imagePattern // ""')
+            SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.controller.sourceRepo // ""')
+          else
+            CAP_REPO=$(echo "$WS_JSON" | jq -r '.agent.capRepo // ""')
+            CAP_BRANCH=$(echo "$WS_JSON" | jq -r '.agent.capBranch // "main"')
+            CAP_VALUES=$(echo "$WS_JSON" | jq -r '.agent.capValuesPath // ""')
+            IMAGE_PATTERN=$(echo "$WS_JSON" | jq -r '.agent.imagePattern // ""')
+            SOURCE_REPO=$(echo "$WS_JSON" | jq -r '.agent.sourceRepo // ""')
+          fi
+
+          # If no version specified, read from source repo package.json
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            VERSION=$(GH_TOKEN="${{ secrets.BBVINET_TOKEN }}" gh api "repos/$SOURCE_REPO/contents/package.json?ref=main" \
+              --jq '.content' | base64 -d | jq -r '.version')
+          fi
+
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "cap_repo=$CAP_REPO" >> "$GITHUB_OUTPUT"
+          echo "cap_branch=$CAP_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "cap_values=$CAP_VALUES" >> "$GITHUB_OUTPUT"
+          echo "image_pattern=$IMAGE_PATTERN" >> "$GITHUB_OUTPUT"
+
+          echo "=== Promote $COMPONENT $VERSION to $CAP_REPO ==="
+
+      - name: "Update CAP values.yaml"
+        env:
+          GH_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          CAP_REPO="${{ steps.inputs.outputs.cap_repo }}"
+          CAP_BRANCH="${{ steps.inputs.outputs.cap_branch }}"
+          CAP_VALUES="${{ steps.inputs.outputs.cap_values }}"
+          IMAGE_PATTERN="${{ steps.inputs.outputs.image_pattern }}"
+          TAG="${{ steps.inputs.outputs.version }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+
+          if [ -z "$CAP_REPO" ] || [ "$CAP_REPO" = "null" ] || [ "$CAP_REPO" = "" ]; then
+            echo "::error ::No CAP repo configured for $COMPONENT"
+            exit 1
+          fi
+
+          echo "=== Promoting $COMPONENT $TAG to $CAP_REPO ==="
+
+          # Read current values.yaml
+          VALUES=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.content' | base64 -d)
+          VSHA=$(gh api "repos/$CAP_REPO/contents/${CAP_VALUES}?ref=$CAP_BRANCH" --jq '.sha')
+          echo "=== Current values.yaml ===" && echo "$VALUES" | grep -i "image:"
+
+          # Update image tag
+          UPDATED=$(echo "$VALUES" | sed "s|\(${IMAGE_PATTERN}\).*|\1${TAG}|")
+          [ "$VALUES" = "$UPDATED" ] && UPDATED=$(echo "$VALUES" | sed "s|^\(\s*tag:\s*\).*|\1\"${TAG}\"|")
+
+          if [ "$VALUES" != "$UPDATED" ]; then
+            echo "=== Updated ===" && echo "$UPDATED" | grep -i "image:"
+            gh api "repos/$CAP_REPO/contents/${CAP_VALUES}" --method PUT \
+              -f "branch=$CAP_BRANCH" \
+              -f "message=chore(release): $COMPONENT -> ${TAG}" \
+              -f "content=$(echo "$UPDATED" | base64 -w0)" \
+              -f "sha=$VSHA"
+            echo "Promoted $COMPONENT to $TAG!"
+          else
+            echo "::warning ::Image pattern didn't match — tag may already be updated"
+            echo "Current image line:"
+            echo "$VALUES" | grep -i "image:.*$COMPONENT" || echo "Pattern not found"
+          fi
+
+      - name: "Save to state"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          TAG="${{ steps.inputs.outputs.version }}"
+
+          RESULT=$(jq -n --arg ws "$WS_ID" --arg comp "$COMPONENT" --arg tag "$TAG" \
+            --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+            '{workspaceId:$ws, component:$comp, promotedTag:$tag, promotedAt:$ts, runId:$run}')
+
+          STATE_FILE="state/workspaces/${WS_ID}/audit/promote-${COMPONENT}-${NOW//:/-}.json"
+          gh api "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}" --method PUT \
+            -f "branch=$STATE_BRANCH" \
+            -f "message=audit: promote $COMPONENT $TAG [skip ci]" \
+            -f "content=$(echo "$RESULT" | base64 -w0)" > /dev/null 2>&1 || true
+
+          echo "## Promote CAP" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | $COMPONENT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | \`$TAG\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CAP Repo | \`${{ steps.inputs.outputs.cap_repo }}\` |" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,6 @@
+# IDEs and editors
+.vscode
+
+# testing
+coverage
+test-report.xml

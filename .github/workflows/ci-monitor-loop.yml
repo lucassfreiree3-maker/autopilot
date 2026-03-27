@@ -1,0 +1,336 @@
+name: "[Core] CI Monitor Loop"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} • ${{ github.event.workflow_run.conclusion || 'manual' }} • ref=${{ github.ref_name }}"
+
+# Closed-loop CI monitor: triggers after apply-source-change completes, polls the
+# corporate CI (Esteira de Build NPM), then automatically promotes (success) or
+# diagnoses + fixes (failure). Zero manual intervention required.
+
+on:
+  workflow_run:
+    workflows:
+      - "[Corp] Deploy: Apply Source Change"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      workspace_id:
+        description: "Workspace ID"
+        required: true
+        default: "ws-default"
+        type: choice
+        options:
+          - ws-default
+          - ws-cit
+      component:
+        description: "Component to monitor (controller or agent)"
+        required: true
+        type: choice
+        options:
+          - controller
+          - agent
+      commit_sha:
+        description: "Commit SHA to check in corporate repo (leave empty to read from state)"
+        required: false
+      version:
+        description: "Version being deployed (leave empty to read from state)"
+        required: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  # Use component+workspace to allow parallel monitoring of controller and agent
+  # For workflow_run events we include the triggering run id to avoid slot reuse
+  group: ci-monitor-${{ github.event.inputs.workspace_id || 'ws-default' }}-${{ github.event.inputs.component || github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+  # Poll every 2 minutes, up to 15 times (30 min window)
+  POLL_INTERVAL_SECONDS: 120
+  MAX_ATTEMPTS: 15
+
+jobs:
+  monitor:
+    name: "Monitor Corporate CI"
+    # Only run when apply-source-change succeeded (or manual dispatch)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── 1. Resolve inputs ────────────────────────────────────────────────────
+      - name: "Read deploy state / inputs"
+        id: inputs
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            WS_ID="${{ github.event.inputs.workspace_id }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            COMMIT_SHA="${{ github.event.inputs.commit_sha }}"
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Triggered by apply-source-change — read last release state for each component.
+            # apply-source-change runs only for ws-default today; extend here when other
+            # workspaces gain a corporate CI pipeline.
+            WS_ID="ws-default"
+            COMMIT_SHA=""
+            VERSION=""
+            COMPONENT=""
+
+            for COMP in controller agent; do
+              STATE=$(gh api \
+                "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/${COMP}-release-state.json?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+              RUN_ID=$(echo "$STATE" | jq -r '.runId // ""')
+              TRIGGER_RUN="${{ github.event.workflow_run.id }}"
+
+              # Match the state entry that was written by this specific run
+              if [ "$RUN_ID" = "$TRIGGER_RUN" ]; then
+                COMPONENT="$COMP"
+                COMMIT_SHA=$(echo "$STATE" | jq -r '.lastReleasedSha // ""')
+                VERSION=$(echo "$STATE" | jq -r '.lastTag // ""')
+                echo "Matched component=$COMPONENT sha=$COMMIT_SHA version=$VERSION (run=$RUN_ID)"
+                break
+              fi
+            done
+
+            # Fallback: read the most recently updated component state
+            if [ -z "$COMPONENT" ]; then
+              echo "::warning ::Could not match run ID to a release state entry; falling back to most recent controller state."
+              COMPONENT="controller"
+              STATE=$(gh api \
+                "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/controller-release-state.json?ref=$STATE_BRANCH" \
+                --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+              COMMIT_SHA=$(echo "$STATE" | jq -r '.lastReleasedSha // ""')
+              VERSION=$(echo "$STATE" | jq -r '.lastTag // ""')
+            fi
+          fi
+
+          # Validate
+          if [ -z "$COMPONENT" ] || [ "$COMPONENT" = "null" ]; then
+            echo "::error ::Could not determine component to monitor."
+            exit 1
+          fi
+          if [ -z "$COMMIT_SHA" ] || [ "$COMMIT_SHA" = "null" ]; then
+            echo "::warning ::No commit SHA available — will monitor latest workflow run instead."
+            COMMIT_SHA=""
+          fi
+
+          # Read workspace config to get source repo URL
+          WS_JSON=$(gh api \
+            "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" \
+            --jq '.content' | base64 -d)
+          SOURCE_REPO=$(echo "$WS_JSON" | jq -r ".${COMPONENT}.sourceRepo // \"\"")
+
+          echo "ws_id=$WS_ID"          >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT"  >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION"       >> "$GITHUB_OUTPUT"
+          echo "source_repo=$SOURCE_REPO" >> "$GITHUB_OUTPUT"
+
+          echo "=== Monitor: ws=$WS_ID component=$COMPONENT sha=$COMMIT_SHA version=$VERSION repo=$SOURCE_REPO ==="
+
+      # ── 2. Poll corporate CI ─────────────────────────────────────────────────
+      - name: "Poll corporate CI"
+        id: poll
+        env:
+          # BBVINET_TOKEN is the Getronics corporate CI token.
+          # For other workspaces, add token selection based on ws_id when needed.
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          SOURCE_REPO="${{ steps.inputs.outputs.source_repo }}"
+          COMMIT_SHA="${{ steps.inputs.outputs.commit_sha }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+
+          if [ -z "$SOURCE_REPO" ] || [ "$SOURCE_REPO" = "null" ]; then
+            echo "::error ::No source repo configured for $COMPONENT — cannot poll CI."
+            exit 1
+          fi
+
+          OVERALL="unknown"
+          FAILED_RUN_URL=""
+
+          for ATTEMPT in $(seq 1 $MAX_ATTEMPTS); do
+            echo "=== Attempt $ATTEMPT / $MAX_ATTEMPTS ==="
+
+            if [ -n "$COMMIT_SHA" ] && [ "$COMMIT_SHA" != "null" ]; then
+              RUNS=$(GH_TOKEN="$BBVINET_TOKEN" gh api \
+                "repos/$SOURCE_REPO/actions/runs?head_sha=${COMMIT_SHA}&per_page=10" \
+                2>/dev/null || echo '{"workflow_runs":[]}')
+            else
+              # Fallback: check the last 5 runs in the repo
+              RUNS=$(GH_TOKEN="$BBVINET_TOKEN" gh api \
+                "repos/$SOURCE_REPO/actions/runs?per_page=5" \
+                2>/dev/null || echo '{"workflow_runs":[]}')
+            fi
+
+            TOTAL=$(echo "$RUNS"       | jq '.workflow_runs | length')
+            IN_PROG=$(echo "$RUNS"     | jq '[.workflow_runs[] | select(.status != "completed")] | length')
+            SUCCESS=$(echo "$RUNS"     | jq '[.workflow_runs[] | select(.conclusion == "success")] | length')
+            FAILED=$(echo "$RUNS"      | jq '[.workflow_runs[] | select(.conclusion == "failure")] | length')
+            FAILED_RUN_URL=$(echo "$RUNS" | jq -r '[.workflow_runs[] | select(.conclusion == "failure")] | first | .html_url // ""')
+
+            echo "  total=$TOTAL in_progress=$IN_PROG success=$SUCCESS failed=$FAILED"
+
+            if [ "$TOTAL" -eq 0 ]; then
+              echo "  No runs found yet — waiting..."
+              OVERALL="pending"
+            elif [ "$SUCCESS" -gt 0 ] && [ "$IN_PROG" -eq 0 ]; then
+              OVERALL="success"
+              echo "  CI PASSED ✅"
+              break
+            elif [ "$FAILED" -gt 0 ] && [ "$IN_PROG" -eq 0 ]; then
+              OVERALL="failure"
+              echo "  CI FAILED ❌"
+              break
+            else
+              OVERALL="in_progress"
+              echo "  CI still running..."
+            fi
+
+            if [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; then
+              echo "  Sleeping ${POLL_INTERVAL_SECONDS}s..."
+              sleep "$POLL_INTERVAL_SECONDS"
+            fi
+          done
+
+          if [ "$OVERALL" = "in_progress" ] || [ "$OVERALL" = "pending" ] || [ "$OVERALL" = "unknown" ]; then
+            echo "::warning ::CI did not complete within the polling window ($MAX_ATTEMPTS × ${POLL_INTERVAL_SECONDS}s). Marking as timeout."
+            OVERALL="timeout"
+          fi
+
+          echo "overall=$OVERALL"            >> "$GITHUB_OUTPUT"
+          echo "failed_run_url=$FAILED_RUN_URL" >> "$GITHUB_OUTPUT"
+          echo "=== Final CI status: $OVERALL ==="
+
+      # ── 3a. On success → promote CAP ─────────────────────────────────────────
+      - name: "Trigger promote-cap (on success)"
+        if: steps.poll.outputs.overall == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          VERSION="${{ steps.inputs.outputs.version }}"
+
+          echo "=== CI passed — promoting $COMPONENT $VERSION to CAP ==="
+
+          gh workflow run promote-cap.yml \
+            --repo "$AUTOPILOT_REPO" \
+            --ref main \
+            --field workspace_id="$WS_ID" \
+            --field component="$COMPONENT" \
+            --field version="$VERSION"
+
+          echo "Promote-CAP workflow dispatched for $COMPONENT $VERSION."
+
+      # ── 3b. On failure/timeout → diagnose + fix ───────────────────────────────
+      - name: "Trigger ci-diagnose (on failure)"
+        if: >
+          steps.poll.outputs.overall == 'failure' ||
+          steps.poll.outputs.overall == 'timeout'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          COMMIT_SHA="${{ steps.inputs.outputs.commit_sha }}"
+          OVERALL="${{ steps.poll.outputs.overall }}"
+
+          echo "=== CI $OVERALL — diagnosing $COMPONENT ==="
+
+          gh workflow run ci-diagnose.yml \
+            --repo "$AUTOPILOT_REPO" \
+            --ref main \
+            --field workspace_id="$WS_ID" \
+            --field component="$COMPONENT" \
+            --field commit_sha="$COMMIT_SHA"
+
+          echo "CI-diagnose dispatched for $COMPONENT (sha=$COMMIT_SHA)."
+
+      - name: "Trigger fix-corporate-ci (on failure)"
+        if: steps.poll.outputs.overall == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+
+          echo "=== Triggering fix-corporate-ci for $COMPONENT ==="
+
+          gh workflow run fix-corporate-ci.yml \
+            --repo "$AUTOPILOT_REPO" \
+            --ref main \
+            --field workspace_id="$WS_ID" \
+            --field component="$COMPONENT"
+
+          echo "fix-corporate-ci dispatched for $COMPONENT."
+
+      # ── 4. Save result to autopilot-state ────────────────────────────────────
+      - name: "Save monitor result to state"
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          WS_ID="${{ steps.inputs.outputs.ws_id }}"
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          OVERALL="${{ steps.poll.outputs.overall || 'unknown' }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          RESULT=$(jq -n \
+            --arg ws "$WS_ID" \
+            --arg comp "$COMPONENT" \
+            --arg sha "${{ steps.inputs.outputs.commit_sha }}" \
+            --arg ver "${{ steps.inputs.outputs.version }}" \
+            --arg ts "$NOW" \
+            --arg overall "$OVERALL" \
+            --arg run "${{ github.run_id }}" \
+            --arg failed_url "${{ steps.poll.outputs.failed_run_url || '' }}" \
+            '{
+              workspaceId: $ws,
+              component: $comp,
+              commitSha: $sha,
+              version: $ver,
+              monitoredAt: $ts,
+              ciOutcome: $overall,
+              monitorRunId: $run,
+              failedRunUrl: $failed_url
+            }')
+
+          STATE_FILE="state/workspaces/${WS_ID}/ci-monitor-${COMPONENT}.json"
+          EXISTING_SHA=$(gh api \
+            "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          ARGS=(-f "branch=$STATE_BRANCH" \
+            -f "message=ci-monitor: $COMPONENT $OVERALL [skip ci]" \
+            -f "content=$(echo "$RESULT" | base64 -w0)")
+          [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "null" ] && ARGS+=(-f "sha=$EXISTING_SHA")
+
+          gh api "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}" \
+            --method PUT "${ARGS[@]}" > /dev/null 2>&1 || \
+            echo "::warning ::Could not save monitor state — continuing."
+
+          echo "## CI Monitor Loop" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | $COMPONENT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | \`${{ steps.inputs.outputs.version }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ steps.inputs.outputs.commit_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| CI Outcome | **$OVERALL** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Source Repo | \`${{ steps.inputs.outputs.source_repo }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$OVERALL" = "failure" ] && [ -n "${{ steps.poll.outputs.failed_run_url }}" ]; then
+            echo "| Failed Run | [${{ steps.poll.outputs.failed_run_url }}](${{ steps.poll.outputs.failed_run_url }}) |" >> "$GITHUB_STEP_SUMMARY"
+          fi

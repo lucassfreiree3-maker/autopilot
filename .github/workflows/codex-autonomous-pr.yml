@@ -1,0 +1,95 @@
+name: Codex autonomous PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Tarefa para o Codex executar"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: codex-autonomous-pr
+  cancel-in-progress: false
+
+jobs:
+  codex_pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Você está trabalhando neste repositório.
+
+            Tarefa:
+            ${{ inputs.task }}
+
+            Regras:
+            - faça apenas as mudanças necessárias
+            - preserve o fluxo atual
+            - não quebre a esteira
+            - atualize testes e documentação se necessário
+            - não mexa em secrets
+            - não faça push direto em main
+            - deixe o repositório consistente ao final
+          codex-args: '["--full-auto"]'
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update PR
+        id: cpr
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(codex): ${{ inputs.task }}"
+          branch: "codex/${{ github.run_id }}"
+          delete-branch: true
+          title: "Codex: ${{ inputs.task }}"
+          body: |
+            PR criado automaticamente pelo GitHub Actions.
+
+            Tarefa:
+            ${{ inputs.task }}
+
+            Origem:
+            - workflow: ${{ github.workflow }}
+            - run_id: ${{ github.run_id }}
+            - actor: ${{ github.actor }}
+
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ steps.cpr.outputs.pull-request-number }} --auto --squash
+
+      - name: Show PR URL
+        if: steps.cpr.outputs.pull-request-url
+        run: |
+          echo "PR: ${{ steps.cpr.outputs.pull-request-url }}"
+
+      - name: No changes summary
+        if: steps.changes.outputs.has_changes == 'false'
+        run: echo "Nenhuma mudança detectada pelo Codex para a tarefa."

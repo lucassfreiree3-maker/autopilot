@@ -32,8 +32,9 @@ Read shared rules: `contracts/shared-agent-contract.json`
 
 | Workspace ID | Company | Status |
 |---|---|---|
+| ws-cit | CIT | unknown |
 | ws-corp-1 | Corporate Workspace 1 | unknown |
-| ws-default | Default Workspace | unknown |
+| ws-default | Getronics | unknown |
 | ws-socnew | SocNew - Matheus | unknown |
 
 
@@ -51,6 +52,19 @@ lucassfreiree/autopilot (this repo)
 
 ### State files (per workspace):
 ```
+#### ws-cit
+  workspace.json
+  health.json
+  agent-release-state.json
+  controller-release-state.json
+  release-freeze.json
+  locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  audit/ (7 files)
+  improvements/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  metrics/ (2 files)
+  handoffs/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  approvals/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+
 #### ws-corp-1
   workspace.json
   health.json
@@ -60,7 +74,7 @@ lucassfreiree/autopilot (this repo)
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   audit/ (15 files)
   improvements/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  metrics/ (3 files)
+  metrics/ (5 files)
   handoffs/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   approvals/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
 
@@ -70,10 +84,10 @@ lucassfreiree/autopilot (this repo)
   agent-release-state.json
   controller-release-state.json
   release-freeze.json
-  locks/ (1 files)
-  audit/ (204 files)
+  locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
+  audit/ (270 files)
   improvements/ (1 files)
-  metrics/ (3 files)
+  metrics/ (5 files)
   handoffs/ (1 files)
   approvals/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
 
@@ -86,7 +100,7 @@ lucassfreiree/autopilot (this repo)
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   audit/ (1 files)
   improvements/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  metrics/ (3 files)
+  metrics/ (5 files)
   handoffs/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   approvals/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
 
@@ -106,13 +120,18 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/agent-bridge.json` | agent-bridge.yml | SHARED | all workspaces | context, include_patches, include_session_memory, model, task, workspace_id |
 | `trigger/agent-sync.json` | agent-sync.yml | GETRONICS | ws-default | BBVINET_TOKEN | context, task, workspace_id |
 | `trigger/ci-diagnose.json` | ci-diagnose.yml | GETRONICS | ws-default | BBVINET_TOKEN | commit_sha, component, note, workspace_id |
+| `trigger/ci-status.json` | ci-status-check.yml | GETRONICS | ws-default | BBVINET_TOKEN | commit_sha, component, note, workspace_id |
+| `trigger/clone-repos.json` | clone-corporate-repos.yml | GETRONICS | ws-default | BBVINET_TOKEN | note, repos |
+| `trigger/codex-commit.json` | codex-apply.yml | SHARED | all workspaces | Codex agent commit automation | auto_merge, branch_suffix, model, target_files, task, workspace_id |
+| `trigger/codex-deploy.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_merge, component, corporate_files, model, task, workspace_id |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
-| `trigger/fix-ci.json` | fix-corporate-ci.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
+| `trigger/fix-ci.json` | sync-copilot-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
 | `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
 | `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
-| `trigger/source-change.json` | sync-codex-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
+| `trigger/promote-cap.json` | promote-cap.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, version, workspace_id |
+| `trigger/source-change.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -196,13 +215,20 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
+| auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
 | bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
 | check-repo-access.yml | [Corp] Check: Repo Access | push, manual |
 | ci-diagnose.yml | [Corp] CI: Diagnose Error Logs | trigger file, manual |
 | ci-failure-analysis.yml | [Agent] CI Failure Analysis | manual |
+| ci-monitor-loop.yml | [Core] CI Monitor Loop | manual |
+| ci-status-check.yml | [Corp] CI: Status Check | trigger file, manual |
 | cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
+| clone-corporate-repos.yml | [Infra] Clone Corporate Repos | trigger file, manual |
+| codex-apply.yml | [Agent] Codex Apply: Task → Code → PR | trigger file, manual |
+| codex-autonomous-pr.yml | Codex autonomous PR | manual |
+| codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
@@ -218,6 +244,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
 | ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
+| promote-cap.yml | [Release] Promote CAP Tag | trigger file, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
 | release-agent.yml | [Release] Agent | manual |
 | release-approval.yml | [Release] Approval Gate | manual |
@@ -227,6 +254,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | restore-state.yml | [Core] Restore: State Rollback | manual |
 | seed-workspace.yml | [Core] Seed Workspace | manual |
 | session-guard.yml | [Core] Session Guard | reusable |
+| sync-copilot-prompt.yml | [Infra] Sync Copilot Prompt | trigger file, manual |
 | test-corporate-flow.yml | [Corp] Test: Corporate E2E Flow | trigger file, manual |
 | test-full-flow.yml | [Corp] Test: Full Flow (Controller + Agent) | trigger file, manual |
 | workspace-lock-gc.yml | [Core] Lock GC | scheduled, manual |
@@ -243,6 +271,12 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | bootstrap.yml | workspace_id |
 | ci-diagnose.yml | workspace_id, component, commit_sha |
 | ci-failure-analysis.yml | workspace_id, component, run_id |
+| ci-monitor-loop.yml | workspace_id, component, commit_sha, version |
+| ci-status-check.yml | workspace_id, component, commit_sha |
+| clone-corporate-repos.yml | repos |
+| codex-apply.yml | task, target_files, model, auto_merge, workspace_id, run |
+| codex-autonomous-pr.yml | task |
+| codex-deploy.yml | task, component, workspace_id, model, auto_merge, run |
 | continuous-improvement.yml | workspace_id, auto_fix, scope |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
@@ -257,6 +291,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-pipeline-diagnose.yml | platform, target, identifier, run_id, workspace_id |
 | ops-tf-plan.yml | path, action, workspace_id |
 | ops-workflow-observability.yml | workspace_id |
+| promote-cap.yml | workspace_id, component, version |
 | record-improvement.yml | workspace_id, category, description, source, recorded_by |
 | release-agent.yml | workspace_id, force |
 | release-approval.yml | workspace_id, component, version, approver |
@@ -313,4 +348,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-25T19:38:24Z | Run: 23560396208*
+*Last synced: 2026-03-27T12:21:30Z | Run: 23645928820*

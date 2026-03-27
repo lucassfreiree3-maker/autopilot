@@ -1,0 +1,13 @@
+apiVersion: v2
+name: appset
+description: A Helm chart for Kubernetes
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+dependencies:
+ - name: generico
+   version: 2.0.8
+   alias: sre-aut-controller
+   repository: "https://charts-repo.nuvem.bb.com.br/pre-prd/bb/psc"
+   condition: sre-aut-controller.enabled

@@ -5,6 +5,26 @@
 
 ---
 
+## Segregacao critica de contextos (OBRIGATORIO)
+
+Regra operacional confirmada pelo proprietario da conta (2026-03-26):
+
+- **Contextos do usuario principal (NUNCA misturar entre si):**
+  - `ws-default` (Getronics)
+  - `ws-cit`
+- **Contextos de terceiro (irmao, totalmente separados):**
+  - `ws-corp-1`
+  - `ws-socnew`
+
+### Politica de isolamento
+
+1. Sempre validar `workspace_id` antes de qualquer acao com mudanca de estado.
+2. Nunca reutilizar triggers, handoffs, estado, auditoria ou contexto tecnico entre grupos diferentes.
+3. Se houver ambiguidade na solicitacao, interromper e pedir confirmacao explicita do `workspace_id`.
+4. Qualquer automacao nova deve preservar isolamento por `workspace_id` como chave primaria.
+
+---
+
 ## O que e o Autopilot
 
 Control plane web-only para orquestracao de releases multi-workspace, multi-agent.
@@ -292,6 +312,60 @@ Registro de melhorias: category, description, source, status.
 
 ## Como Operar
 
+### Ciclo operacional automatico do agente (padrao)
+
+1. Clone/fetch e branch a partir de `main` atualizado
+2. Pull/rebase antes de editar
+3. Alteracoes + validacao tecnica
+4. Commit atomico
+5. Push da branch
+6. PR para `main`
+7. Monitoramento de checks/workflows
+8. Correcao automatica de falhas quando possivel
+9. Squash merge apos gates
+10. Monitoramento pos-merge
+
+Automacao local do ciclo:
+- `scripts/codex/auto-pr-merge.sh`
+- Uso: `GITHUB_TOKEN=<token> scripts/codex/auto-pr-merge.sh` (ou `GH_TOKEN`, ou `gh auth login`)
+- Opcional: `AUTO_COMMIT=true COMMIT_MESSAGE="chore: ..."` para commit automatico
+- Faz: commit automatico opcional (`git add -A` + `git commit`), configura `origin` (se ausente), push da branch atual, cria PR para `main`, tenta auto-merge e faz fallback para squash merge direto se auto-merge nao estiver disponivel.
+
+> O agente so deve interromper esse fluxo quando faltar informacao critica ou houver bloqueio de seguranca/isolamento de workspace.
+
+### Memoria operacional persistente (sessao atual + proximas)
+
+Este comportamento ficou registrado como fonte de verdade em:
+1. `contracts/codex-agent-contract.json` (`autonomousExecutionPolicy`)
+2. `contracts/claude-session-memory.json` (`deployFlowGuide`)
+3. `CLAUDE.md` (`Deploy Flow — Complete Guide`)
+4. `HANDOFF.md` (este arquivo, continuidade operacional)
+
+Regra fixa: executar `commit -> push -> PR -> merge` automaticamente quando houver contexto suficiente, sem misturar workspaces.
+Regra de produto Autopilot: **nunca** manter apenas local; toda mudanca necessaria deve ser sincronizada no GitHub no mesmo ciclo.
+
+Sincronizacao automatica recomendada:
+- `scripts/codex/sync-autopilot-product.sh`
+- Fluxo: detecta alteracoes locais -> commit automatico -> push -> PR -> merge -> aguarda estado `MERGED`.
+- Gate obrigatorio antes de enviar para esteira: `scripts/codex/preflight-autopilot.sh` (shell/json/yaml).
+- Pos-merge automatico: resolve `mergeCommit` da PR e monitora os builds desse commit ate conclusao com `scripts/codex/monitor-commit-builds.sh`.
+- Rastreabilidade: commits do repo autopilot devem incluir marcador `[claude]` para facilitar leitura na esteira.
+- Restricao: **nao** usar esse marcador em commits das esteiras/repositorios empresariais.
+- Teste operacional (2026-03-26): commit de validacao pode usar marcador `[codex-autopilot]` quando solicitado explicitamente pelo usuario para auditoria da esteira.
+- Se workflow `[Agent] Auto PR + Auto-Merge (Codex)` receber 403 `GitHub Actions is not permitted to create or approve pull requests`, tratar como bloqueio de policy do repo para `GITHUB_TOKEN` (nao erro de codigo) e orientar habilitar essa permissao ou usar PAT dedicado.
+
+### Mapeamento do fluxo real (aprendizado de execucao)
+
+Referencia analisada: run `23599281735` (2026-03-26) e cadeia do mesmo `headSha`:
+- `23599267663` — `[Agent] Auto PR + Auto-Merge (Codex)` (`push`)
+- `23599276946` — `[Core] Auto-Merge PR to main` (`pull_request_target`)
+- `23599281735` — `[Infra] Cleanup: Stale Branches` (`pull_request`)
+
+Leituras operacionais:
+1. Step "Enable auto-merge" pode aparecer **skipped** e ainda assim ser fluxo valido (merge pode ocorrer por fallback/squash direto).
+2. Validacao de sucesso deve considerar a cadeia inteira do commit (Auto PR + Auto-Merge + Cleanup branch) e nao apenas um run isolado.
+3. Pos-merge obrigatorio: confirmar branch removida e ausencia de run com `conclusion=failure` para o mesmo `headSha`.
+
 ### Disparar E2E Release
 Editar `trigger/e2e-test.json` e fazer push em main:
 ```json
@@ -303,6 +377,16 @@ Editar `trigger/fix-ci.json` e fazer push em main:
 ```json
 {"workspace_id": "ws-default", "run": 2}
 ```
+
+### Auto-merge para main (apos checks com sucesso)
+Workflow: `.github/workflows/auto-merge-to-main.yml`
+
+Regras:
+1. PR deve ter base `main`
+2. PR nao pode estar em draft
+3. PR deve ter label `automerge` ou `auto-merge`
+4. PR deve ser interno (sem fork) e autoria confiavel (`OWNER`, `MEMBER` ou `COLLABORATOR`)
+5. Auto-merge (squash) e habilitado e o GitHub conclui merge automaticamente quando todos os checks obrigatorios passarem
 
 ### Criar Workspace
 Usar workflow `seed-workspace.yml` via workflow_dispatch.

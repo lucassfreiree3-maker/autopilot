@@ -7,6 +7,8 @@ on:
       - "[Core] Health Check"
       - "[Corp] Test: Full Flow (Controller + Agent)"
       - "[Corp] Test: Corporate E2E Flow"
+      - "[Corp] Deploy: Apply Source Change"
+      - "[Core] CI Monitor Loop"
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -34,7 +36,9 @@ env:
 
 jobs:
   notify:
-    if: false  # Temporarily disabled — re-enable by removing this line
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     steps:
       - name: "Evaluate trigger"

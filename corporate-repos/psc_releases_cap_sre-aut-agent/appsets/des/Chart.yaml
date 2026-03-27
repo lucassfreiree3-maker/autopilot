@@ -1,0 +1,13 @@
+apiVersion: v2
+name: appset
+description: A Helm chart for Kubernetes
+type: application
+version: 0.1.0
+appVersion: "1.16.0"
+
+dependencies:
+  - name: generico
+    version: 1.0.2
+    alias: appset
+    repository: "https://charts-repo.nuvem.bb.com.br/pre-prd/bb/psc"
+    condition: appset.enabled

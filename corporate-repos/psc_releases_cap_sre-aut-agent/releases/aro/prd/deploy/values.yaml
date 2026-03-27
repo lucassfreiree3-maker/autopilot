@@ -1,0 +1,315 @@
+global:
+  clusterSolucao: ''
+  clusterServico: ''
+  clusterDimensao: ''
+  clusterName: ''
+  clusterIndex: ''
+  clusterTemplateID:
+  clusterSite: ''
+  servicoSigla: ''
+  servicoEnv: ''
+  servicoNome: ''
+
+sre-aut-agent:
+  enabled: true
+  items:
+    - enabled: true
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: sre-aut-agent-sa
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+
+    - enabled: true
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sre-aut-agent
+      rules:
+          - apiGroups: [""]
+            resources: ["services", "persistentvolumeclaims", "configmaps", "events"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: [""]
+            resources: ["pods"]
+            verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+          - apiGroups: [""]
+            resources: ["pods/log"]
+            verbs: ["get"]
+          - apiGroups: [""]
+            resources: ["nodes"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["apps"]
+            resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["batch"]
+            resources: ["jobs", "cronjobs"]
+            verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
+          - apiGroups: ["networking.k8s.io"]
+            resources: ["ingresses", "networkpolicies"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["storage.k8s.io"]
+            resources: ["storageclasses"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["certificado.psc.bb.com.br/v1"]
+            resources: ["bbcerts"]
+            verbs: ["get", "list", "watch"]
+          - apiGroups: ["psc.bb.com.br/v1"]
+            resources: ["dnsingresses"]
+            verbs: ["get", "list", "watch"]
+
+
+    - enabled: true
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: sre-aut-agent-binding
+      subjects:
+        - kind: ServiceAccount
+          name: sre-aut-agent-sa
+          namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+      roleRef:
+        kind: ClusterRole
+        name: sre-aut-agent
+        apiGroup: rbac.authorization.k8s.io
+
+    - enabled: true
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        labels:
+          app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+          release.k8s.bb.ambiente: "{{ .Values.global.servicoEnv }}"
+          chart.release.k8s.bb/name: psc-sre-aut-agent
+          release.k8s.bb/deploy: regular
+          
+      spec:
+        revisionHistoryLimit: 7
+        replicas: 1
+        strategy:
+          type: RollingUpdate
+        selector:
+          matchLabels:
+            app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+            release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+            release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+            release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+            release.k8s.bb/deploy: regular
+        template:
+          metadata:
+            labels:
+              app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+              release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+              release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+              release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+              release.k8s.bb.ambiente: "{{ .Values.global.servicoEnv }}"
+              release.k8s.bb/deploy: regular
+              
+          spec:
+            serviceAccountName: sre-aut-agent-sa
+            imagePullSecrets:
+              - name: atfregistry
+            # initContainers:     
+            # affinity:
+            #   podAntiAffinity:
+            #     preferredDuringSchedulingIgnoredDuringExecution:
+            #     - podAffinityTerm:
+            #         labelSelector:
+            #           matchExpressions:
+            #           - key: release
+            #             operator: In
+            #             values:
+            #             - "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+            #         topologyKey: kubernetes.io/hostname
+            #       weight: 100
+            nodeSelector:
+              papel.node.k8s.bb/worker: "true"
+            tolerations:
+            - effect: "NoSchedule"
+              key: "papel.node.k8s.bb/worker"
+              operator: Equal
+              value: "true"
+            containers:
+            - name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+              image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-agent:2.0.0
+              imagePullPolicy: "IfNotPresent"
+              livenessProbe:
+                failureThreshold: 6
+                httpGet:
+                  path: /health
+                  port: 8080
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 10
+              readinessProbe:
+                failureThreshold: 6
+                httpGet:
+                  path: /ready
+                  port: 8080
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 10
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 225Mi
+                limits:
+                  cpu: 3001m
+                  memory: 300Mi
+              env:
+                - name: APP_NAME
+                  value: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+                - name: MP_OPENAPI_SERVERS
+                  value: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br" 
+                - name: ENABLE_INDEX
+                  value: index.html
+                - name: ENABLE_SWAGGER
+                  value: "true"
+                - name: NODE_ENV
+                  value: development
+                - name: JWT_ISSUER
+                  value: psc-sre-automacao-controller
+                - name: JWT_AUDIENCE
+                  value: psc-sre-automacao-agent
+                - name: JWT_CALLBACK_ISSUER
+                  value: psc-sre-automacao-agent
+                - name: JWT_CALLBACK_AUDIENCE
+                  value: psc-sre-automacao-controller
+                - name: JWT_CALLBACK_EXPIRES_IN
+                  value: "5m"
+                - name: AGENT_ID
+                  value: "agent-dev-001"
+                - name: CONTROLLER_EXECUTE_LOGS_URL
+                  value: "https://sre-aut-controller.psc.k8sprdbb111d.bb.com.br/agent/execute/logs"
+                # Automação HTTP ( get_pods, get_all_resources)
+                - name: K8S_ANALYZER_URL
+                  value: "http://sre-k8s-namespace-analyze.psc.intranet.bb.com.br/execute"
+                
+                # Automação Job (migration)
+                - name: MIGRATION_IMAGE
+                  value: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-ns-migration-preflight:1.0.1
+                - name: MIGRATION_NAMESPACE
+                  value: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+                - name: MIGRATION_SERVICE_ACCOUNT
+                  value: "sre-aut-agent-sa"  
+                  
+                - name: JWT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: jwt-secret
+                      key: JWT_SECRET
+
+    - enabled: true
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        labels:
+          app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/project: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+          release.k8s.bb.appName: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb.ambiente: "{{ .Values.global.servicoEnv }}"
+          chart.release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          projeto: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          sigla: "{{ .Values.global.servicoSigla }}"
+      spec:
+        type: ClusterIP
+        selector:
+          app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        ports:
+          - name: http
+            port: 80
+            targetPort: 8080
+
+    - enabled: true
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        labels:
+          app: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/project: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+          release.k8s.bb.appName: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb.ambiente:   "{{ .Values.global.servicoEnv }}"
+          chart.release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/ingress: interno
+          ingress.k8s.bb/class: nginx
+          chart.k8s.bb/modificado: "versao-ingress"
+        annotations:
+          haproxy.org/timeout-client: 1800s
+          haproxy.org/timeout-connect: 30s
+          haproxy.org/timeout-server: 1800s
+          kubernetes.io/ingress.class: nginx
+          nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+          nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+          nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
+      spec:
+        rules:
+        - host: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+          http:
+            paths:
+            - path: "/"
+              pathType: Prefix
+              backend:
+                service:
+                  name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+                  port:
+                    number: 80
+        tls:
+        - hosts:
+          - "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+          secretName: "{{ .Values.global.servicoNome }}"
+                  
+    - enabled: true
+      apiVersion: psc.bb.com.br/v1
+      kind: DnsIngress
+      metadata:
+        name: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+        labels:
+          app: dnsingress
+          release: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/name: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/project: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+          release.k8s.bb/sigla: "{{ .Values.global.servicoSigla }}"
+          chart.release.k8s.bb/name: dnsingress
+          chart.release.k8s.bb/version: 2.0.0
+      spec:
+        ingressClass: nginx
+        hostname: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+
+    - enabled: true
+      apiVersion: certificado.psc.bb.com.br/v1
+      kind: BBCert
+      metadata:
+        name: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+        namespace: "{{ .Values.global.servicoSigla }}-{{ .Values.global.servicoNome }}"
+      spec:
+        autoRenew:
+          enabled: true
+          qtDaysBeforeCertExpirion: 30
+        custodianteCertificado:
+          matriculaBB: F6321212
+        dadosCertificado:
+          alternativesNames:
+          - "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+          ambientePKI: "{{ .Values.global.servicoEnv }}"
+          commomName: "{{ .Values.global.servicoNome }}.psc.{{ .Values.global.clusterName }}.bb.com.br"
+          secretNameToExport: "{{ .Values.global.servicoNome }}"
+          sigla: "{{ .Values.global.servicoSigla }}"
+          ttl: 365

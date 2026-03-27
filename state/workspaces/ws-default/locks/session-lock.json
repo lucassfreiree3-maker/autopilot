@@ -1,0 +1,10 @@
+{
+  "lockId": "released",
+  "agentId": "none",
+  "operation": "none",
+  "acquiredAt": "2026-03-26T19:45:26Z",
+  "expiresAt": "2026-03-26T19:45:26Z",
+  "released": true,
+  "releasedAt": "2026-03-26T21:04:08Z",
+  "releasedBy": "lock-gc"
+}

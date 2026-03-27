@@ -1,0 +1,5 @@
+{
+    "$schema": "https://binarios.intranet.bb.com.br:443/artifactory/generic-bb-binarios-aic-local/publico/json-schemas/aic.schema.json",
+     "pipeline": {
+    }
+}

@@ -1,0 +1,60 @@
+name: Copilot Deploy
+description: Deploy via Copilot — execucao 100% autonoma do pipeline completo
+labels: [copilot, autonomous, deploy]
+assignees: []
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - controller
+        - agent
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: New Version
+      placeholder: "3.6.9"
+    validations:
+      required: true
+  - type: textarea
+    id: changes
+    attributes:
+      label: Changes Description
+      description: What patches to apply (or just version bump)
+    validations:
+      required: true
+  - type: textarea
+    id: instructions
+    attributes:
+      label: Execution Instructions
+      value: |
+        ## COPILOT DEPLOY INSTRUCTIONS — 100% AUTONOMOUS
+
+        Follow `contracts/copilot-deploy-guide.md` EXACTLY. Full docs: `ops/docs/deploy-process/`
+
+        ### MANDATORY reads before starting:
+        - `contracts/copilot-session-memory.json` — your memory
+        - `contracts/claude-session-memory.json` — project context
+        - `trigger/source-change.json` — current version and run number
+
+        ### Execute ALL steps without asking:
+        1. Create branch `copilot/deploy-{component}-{version}` from main
+        2. Create/update patches in `patches/`
+        3. Version bump in 5 files (see `ops/docs/deploy-process/05-version-bump.md`)
+        4. Edit `trigger/source-change.json` — INCREMENT RUN!
+        5. Edit `references/controller-cap/values.yaml`
+        6. Commit ALL changes in ONE commit: `[copilot] feat: deploy {component} {version}`
+        7. Create PR (NOT draft!) → squash merge
+        8. Workflow `apply-source-change.yml` auto-triggers
+        9. Update `contracts/copilot-session-memory.json`
+
+        ### CRITICAL RULES:
+        - BATCH all file edits into ONE commit — do NOT edit files one by one
+        - run field MUST be incremented — check current value first
+        - NEVER create PR as draft
+        - Version after X.Y.9 = X.(Y+1).0 — NEVER X.Y.10
+        - Swagger: ASCII only, no accents
+        - JWT scope: singular (scope), never plural (scopes)

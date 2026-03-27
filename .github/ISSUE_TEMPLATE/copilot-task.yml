@@ -1,0 +1,46 @@
+name: Copilot Task
+description: Template para tarefas do Copilot — execucao 100% autonoma
+labels: [copilot, autonomous]
+assignees: []
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: Descreva a tarefa para o Copilot executar
+    validations:
+      required: true
+  - type: textarea
+    id: instructions
+    attributes:
+      label: Execution Instructions
+      value: |
+        ## MANDATORY INSTRUCTIONS FOR COPILOT
+
+        Execute this task 100% autonomously. Do NOT ask for confirmation at any step.
+
+        ### Before starting:
+        1. Read `contracts/copilot-session-memory.json` for your cumulative memory
+        2. Read `contracts/claude-session-memory.json` for project context
+        3. Read `contracts/claude-live-status.json` for Claude's state
+
+        ### Execution rules:
+        - Make ALL file changes in a SINGLE commit (batch everything)
+        - NEVER create PR as draft — use `draft: false` explicitly
+        - ALWAYS use branch prefix `copilot/`
+        - ALWAYS commit with prefix `[copilot]`
+        - ALWAYS squash merge
+        - If deploying: follow `contracts/copilot-deploy-guide.md` exactly
+        - If error: diagnose + fix + retry automatically
+
+        ### After completing:
+        - Update `contracts/copilot-session-memory.json` with what you did
+        - Commit memory update in the same PR or a separate one
+
+        ### Show progress:
+        ```
+        [x] Step 1: Read state
+        [x] Step 2: Make changes
+        [ ] Step 3: Create PR
+        [ ] Step 4: Merge
+        ```

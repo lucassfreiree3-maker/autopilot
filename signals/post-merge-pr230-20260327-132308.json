@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 230,
+  "branch": "autopilot-state",
+  "timestamp": "2026-03-27T13:23:08Z",
+  "runId": "23648273023",
+  "healthStatus": "degraded"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 240,
+  "branch": "claude/fix-draft-auto-ready",
+  "timestamp": "2026-03-27T17:14:46Z",
+  "runId": "23658539505",
+  "healthStatus": "degraded"
+}

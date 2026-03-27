@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 235,
+  "branch": "copilot/update-controller-to-3-6-8",
+  "mergeSha": "bae6510b5d9de5cd61ddc9d82b4c494a1207c715",
+  "timestamp": "2026-03-27T14:07:36Z",
+  "runId": "23650188701",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

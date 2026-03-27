@@ -1,7 +1,1 @@
-{
-  "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
-  "schemaVersion": 1,
-  "workspace_id": "ws-default",
-  "dry_run": false,
-  "run": 9
-}
+{"_context":"GETRONICS | ws-default | BBVINET_TOKEN","schemaVersion":1,"workspace_id":"ws-default","dry_run":false,"run":10}

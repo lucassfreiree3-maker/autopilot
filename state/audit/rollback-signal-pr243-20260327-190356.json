@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 243,
+  "branch": "claude/super-prompt",
+  "mergeSha": "617e632844c01da775dbcaee735cdf04e624839d",
+  "timestamp": "2026-03-27T19:03:56Z",
+  "runId": "23662879532",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

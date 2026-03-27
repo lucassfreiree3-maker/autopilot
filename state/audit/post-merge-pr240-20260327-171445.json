@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr240-20260327-171445",
+  "event": "post-merge-monitor",
+  "prNumber": 240,
+  "branch": "claude/fix-draft-auto-ready",
+  "mergeSha": "3c88055c70f56c8ce3b417a1c30c66d3e9c4f36e",
+  "timestamp": "2026-03-27T17:14:45Z",
+  "runId": "23658539505",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

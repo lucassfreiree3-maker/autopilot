@@ -84,8 +84,8 @@ lucassfreiree/autopilot (this repo)
   agent-release-state.json
   controller-release-state.json
   release-freeze.json
-  locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (270 files)
+  locks/ (1 files)
+  audit/ (272 files)
   improvements/ (1 files)
   metrics/ (5 files)
   handoffs/ (1 files)
@@ -128,10 +128,10 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
 | `trigger/fix-ci.json` | sync-copilot-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, workspace_id |
-| `trigger/full-test.json` | test-full-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
-| `trigger/improvement.json` | continuous-improvement.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
+| `trigger/full-test.json` | sync-copilot-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | include_lint_error, test_type, workspace_id |
+| `trigger/improvement.json` | sync-copilot-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_fix, scope, workspace_id |
 | `trigger/promote-cap.json` | promote-cap.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, note, version, workspace_id |
-| `trigger/source-change.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
+| `trigger/source-change.json` | sync-copilot-prompt.yml | GETRONICS | ws-default | BBVINET_TOKEN | change_type, changes, commit_message, component, promote, skip_ci_wait, version, workspace_id |
 
 
 **Example — trigger a source code change:**
@@ -217,12 +217,15 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
 | auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
+| autonomous-pr-lane.yml | [Core] Autonomous PR Lane | unknown |
+| autopilot-dispatcher.yml | [Core] Autopilot Dispatcher | manual |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
 | bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
 | check-repo-access.yml | [Corp] Check: Repo Access | push, manual |
 | ci-diagnose.yml | [Corp] CI: Diagnose Error Logs | trigger file, manual |
 | ci-failure-analysis.yml | [Agent] CI Failure Analysis | manual |
 | ci-monitor-loop.yml | [Core] CI Monitor Loop | manual |
+| ci-self-heal.yml | [Core] CI Self-Heal | manual |
 | ci-status-check.yml | [Corp] CI: Status Check | trigger file, manual |
 | cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
 | clone-corporate-repos.yml | [Infra] Clone Corporate Repos | trigger file, manual |
@@ -244,6 +247,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
 | ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
+| post-merge-monitor.yml | [Core] Post-Merge Monitor | unknown |
 | promote-cap.yml | [Release] Promote CAP Tag | trigger file, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
 | release-agent.yml | [Release] Agent | manual |
@@ -268,10 +272,12 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | agent-sync.yml | workspace_id, task, context |
 | alert-notify.yml | severity, title, body |
 | apply-source-change.yml | workspace_id, component, change_type, target_path, file_content, commit_message, skip_ci_wait, promote |
+| autopilot-dispatcher.yml | intent, payload |
 | bootstrap.yml | workspace_id |
 | ci-diagnose.yml | workspace_id, component, commit_sha |
 | ci-failure-analysis.yml | workspace_id, component, run_id |
 | ci-monitor-loop.yml | workspace_id, component, commit_sha, version |
+| ci-self-heal.yml | pr_number, branch |
 | ci-status-check.yml | workspace_id, component, commit_sha |
 | clone-corporate-repos.yml | repos |
 | codex-apply.yml | task, target_files, model, auto_merge, workspace_id, run |
@@ -348,4 +354,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-27T12:21:30Z | Run: 23645928820*
+*Last synced: 2026-03-27T12:45:53Z | Run: 23646833056*

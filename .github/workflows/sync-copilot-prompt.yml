@@ -482,29 +482,57 @@ jobs:
 
           ---
 
-          ## EFFICIENCY RULES (minimize confirmations)
+          ## EFFICIENCY RULES (CRITICAL — minimize confirmations)
 
-          ### BATCH ALL FILE CHANGES
-          - NEVER edit files one-by-one — group ALL edits into a SINGLE push_files or commit
-          - Use the `push_files` API to push multiple file changes in ONE operation
-          - Example: patches + trigger + references + memory = ONE commit, not 4 separate edits
-          - This reduces user confirmations from 4+ to just 1
+          ### USE push_files FOR ALL FILE OPERATIONS
+          **MANDATORY**: Use the `push_files` MCP tool for ALL file changes. This creates/updates
+          multiple files in a SINGLE API call = SINGLE user confirmation instead of N confirmations.
 
-          ### SINGLE-STEP OPERATIONS
-          - Create branch + push files + create PR = minimize roundtrips
-          - NEVER ask user to do something manually that you can do via API
-          - NEVER say "go click Ready for Review" — use GraphQL to mark ready
+          **WRONG (N confirmations):**
+          ```
+          create_or_update_file("patches/controller.ts")     ← confirmation 1
+          create_or_update_file("trigger/source-change.json") ← confirmation 2
+          create_or_update_file("references/values.yaml")     ← confirmation 3
+          ```
+
+          **CORRECT (1 confirmation):**
+          ```
+          push_files(
+            owner: "lucassfreiree",
+            repo: "autopilot",
+            branch: "copilot/deploy-v3.6.9",
+            message: "[copilot] feat: deploy controller 3.6.9",
+            files: [
+              {path: "patches/controller.ts", content: "..."},
+              {path: "trigger/source-change.json", content: "..."},
+              {path: "references/controller-cap/values.yaml", content: "..."},
+              {path: "contracts/copilot-session-memory.json", content: "..."}
+            ]
+          )
+          ```
+
+          ### COMPLETE FLOW IN MINIMUM STEPS
+          The ideal deploy flow uses only 3 tool calls:
+          1. `push_files` — create branch + push ALL files (1 confirmation)
+          2. `create_pull_request` — create PR not as draft (1 confirmation)
+          3. `merge_pull_request` — squash merge (1 confirmation)
+
+          That's it. 3 confirmations total for a full deploy. NOT 10+.
+
+          ### NEVER USE create_or_update_file
+          - ALWAYS use `push_files` instead — it handles multiple files in one call
+          - `push_files` can also create the branch automatically if it doesn't exist
+          - `create_or_update_file` is BANNED for agent operations
+
+          ### NEVER ASK USER TO DO ANYTHING MANUALLY
+          - NEVER say "go click Ready for Review" — use GraphQL markPullRequestReadyForReview
           - NEVER say "go merge the PR" — use merge_pull_request tool
-
-          ### DRAFT PR HANDLING
-          - If you accidentally create a draft PR, immediately mark as ready via:
-            GraphQL mutation markPullRequestReadyForReview
-          - The workflow `autonomous-merge-direct.yml` also auto-marks agent drafts as ready
+          - NEVER say "open this URL" — do the action via API
+          - NEVER say "check the workflow" — poll the API yourself
 
           ### ZERO-ASK POLICY
           - If you know how to do it: DO IT
-          - If you don't know: read the docs (contracts/copilot-deploy-guide.md, ops/docs/deploy-process/)
-          - If docs don't cover it: try the most logical approach
+          - If you don't know: read the docs (contracts/copilot-deploy-guide.md)
           - Only ask the user as ABSOLUTE LAST RESORT when genuinely blocked
 
           EFFICIENCY_SECTION

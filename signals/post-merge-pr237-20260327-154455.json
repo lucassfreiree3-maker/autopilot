@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 237,
+  "branch": "copilot/test-autopilot-deploy-controller-3-6-7-to-3-6-8",
+  "timestamp": "2026-03-27T15:44:55Z",
+  "runId": "23654697807",
+  "healthStatus": "degraded"
+}

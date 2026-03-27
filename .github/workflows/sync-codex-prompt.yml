@@ -385,11 +385,6 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          # Remove old copilot file if exists
-          if [ -f ".github/copilot-instructions.md" ]; then
-            git rm .github/copilot-instructions.md
-          fi
-
           git add AGENTS.md
           if git diff --cached --quiet; then
             echo "No changes to codex prompt"

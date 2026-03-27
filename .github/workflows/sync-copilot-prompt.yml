@@ -1,0 +1,563 @@
+name: "[Infra] Sync Copilot Prompt"
+run-name: "${{ github.workflow }} • ${{ github.event_name }} ref=${{ github.ref_name }}"
+
+# Auto-regenerates .github/copilot-instructions.md whenever
+# workflows, schemas, contracts, or triggers change.
+# Keeps Copilot always up-to-date with the latest project state and session memory.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/*.yml'
+      - 'schemas/*.json'
+      - 'contracts/*.json'
+      - 'contracts/claude-session-memory.json'
+      - 'trigger/*.json'
+      - 'CLAUDE.md'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-copilot
+  cancel-in-progress: true
+
+env:
+  AUTOPILOT_REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 1 → Collect + Generate + Commit
+  # ═══════════════════════════════════════════════════════════════
+  sync:
+    name: "1. Collect → Generate → Commit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: "Collect metadata"
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # ── Workflows table ──
+          echo "=== Scanning workflows ==="
+          WF_TABLE=""
+          DISPATCH_TABLE=""
+          for F in .github/workflows/*.yml; do
+            BN=$(basename "$F")
+            [ "$BN" = "sync-copilot-prompt.yml" ] && continue
+            WF_NAME=$(python3 -c "
+          import yaml
+          with open('$F') as f:
+              d = yaml.safe_load(f)
+              print(d.get('name', '${BN}'))
+          " 2>/dev/null || echo "$BN")
+            TRIGGERS=$(python3 -c "
+          import yaml
+          with open('$F') as f:
+              d = yaml.safe_load(f)
+              on = d.get('on', d.get(True, {}))
+              if isinstance(on, str): print(on); exit()
+              if isinstance(on, list): print(', '.join(on)); exit()
+              if isinstance(on, dict):
+                  p = []
+                  if 'schedule' in on: p.append('scheduled')
+                  if 'push' in on:
+                      push = on['push']
+                      if isinstance(push, dict) and 'paths' in push:
+                          tp = [x for x in push['paths'] if 'trigger/' in x]
+                          p.append('trigger file' if tp else 'push')
+                      else: p.append('push')
+                  if 'workflow_dispatch' in on: p.append('manual')
+                  if 'workflow_call' in on: p.append('reusable')
+                  if 'pull_request' in on: p.append('PR')
+                  if 'delete' in on: p.append('on delete')
+                  print(', '.join(p) if p else 'unknown')
+          " 2>/dev/null || echo "unknown")
+            WF_TABLE="${WF_TABLE}| ${BN} | ${WF_NAME} | ${TRIGGERS} |\n"
+
+            # Dispatch inputs
+            INPUTS=$(python3 -c "
+          import yaml
+          with open('$F') as f:
+              d = yaml.safe_load(f)
+              on = d.get('on', d.get(True, {}))
+              if isinstance(on, dict) and 'workflow_dispatch' in on:
+                  wd = on['workflow_dispatch']
+                  if wd and isinstance(wd, dict) and 'inputs' in wd:
+                      print(', '.join(wd['inputs'].keys()))
+          " 2>/dev/null || echo "")
+            [ -n "$INPUTS" ] && DISPATCH_TABLE="${DISPATCH_TABLE}| ${BN} | ${INPUTS} |\n"
+          done
+
+          # ── Trigger files ──
+          echo "=== Scanning triggers ==="
+          TRIG_TABLE=""
+          for F in trigger/*.json; do
+            BN=$(basename "$F")
+            MATCHING=$(grep -rl "trigger/${BN}" .github/workflows/ 2>/dev/null | head -1 | xargs basename 2>/dev/null || echo "—")
+            CONTEXT=$(jq -r '._context // "—"' "$F" 2>/dev/null || echo "—")
+            TRIG_TABLE="${TRIG_TABLE}| \`trigger/${BN}\` | ${MATCHING} | ${CONTEXT} |\n"
+          done
+
+          # ── Schemas ──
+          echo "=== Scanning schemas ==="
+          SCHEMA_TABLE=""
+          for F in schemas/*.json; do
+            BN=$(basename "$F")
+            TITLE=$(jq -r '.title // .description // "—"' "$F" 2>/dev/null | head -c 60 || echo "—")
+            SCHEMA_TABLE="${SCHEMA_TABLE}| ${BN} | ${TITLE} |\n"
+          done
+
+          # ── Agents ──
+          echo "=== Scanning contracts ==="
+          AGENT_TABLE=""
+          for F in contracts/*-agent-contract.json; do
+            AGENT=$(jq -r '.agent // "?"' "$F" 2>/dev/null)
+            AID=$(jq -r '.agentIdentifier // "?"' "$F" 2>/dev/null)
+            CAPS=$(jq -r '.capabilities | join(", ")' "$F" 2>/dev/null | head -c 80 || echo "—")
+            AGENT_TABLE="${AGENT_TABLE}| ${AGENT} | ${AID} | ${CAPS} |\n"
+          done
+
+          # ── Available workspaces ──
+          echo "=== Checking workspaces ==="
+          WS_TABLE=""
+          WS_LIST=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces?ref=$STATE_BRANCH" --jq '.[].name' 2>/dev/null || echo "ws-default")
+          for WS_ID in $WS_LIST; do
+            WS_COMPANY=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.company.name // .displayName // "—"' 2>/dev/null || echo "—")
+            WS_STATUS=$(gh api "repos/$AUTOPILOT_REPO/contents/state/workspaces/${WS_ID}/workspace.json?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "unknown")
+            WS_TABLE="${WS_TABLE}| ${WS_ID} | ${WS_COMPANY} | ${WS_STATUS} |\n"
+          done
+
+          # ── Extract session memory (current state + key lessons) ──
+          echo "=== Extracting session memory ==="
+          CTRL_VER=$(jq -r '.currentState.controllerVersion // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+          AGENT_VER=$(jq -r '.currentState.agentVersion // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+          LAST_RUN=$(jq -r '.currentState.lastTriggerRun // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+          LAST_OK=$(jq -r '.currentState.lastSuccessfulRun // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+          CURR_VER_RULE=$(jq -r '.versioningRules.currentVersion // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+          VER_PATTERN=$(jq -r '.versioningRules.versionPattern // "unknown"' contracts/claude-session-memory.json 2>/dev/null || echo "unknown")
+
+          # ── Extract shared rules ──
+          echo "=== Extracting shared rules ==="
+          RULES_LIST=$(jq -r '.rules[]? | "- " + .' contracts/shared-agent-contract.json 2>/dev/null || echo "- See contracts/shared-agent-contract.json")
+
+          # Save to env files for next step
+          {
+            echo "WF_TABLE<<EOF1"; echo -e "$WF_TABLE"; echo "EOF1"
+            echo "DISPATCH_TABLE<<EOF2"; echo -e "$DISPATCH_TABLE"; echo "EOF2"
+            echo "TRIG_TABLE<<EOF3"; echo -e "$TRIG_TABLE"; echo "EOF3"
+            echo "SCHEMA_TABLE<<EOF4"; echo -e "$SCHEMA_TABLE"; echo "EOF4"
+            echo "AGENT_TABLE<<EOF5"; echo -e "$AGENT_TABLE"; echo "EOF5"
+            echo "WS_TABLE<<EOF6"; echo -e "$WS_TABLE"; echo "EOF6"
+            echo "RULES_LIST<<EOF7"; echo -e "$RULES_LIST"; echo "EOF7"
+            echo "CTRL_VER=$CTRL_VER"
+            echo "AGENT_VER=$AGENT_VER"
+            echo "LAST_RUN=$LAST_RUN"
+            echo "LAST_OK=$LAST_OK"
+            echo "CURR_VER_RULE=$CURR_VER_RULE"
+            echo "VER_PATTERN=$VER_PATTERN"
+          } >> "$GITHUB_ENV"
+
+      - name: "Generate copilot instructions"
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          OUT=".github/copilot-instructions.md"
+
+          cat > "$OUT" << 'STATIC_EOF'
+          # Autopilot — Copilot Agent Instructions
+
+          > **Auto-generated** by `sync-copilot-prompt.yml`. Do NOT edit manually.
+
+          You are **Copilot** operating inside the **Autopilot** control plane (`lucassfreiree/autopilot`).
+
+          ## YOUR IDENTITY
+          - **Agent ID**: `copilot`
+          - **Role**: workflow-dispatch, pr-review, issue-management, state-reading, handoff-creation, documentation
+          - **You CAN**: Read state, dispatch workflows, review PRs, create issues, create handoffs, read/write docs
+          - **You CANNOT**: Push directly to corporate repos (use workflows). You do NOT have persistent memory between sessions.
+
+          ---
+
+          ## CRITICAL: MEMORY PROTOCOL
+          Since you have NO persistent memory, this file IS your memory. It is auto-generated with:
+          - Current versions and state
+          - Architecture overview
+          - Workspace identification rules
+          - Deploy flow summary
+          - Key lessons and error patterns
+          - All rules and golden rules
+
+          **You MUST follow everything in this file as if you learned it yourself.**
+
+          For the absolute latest state (versions, in-progress deploys), read:
+          `contracts/claude-session-memory.json` — the live session memory updated by Claude.
+
+          ---
+
+          STATIC_EOF
+
+          # Fix indentation from heredoc
+          sed -i 's/^          //' "$OUT"
+
+          # ── Current State section ──
+          cat >> "$OUT" << STATEEOF
+          ## CURRENT STATE (auto-updated)
+
+          | Item | Value |
+          |---|---|
+          | Controller version | \`$CTRL_VER\` |
+          | Agent version | \`$AGENT_VER\` |
+          | Last trigger run | \`$LAST_RUN\` |
+          | Last successful run | \`$LAST_OK\` |
+
+          ---
+
+          STATEEOF
+
+          cat >> "$OUT" << 'WS_SECTION'
+          ## WORKSPACE IDENTIFICATION (DO THIS FIRST)
+          This control plane manages **multiple companies**. Each is **completely isolated**.
+
+          **BEFORE any operation**, identify the workspace:
+          - **Getronics** = controller, agent, NestJS, bbvinet, psc-sre, esteira, build NPM → `ws-default`
+          - **CIT** = DevOps, Terraform, K8s, cloud, AWS, Azure, GCP, monitoring, IaC → `ws-cit`
+          - **If ambiguous: ASK the user — NEVER assume a default**
+
+          ### Available Workspaces
+
+          | Workspace ID | Company | Status |
+          |---|---|---|
+          WS_SECTION
+
+          sed -i 's/^          //' "$OUT"
+          echo -e "$WS_TABLE" >> "$OUT"
+
+          cat >> "$OUT" << 'ARCH_SECTION'
+
+          ---
+
+          ## ARCHITECTURE
+
+          ```
+          lucassfreiree/autopilot (this repo)
+          ├── main branch          → Workflows, schemas, contracts, panel, triggers
+          ├── autopilot-state      → Runtime state (source of truth)
+          ├── autopilot-backups    → Snapshots for rollback
+          └── panel/               → GitHub Pages UI
+          ```
+
+          ### Corporate Repos — Getronics (ws-default)
+
+          | Repo | Role | Stack | CI |
+          |---|---|---|---|
+          | `bbvinet/psc-sre-automacao-controller` | Controller source code | Node 22, TypeScript, Express, Jest | Esteira de Build NPM |
+          | `bbvinet/psc-sre-automacao-agent` | Agent source code | Node 22, TypeScript, Express, Jest | Esteira de Build NPM |
+          | `bbvinet/psc_releases_cap_sre-aut-controller` | Controller K8s deploy manifest | values.yaml | auto-promoted via Stage 4 |
+          | `bbvinet/psc_releases_cap_sre-aut-agent` | Agent K8s deploy manifest | values.yaml | auto-promoted via Stage 4 |
+
+          ### State files (per workspace)
+
+          ```
+          state/workspaces/<workspace_id>/
+            workspace.json              # Workspace config
+            controller-release-state.json
+            agent-release-state.json
+            health.json
+            release-freeze.json
+            locks/session-lock.json     # Multi-agent session lock (CHECK BEFORE ACTING)
+            audit/                      # Immutable audit entries
+            handoffs/                   # Agent handoff queue
+            metrics/                    # Daily metrics snapshots
+          ```
+
+          ---
+
+          ## HOW TO TRIGGER WORKFLOWS
+
+          ### Method 1: Trigger Files (PREFERRED)
+          Edit a trigger file on `main` branch, bump the `run` field.
+          **Always check `_context` field** to confirm targeting the correct workspace.
+
+          | Trigger File | Workflow | Context |
+          |---|---|---|
+          ARCH_SECTION
+
+          sed -i 's/^          //' "$OUT"
+          echo -e "$TRIG_TABLE" >> "$OUT"
+
+          cat >> "$OUT" << 'TRIGGER_EXAMPLE'
+
+          **Example — trigger a source code change:**
+          ```json
+          {
+            "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
+            "workspace_id": "ws-default",
+            "component": "controller",
+            "change_type": "search-replace",
+            "version": "3.x.y",
+            "commit_message": "feat: description",
+            "run": 64
+          }
+          ```
+          **CRITICAL**: `run` field MUST be incremented — without increment, workflow does NOT trigger.
+
+          ### Method 2: workflow_dispatch API
+          ```bash
+          gh api repos/lucassfreiree/autopilot/actions/workflows/{WORKFLOW}/dispatches \
+            --method POST -f ref=main -f "inputs[workspace_id]=<WORKSPACE_ID>"
+          ```
+
+          ### Method 3: Create handoff to Claude or Codex
+          ```bash
+          gh api repos/lucassfreiree/autopilot/actions/workflows/enqueue-agent-handoff.yml/dispatches \
+            --method POST -f ref=main \
+            -f "inputs[from_agent]=copilot" -f "inputs[to_agent]=claude" \
+            -f "inputs[component]=agent" -f "inputs[summary]=Your request" \
+            -f "inputs[workspace_id]=ws-default" -f "inputs[priority]=high"
+          ```
+
+          ---
+
+          ## HOW TO READ STATE
+
+          ```bash
+          # List workspaces
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces?ref=autopilot-state" --jq '.[].name'
+
+          # Workspace config
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/workspace.json?ref=autopilot-state" --jq '.content' | base64 -d
+
+          # Session lock (CHECK BEFORE ACTING!)
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/locks/session-lock.json?ref=autopilot-state" --jq '.content' | base64 -d
+
+          # Release state
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/controller-release-state.json?ref=autopilot-state" --jq '.content' | base64 -d
+          ```
+
+          ---
+
+          ## SESSION GUARD (CRITICAL)
+
+          **Before ANY state-changing operation:**
+          1. Read `locks/session-lock.json` for the target workspace
+          2. If `agentId != "none"` AND `expiresAt > now` → **STOP, create handoff instead**
+          3. Protected operations: push-to-corporate-repo, modify-state-branch, promote-to-cap, seed-workspace, backup-restore, freeze-unfreeze
+          4. Unprotected (no lock needed): read-workspace-config, health-check, read-audit-metrics
+
+          ---
+
+          ## DEPLOY FLOW SUMMARY
+
+          The **apply-source-change.yml** pipeline runs in 7 stages:
+          ```
+          1. Setup          → Read workspace config
+          1.5 Session Guard → Acquire lock (blocks if another agent active)
+          2. Apply & Push   → Clone → Apply change → Fix lint → Push
+          3. CI Gate        → Wait corporate CI (Esteira de Build NPM)
+          4. Promote        → Update CAP values.yaml (auto-promote via GitHub API)
+          5. Save State     → Record on autopilot-state
+          6. Audit          → Audit trail + Release lock
+          ```
+
+          **Golden Rules:**
+          1. NEVER push directly to corporate repos — always use `apply-source-change.yml`
+          2. NEVER forget to increment `run` field — without increment, workflow does NOT trigger
+          3. ALWAYS monitor workflow after triggering — do not assume success
+          4. ALWAYS check version before bump — CI rejects duplicate tags
+          5. NEVER consider deploy done after apply-source-change — corporate CI runs AFTER independently
+          6. ALWAYS fetch origin/main first to avoid merge conflicts
+          7. Patch 0-9 only: after X.Y.9, next version is X.(Y+1).0 — NEVER X.Y.10
+
+          ---
+
+          ## VERSIONING RULES
+
+          TRIGGER_EXAMPLE
+
+          sed -i 's/^          //' "$OUT"
+
+          cat >> "$OUT" << VEREOF
+          - **Current versions**: Controller \`$CTRL_VER\`, Agent \`$AGENT_VER\`
+          - **Pattern**: \`$VER_PATTERN\` — After X.Y.9, next is X.(Y+1).0 — NEVER X.Y.10
+          - **5 places to update** (controller):
+            1. \`package.json\` — \`version\` field
+            2. \`package-lock.json\` — top-level \`version\`
+            3. \`package-lock.json\` — \`packages[""].version\`
+            4. \`src/swagger/swagger.json\` — \`info.version\` (may differ)
+            5. \`references/controller-cap/values.yaml\` — image tag (auto-promoted by Stage 4)
+          - **Swagger rule**: ASCII only — NEVER use accented characters (ç, ã, õ, etc.)
+
+          ---
+
+          VEREOF
+
+          cat >> "$OUT" << 'LESSONS_SECTION'
+          ## KEY LESSONS & ERROR PATTERNS
+
+          ### Critical lessons learned
+
+          | Pattern | Rule |
+          |---|---|
+          | JWT claim | Agent reads `payload.scope` (singular), NEVER `payload.scopes` (plural) |
+          | Swagger encoding | ASCII only — no accented characters — they get garbled |
+          | search-replace scope | Only for single-line substitutions. Multi-line → use `replace-file` |
+          | search-replace newlines | `sed` does NOT interpret `\n` — use `replace-file` instead |
+          | ESLint no-nested-ternary | NEVER create functions with nested ternaries |
+          | ESLint import/order | NEVER add imports in wrong order — causes lint failure in CI |
+          | Push to main | Direct push returns 403 — always branch `claude/*` or `copilot/*` + PR |
+          | CI Gate detection | BROKEN — check `ci-logs-*` files on autopilot-state instead |
+          | Duplicate version tags | CI rejects duplicate tags — ALWAYS verify version before bumping |
+          | validateTrustedUrl | NEVER add inside fetch/postJson helpers — breaks mock tests |
+
+          ### Common error → fix patterns
+
+          | Error | Fix |
+          |---|---|
+          | `403 on push` | Use `apply-source-change.yml` workflow — never push directly |
+          | `ELIFECYCLE lint error` | Check imports order + no-nested-ternary rules |
+          | `tsc error TS2339` | Property missing from type — add to interface definition |
+          | `Test mock not called` | validateTrustedUrl was added inside helper — remove it |
+          | `Duplicate tag CI reject` | Version already exists — bump to next patch |
+          | `Swagger garbled` | Accented character in swagger — replace with ASCII equivalents |
+          | `Trigger not firing` | `run` field not incremented — bump it |
+          | `PR conflict` | `git pull --rebase origin main` before pushing |
+
+          ---
+
+          ## REGISTERED AGENTS
+
+          | Agent | ID | Capabilities |
+          |---|---|---|
+          LESSONS_SECTION
+
+          sed -i 's/^          //' "$OUT"
+          echo -e "$AGENT_TABLE" >> "$OUT"
+
+          echo "" >> "$OUT"
+          echo "---" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "## ALL WORKFLOWS" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "| File | Name | Triggers |" >> "$OUT"
+          echo "|---|---|---|" >> "$OUT"
+          echo -e "$WF_TABLE" >> "$OUT"
+
+          echo "" >> "$OUT"
+          echo "### Dispatch Inputs" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "| Workflow | Inputs |" >> "$OUT"
+          echo "|---|---|" >> "$OUT"
+          echo -e "$DISPATCH_TABLE" >> "$OUT"
+
+          echo "" >> "$OUT"
+          echo "---" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "## SCHEMAS" >> "$OUT"
+          echo "" >> "$OUT"
+          echo "| Schema | Description |" >> "$OUT"
+          echo "|---|---|" >> "$OUT"
+          echo -e "$SCHEMA_TABLE" >> "$OUT"
+
+          cat >> "$OUT" << 'RULES_SECTION'
+
+          ---
+
+          ## RULES (non-negotiable)
+
+          RULES_SECTION
+
+          sed -i 's/^          //' "$OUT"
+          echo -e "$RULES_LIST" >> "$OUT"
+
+          cat >> "$OUT" << 'TASKS_SECTION'
+
+          ---
+
+          ## COMMON TASKS
+
+          | Task | How |
+          |---|---|
+          | Deploy code change | Edit `trigger/source-change.json`, bump `run` |
+          | Run full test | Edit `trigger/full-test.json`, bump `run` |
+          | Fix CI errors | Edit `trigger/fix-ci.json`, bump `run` |
+          | Improvement scan | Edit `trigger/improvement.json`, bump `run` |
+          | Freeze releases | Dispatch `release-freeze.yml` with `action=freeze` |
+          | Backup state | Dispatch `backup-state.yml` |
+          | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
+          | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
+          | Check latest state | Read `contracts/claude-session-memory.json` directly |
+
+          TASKS_SECTION
+
+          sed -i 's/^          //' "$OUT"
+
+          echo "" >> "$OUT"
+          echo "---" >> "$OUT"
+          echo "*Last synced: ${NOW} | Run: ${{ github.run_id }}*" >> "$OUT"
+
+      - name: "Commit if changed"
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add .github/copilot-instructions.md
+          if git diff --cached --quiet; then
+            echo "No changes to copilot instructions"
+          else
+            LINES=$(wc -l < .github/copilot-instructions.md)
+            git commit -m "docs: auto-sync copilot instructions ($LINES lines) [skip ci]"
+            # Retry with rebase to handle race conditions
+            for i in 1 2 3 4; do
+              if git push origin main; then
+                echo "Pushed updated copilot instructions ($LINES lines)"
+                break
+              else
+                echo "::warning ::Push attempt $i failed, rebasing and retrying..."
+                git pull --rebase origin main
+                sleep $((i * 2))
+              fi
+            done
+          fi
+
+      - name: "Summary"
+        if: always()
+        run: |
+          LINES=$(wc -l < .github/copilot-instructions.md 2>/dev/null || echo "0")
+          echo "## Sync Copilot Prompt" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Lines: $LINES" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Workflows scanned: $(ls .github/workflows/*.yml | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Triggers: $(ls trigger/*.json | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Schemas: $(ls schemas/*.json | wc -l)" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE 2 → Audit
+  # ═══════════════════════════════════════════════════════════════
+  audit:
+    name: "2. Audit"
+    needs: sync
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Record"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SN=$(echo "$NOW" | tr ':' '-')
+          AUDIT=$(jq -n --arg ts "$NOW" --arg run "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --arg result "${{ needs.sync.result }}" \
+            '{operation:"sync-copilot-prompt",timestamp:$ts,runId:$run,runUrl:$url,syncResult:$result}')
+          gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/audit/copilot-sync-${SN}.json" \
+            --method PUT -f "branch=autopilot-state" \
+            -f "message=audit: copilot-sync $SN [skip ci]" \
+            -f "content=$(echo "$AUDIT"|base64 -w0)" 2>/dev/null || true

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 230,
+  "branch": "autopilot-state",
+  "mergeSha": "4d77ca8e43ffc60ce4b696aa25179f9dd2a7c11d",
+  "timestamp": "2026-03-27T13:23:08Z",
+  "runId": "23648273023",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

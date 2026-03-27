@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (272 files)
+  audit/ (277 files)
   improvements/ (1 files)
   metrics/ (5 files)
   handoffs/ (1 files)
@@ -217,6 +217,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
 | auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
+| autonomous-merge-direct.yml | [Core] Autonomous Direct Merge | unknown |
 | autonomous-pr-lane.yml | [Core] Autonomous PR Lane | unknown |
 | autopilot-dispatcher.yml | [Core] Autopilot Dispatcher | manual |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
@@ -354,4 +355,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-27T12:45:53Z | Run: 23646833056*
+*Last synced: 2026-03-27T13:20:48Z | Run: 23648170711*

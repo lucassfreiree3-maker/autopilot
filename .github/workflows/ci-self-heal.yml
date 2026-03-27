@@ -203,6 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update attempt counter in state
+        id: update
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
@@ -245,10 +246,16 @@ jobs:
 
           echo "::notice::State updated: PR #$PR_NUMBER attempt $NEW_ATTEMPT/$MAX_HEAL_ATTEMPTS"
 
+          if [ "$NEW_ATTEMPT" -ge "$MAX_HEAL_ATTEMPTS" ]; then
+            echo "exhausted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exhausted=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Write failure handoff (max attempts reached)
         if: |
           needs.heal.outputs.fixed != 'true' &&
-          (fromJson(needs.gate.outputs.attempt) + 1) >= fromJson(env.MAX_HEAL_ATTEMPTS)
+          steps.update.outputs.exhausted == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |

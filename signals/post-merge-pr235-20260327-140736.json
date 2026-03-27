@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 235,
+  "branch": "copilot/update-controller-to-3-6-8",
+  "timestamp": "2026-03-27T14:07:36Z",
+  "runId": "23650188701",
+  "healthStatus": "degraded"
+}

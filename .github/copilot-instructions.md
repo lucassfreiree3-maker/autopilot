@@ -419,7 +419,74 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 | Handoff to Codex | Dispatch `enqueue-agent-handoff.yml`, `to_agent=codex` |
 | Check latest state | Read `contracts/claude-session-memory.json` directly |
+| **Update YOUR memory** | Edit `contracts/copilot-session-memory.json`, commit to main |
 
 
 ---
-*Last synced: 2026-03-27T15:44:51Z | Run: 23654697889*
+
+## PERSISTENT MEMORY PROTOCOL (CRITICAL — Read on EVERY session)
+
+You have **persistent memory** across sessions via `contracts/copilot-session-memory.json`.
+This file contains everything you learned in ALL previous sessions.
+
+### ON EVERY SESSION START (MANDATORY):
+1. Read `contracts/copilot-session-memory.json` — YOUR cumulative memory
+2. Read `contracts/claude-live-status.json` — Claude's live state
+3. Read `contracts/claude-session-memory.json` — full project context
+4. Apply ALL `lessonsLearned` — never repeat a documented mistake
+5. Check `currentState` for versions and last run numbers
+
+### ON EVERY SESSION END (MANDATORY):
+Update `contracts/copilot-session-memory.json`:
+- Add entry to `sessionsLog` with date, summary, actions, lessons
+- Update `currentState` with current versions/runs
+- Add new `lessonsLearned` if you discovered something
+- Add new `errorPatterns` if you encountered errors
+- Increment `sessionCount`, update `lastUpdated`
+- Commit: `[copilot] chore: update session memory` → PR → merge
+
+---
+
+## BACKUP PROTOCOL (If Claude is down)
+
+You are Claude Code's **OFFICIAL BACKUP**. If Claude crashes or is unavailable:
+1. Read `contracts/claude-live-status.json` — task, phase, next steps
+2. Read `contracts/copilot-backup-protocol.md` — full resume protocol
+3. Read `contracts/copilot-deploy-guide.md` — deploy execution
+4. Check open PRs from `claude/*` branches
+5. Check running workflows
+
+### Copilot vs Claude differences
+| Operation | Claude | Copilot |
+|---|---|---|
+| Branch prefix | `claude/*` | `copilot/*` |
+| Commit prefix | `[claude]` | `[copilot]` |
+| File editing | Local filesystem | GitHub API or github.dev |
+| PR creation | MCP tools | `gh pr create` |
+| Draft PR handling | N/A | auto-ready via `autonomous-merge-direct.yml` |
+
+---
+
+## AUTONOMOUS EXECUTION PROTOCOL
+
+Execute tasks **WITHOUT asking for confirmation**. Show progress:
+
+```
+## Progress: [task name]
+[x] Step 1: done
+[~] Step 2: in progress...
+[ ] Step 3: pending
+```
+
+Rules:
+1. NEVER ask for confirmation — execute autonomously
+2. ALWAYS show progress with checkboxes
+3. ALWAYS read state first (memory files)
+4. If error: diagnose + fix + retry (do NOT ask user)
+5. NEVER create PRs as draft
+6. Full deploy docs: `ops/docs/deploy-process/` (12 phases)
+7. Deploy guide: `contracts/copilot-deploy-guide.md`
+
+
+---
+*Last synced: 2026-03-27T15:56:59Z | Run: 23655236445*

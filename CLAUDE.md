@@ -279,6 +279,26 @@ ops/terraform/
 | Automation Scripts | `ops/docs/automation-ops.md` |
 | Workspace Separation | `ops/docs/workspace-separation.md` |
 | Agent Parity | `ops/docs/agent-operational-parity.md` |
+| **Deploy Process Guide** | `ops/docs/deploy-process/` (12 docs) |
+
+### Deploy Process Guide (`ops/docs/deploy-process/`)
+
+Documentacao completa e detalhada de TODO o processo de deploy end-to-end, dividida em 12 fases:
+
+| # | Fase | Arquivo |
+|---|------|---------|
+| 01 | Overview e Pre-requisitos | `ops/docs/deploy-process/01-overview-and-prerequisites.md` |
+| 02 | Clone e Setup Local | `ops/docs/deploy-process/02-clone-and-setup.md` |
+| 03 | Fetch Arquivos Corporativos | `ops/docs/deploy-process/03-fetch-corporate-files.md` |
+| 04 | Alteracoes no Codigo e Patches | `ops/docs/deploy-process/04-code-changes-and-patches.md` |
+| 05 | Version Bump (5 Arquivos) | `ops/docs/deploy-process/05-version-bump.md` |
+| 06 | Configurar Trigger de Deploy | `ops/docs/deploy-process/06-configure-trigger.md` |
+| 07 | Commit, Push, PR e Merge | `ops/docs/deploy-process/07-commit-push-pr-merge.md` |
+| 08 | Monitorar Workflow Autopilot (7 Stages) | `ops/docs/deploy-process/08-monitor-autopilot-workflow.md` |
+| 09 | Monitorar Esteira Corporativa | `ops/docs/deploy-process/09-monitor-corporate-ci.md` |
+| 10 | Promocao CAP (Tag de Deploy) | `ops/docs/deploy-process/10-cap-tag-promotion.md` |
+| 11 | Diagnostico e Troubleshooting | `ops/docs/deploy-process/11-diagnostics-and-troubleshooting.md` |
+| 12 | Quick Reference | `ops/docs/deploy-process/12-quick-reference.md` |
 
 ### Operational Readiness Tracker
 - File: `ops/inventory/readiness.json`

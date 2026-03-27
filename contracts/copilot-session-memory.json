@@ -1,19 +1,37 @@
 {
   "schemaVersion": 1,
   "description": "Memoria cumulativa do Copilot. OBRIGATORIO: Ler no inicio de CADA sessao. Atualizar ao final de CADA sessao com commit no main.",
-  "lastUpdated": "2026-03-27T16:00:00Z",
-  "lastSessionId": null,
-  "sessionCount": 0,
+  "lastUpdated": "2026-03-27T16:52:39Z",
+  "lastSessionId": "session-2026-03-27-bootstrap",
+  "sessionCount": 1,
   "currentState": {
-    "controllerVersion": "3.6.6",
+    "controllerVersion": "3.6.8",
     "agentVersion": "2.2.9",
-    "lastTriggerRun": 63,
-    "lastSuccessfulRun": 63,
+    "lastTriggerRun": 66,
+    "lastSuccessfulRun": 66,
     "workspace": "ws-default",
     "company": "Getronics",
-    "pipelineStatus": "idle"
+    "pipelineStatus": "success"
   },
-  "sessionsLog": [],
+  "sessionsLog": [
+    {
+      "date": "2026-03-27",
+      "summary": "Criado sistema automatico de sync pos-deploy isolado do Claude. Corrigido drift de versao (3.6.6->3.6.8). Criado copilot-isolation-rules.md.",
+      "actions": [
+        "created-copilot-post-deploy-sync-workflow",
+        "created-copilot-isolation-rules",
+        "fixed-version-drift-values-yaml",
+        "updated-copilot-memory-to-3.6.8",
+        "added-isolation-lessons"
+      ],
+      "triggeredBy": "Lucas — pediu esteira 100% automatica separada",
+      "lessonsLearned": [
+        "Copilot NUNCA toca em arquivos do Claude",
+        "Sync pos-deploy deve ser automatico via workflow_run",
+        "values.yaml de referencia deve ser atualizado automaticamente"
+      ]
+    }
+  ],
   "decisions": [
     {
       "date": "2026-03-27",
@@ -24,6 +42,11 @@
       "date": "2026-03-27",
       "decision": "Deploy flow e identico para todos os agentes",
       "context": "patches/ → trigger → branch → PR → merge → apply-source-change → monitor"
+    },
+    {
+      "date": "2026-03-27",
+      "decision": "Copilot tem workflow automatico separado do Claude — NUNCA modifica arquivos do Claude",
+      "context": "Lucas mandou: funcionamento do Copilot deve ser 100% separado. copilot-post-deploy-sync.yml cuida de tudo automaticamente."
     }
   ],
   "lessonsLearned": [
@@ -48,7 +71,7 @@
       "fix": "Agent middleware le payload.scope"
     },
     {
-      "lesson": "Swagger SOMENTE ASCII — sem acentos (ç, ã, é, etc)",
+      "lesson": "Swagger SOMENTE ASCII — sem acentos (c, a, e, etc)",
       "source": "multiple sessions",
       "fix": "Testar com grep -P '[\\x80-\\xFF]' antes de commitar"
     },
@@ -86,6 +109,21 @@
       "lesson": "NUNCA push direto para main — retorna 403",
       "source": "branch protection",
       "fix": "Sempre branch copilot/* → PR → squash merge"
+    },
+    {
+      "lesson": "COPILOT NUNCA modifica arquivos do Claude — isolamento total",
+      "source": "session 2026-03-27 — regra do Lucas",
+      "fix": "Todos workflows do Copilot tem lista de arquivos permitidos. Se nao esta na lista, NAO TOCA."
+    },
+    {
+      "lesson": "Sync pos-deploy DEVE ser automatico — copilot-post-deploy-sync.yml",
+      "source": "session 2026-03-27 — regra do Lucas",
+      "fix": "Workflow roda automatico apos apply-source-change. Atualiza values.yaml + copilot memory."
+    },
+    {
+      "lesson": "references/controller-cap/values.yaml DEVE refletir versao real deployada",
+      "source": "session 2026-03-27 — drift detectado (3.6.3 header, 3.6.6 image, 3.6.8 real)",
+      "fix": "copilot-post-deploy-sync.yml atualiza automaticamente apos cada deploy"
     }
   ],
   "errorPatterns": {
@@ -109,7 +147,9 @@
     "backupProtocol": "contracts/copilot-backup-protocol.md",
     "deployDocs": "ops/docs/deploy-process/README.md",
     "workspaceConfig": "state/workspaces/ws-default/workspace.json (autopilot-state branch)",
-    "releaseState": "state/workspaces/ws-default/controller-release-state.json (autopilot-state branch)"
+    "releaseState": "state/workspaces/ws-default/controller-release-state.json (autopilot-state branch)",
+    "isolationRules": "contracts/copilot-isolation-rules.md",
+    "postDeploySync": ".github/workflows/copilot-post-deploy-sync.yml"
   },
   "sessionProtocol": {
     "onStart": [
@@ -135,3 +175,4 @@
     ]
   }
 }
+

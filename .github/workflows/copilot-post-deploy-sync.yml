@@ -1,0 +1,123 @@
+name: "[Copilot] Post-Deploy Sync"
+
+on:
+  workflow_run:
+    workflows: ["[Corp] Deploy: Apply Source Change"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to sync (e.g. 3.6.8)"
+        required: false
+      run_number:
+        description: "Trigger run number"
+        required: false
+
+jobs:
+  sync:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      # Read current version from trigger file
+      - name: Read trigger state
+        id: trigger
+        run: |
+          VERSION=$(jq -r '.version // ""' trigger/source-change.json)
+          RUN=$(jq -r '.run // ""' trigger/source-change.json)
+          COMPONENT=$(jq -r '.component // ""' trigger/source-change.json)
+          # Allow manual override
+          if [ -n "${{ inputs.version }}" ]; then VERSION="${{ inputs.version }}"; fi
+          if [ -n "${{ inputs.run_number }}" ]; then RUN="${{ inputs.run_number }}"; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "Syncing: component=$COMPONENT version=$VERSION run=$RUN"
+
+      # Update references/controller-cap/values.yaml
+      - name: Update CAP reference values.yaml
+        if: steps.trigger.outputs.component == 'controller'
+        run: |
+          VERSION="${{ steps.trigger.outputs.version }}"
+          FILE="references/controller-cap/values.yaml"
+
+          # Update header comment
+          sed -i "s/# Current tag: .*/# Current tag: ${VERSION}/" "$FILE"
+
+          # Update image tag (the actual deployment image line)
+          sed -i -E "s|psc-sre-automacao-controller:[0-9]+\.[0-9]+\.[0-9]+|psc-sre-automacao-controller:${VERSION}|g" "$FILE"
+
+          echo "Updated $FILE -> tag $VERSION"
+          grep -n "Current tag\|psc-sre-automacao-controller:" "$FILE" | head -5
+
+      # Update contracts/copilot-session-memory.json (COPILOT ONLY — never touch Claude's files)
+      - name: Update Copilot session memory
+        run: |
+          VERSION="${{ steps.trigger.outputs.version }}"
+          RUN="${{ steps.trigger.outputs.run }}"
+          COMPONENT="${{ steps.trigger.outputs.component }}"
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          TODAY=$(date -u +"%Y-%m-%d")
+          FILE="contracts/copilot-session-memory.json"
+
+          # Update version based on component
+          if [ "$COMPONENT" = "controller" ]; then
+            jq --arg v "$VERSION" '.currentState.controllerVersion = $v' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          elif [ "$COMPONENT" = "agent" ]; then
+            jq --arg v "$VERSION" '.currentState.agentVersion = $v' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          fi
+
+          # Update run numbers and status
+          jq --arg r "$RUN" --arg now "$NOW" '
+            .currentState.lastTriggerRun = ($r | tonumber) |
+            .currentState.lastSuccessfulRun = ($r | tonumber) |
+            .currentState.pipelineStatus = "success" |
+            .lastUpdated = $now |
+            .sessionCount = (.sessionCount + 1)
+          ' "$FILE" > tmp.json && mv tmp.json "$FILE"
+
+          # Add session log entry
+          jq --arg d "$TODAY" --arg v "$VERSION" --arg r "$RUN" --arg c "$COMPONENT" '
+            .sessionsLog += [{
+              "date": $d,
+              "summary": ("auto-sync: " + $c + " v" + $v + " run " + $r + " deployed successfully"),
+              "actions": ["updated-cap-reference", "updated-copilot-memory", "version-sync"],
+              "triggeredBy": "copilot-post-deploy-sync.yml",
+              "lessonsLearned": []
+            }]
+          ' "$FILE" > tmp.json && mv tmp.json "$FILE"
+
+          echo "Updated $FILE -> version=$VERSION run=$RUN"
+
+      # Commit all changes
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          COMPONENT="${{ steps.trigger.outputs.component }}"
+          git add contracts/copilot-session-memory.json
+          if [ "$COMPONENT" = "controller" ]; then
+            git add references/controller-cap/values.yaml
+          elif [ "$COMPONENT" = "agent" ]; then
+            git add references/agent-cap/values.yaml 2>/dev/null || true
+          fi
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            VERSION="${{ steps.trigger.outputs.version }}"
+            RUN="${{ steps.trigger.outputs.run }}"
+            git commit -m "[copilot] chore: auto-sync post-deploy v${VERSION} run ${RUN} [skip ci]
+
+Automated by copilot-post-deploy-sync.yml
+- Updated references/controller-cap/values.yaml image tag
+- Updated contracts/copilot-session-memory.json
+- DOES NOT touch any Claude files"
+            git push
+          fi

@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr241-20260327-180455",
+  "event": "post-merge-monitor",
+  "prNumber": 241,
+  "branch": "claude/copilot-autonomy",
+  "mergeSha": "4ff6b55bbc58c3c831684b644dd0f8f8fe6eb87a",
+  "timestamp": "2026-03-27T18:04:55Z",
+  "runId": "23660567496",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

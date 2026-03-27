@@ -272,12 +272,15 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
 | auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
+| autonomous-pr-lane.yml | [Core] Autonomous PR Lane | unknown |
+| autopilot-dispatcher.yml | [Core] Autopilot Dispatcher | manual |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
 | bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
 | check-repo-access.yml | [Corp] Check: Repo Access | push, manual |
 | ci-diagnose.yml | [Corp] CI: Diagnose Error Logs | trigger file, manual |
 | ci-failure-analysis.yml | [Agent] CI Failure Analysis | manual |
 | ci-monitor-loop.yml | [Core] CI Monitor Loop | manual |
+| ci-self-heal.yml | [Core] CI Self-Heal | manual |
 | ci-status-check.yml | [Corp] CI: Status Check | trigger file, manual |
 | cleanup-branches.yml | [Infra] Cleanup: Stale Branches | scheduled, manual, PR |
 | clone-corporate-repos.yml | [Infra] Clone Corporate Repos | trigger file, manual |
@@ -299,6 +302,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
 | ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
+| post-merge-monitor.yml | [Core] Post-Merge Monitor | unknown |
 | promote-cap.yml | [Release] Promote CAP Tag | trigger file, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
 | release-agent.yml | [Release] Agent | manual |
@@ -323,10 +327,12 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | agent-sync.yml | workspace_id, task, context |
 | alert-notify.yml | severity, title, body |
 | apply-source-change.yml | workspace_id, component, change_type, target_path, file_content, commit_message, skip_ci_wait, promote |
+| autopilot-dispatcher.yml | intent, payload |
 | bootstrap.yml | workspace_id |
 | ci-diagnose.yml | workspace_id, component, commit_sha |
 | ci-failure-analysis.yml | workspace_id, component, run_id |
 | ci-monitor-loop.yml | workspace_id, component, commit_sha, version |
+| ci-self-heal.yml | pr_number, branch |
 | ci-status-check.yml | workspace_id, component, commit_sha |
 | clone-corporate-repos.yml | repos |
 | codex-apply.yml | task, target_files, model, auto_merge, workspace_id, run |
@@ -415,4 +421,4 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 
 
 ---
-*Last synced: 2026-03-27T12:21:21Z | Run: 23645928848*
+*Last synced: 2026-03-27T12:45:45Z | Run: 23646833031*

@@ -289,6 +289,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-autonomous-pr.yml | Codex autonomous PR | manual |
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
+| copilot-post-deploy-sync.yml | copilot-post-deploy-sync.yml | unknown |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
 | enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
@@ -489,4 +490,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-27T15:56:59Z | Run: 23655236445*
+*Last synced: 2026-03-27T17:13:07Z | Run: 23658474282*

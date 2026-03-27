@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 243,
+  "branch": "claude/super-prompt",
+  "timestamp": "2026-03-27T19:03:55Z",
+  "runId": "23662879532",
+  "healthStatus": "degraded"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr243-20260327-190355",
+  "event": "post-merge-monitor",
+  "prNumber": 243,
+  "branch": "claude/super-prompt",
+  "mergeSha": "617e632844c01da775dbcaee735cdf04e624839d",
+  "timestamp": "2026-03-27T19:03:55Z",
+  "runId": "23662879532",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

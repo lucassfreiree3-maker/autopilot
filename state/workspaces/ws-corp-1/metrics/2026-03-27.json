@@ -1,0 +1,21 @@
+{
+  "workspaceId": "ws-corp-1",
+  "date": "2026-03-27",
+  "collectedAt": "2026-03-27T05:51:25Z",
+  "controller": {
+    "version": "",
+    "status": "idle",
+    "ciResult": "unknown"
+  },
+  "agent": {
+    "version": "",
+    "status": "idle",
+    "ciResult": "unknown"
+  },
+  "totalAuditEntries": 15,
+  "runsLast24h": 291,
+  "failuresLast24h": 15,
+  "frozen": false,
+  "health": "degraded",
+  "runId": "23633235847"
+}

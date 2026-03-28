@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 267,
+  "branch": "copilot/test-end-to-end-controller-agent",
+  "timestamp": "2026-03-28T17:45:25Z",
+  "runId": "23690762136",
+  "healthStatus": "degraded"
+}

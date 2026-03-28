@@ -24,6 +24,9 @@ env:
 jobs:
   label-and-automerge:
     name: "Label & Enable Auto-merge"
+    # DISABLED: autonomous-merge-direct.yml handles all agent PRs.
+    # This workflow was causing duplicate runs. DO NOT RE-ENABLE.
+    if: false
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate eligibility

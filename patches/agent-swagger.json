@@ -74,7 +74,7 @@
     },
     "info":  {
         "title":  "psc-sre-automacao-agent",
-        "version":  "2.3.0",
+        "version":  "2.3.1",
         "description":  "psc-sre-automacao-agent in node with expressjs",
         "license":  { "name":  "ISC" },
         "contact":  { "name":  "Equipe DS" }

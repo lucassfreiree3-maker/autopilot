@@ -3,28 +3,33 @@
   "workspace_id": "ws-default",
   "component": "agent",
   "change_type": "multi-file",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "changes": [
     {
-      "action": "search-replace",
-      "target_path": "package.json",
-      "search": "\"version\": \"2.2.9\"",
-      "replace": "\"version\": \"2.3.0\""
-    },
-    {
-      "action": "search-replace",
-      "target_path": "package-lock.json",
-      "search": "\"version\": \"2.2.9\"",
-      "replace": "\"version\": \"2.3.0\""
+      "action": "replace-file",
+      "target_path": "src/routes/cronjob-callback.ts",
+      "content_ref": "patches/cronjob-callback.ts"
     },
     {
       "action": "replace-file",
       "target_path": "src/swagger/swagger.json",
       "content_ref": "patches/agent-swagger.json"
+    },
+    {
+      "action": "search-replace",
+      "target_path": "package.json",
+      "search": "\"version\": \"2.3.0\"",
+      "replace": "\"version\": \"2.3.1\""
+    },
+    {
+      "action": "search-replace",
+      "target_path": "package-lock.json",
+      "search": "\"version\": \"2.3.0\"",
+      "replace": "\"version\": \"2.3.1\""
     }
   ],
-  "commit_message": "chore: version bump v2.3.0",
+  "commit_message": "fix(agent): resolve no-nested-ternary in cronjob-callback + version 2.3.1",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 68
+  "run": 69
 }

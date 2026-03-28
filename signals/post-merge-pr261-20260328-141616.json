@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 261,
+  "branch": "claude/multi-company-orchestration",
+  "timestamp": "2026-03-28T14:16:16Z",
+  "runId": "23687044355",
+  "healthStatus": "degraded"
+}

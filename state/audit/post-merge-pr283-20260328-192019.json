@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr283-20260328-192019",
+  "event": "post-merge-monitor",
+  "prNumber": 283,
+  "branch": "copilot/add-post-deploy-monitoring-automation",
+  "mergeSha": "50112fb956ca9714229c3cdf4e7f50d84c74ab3a",
+  "timestamp": "2026-03-28T19:20:19Z",
+  "runId": "23692476270",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

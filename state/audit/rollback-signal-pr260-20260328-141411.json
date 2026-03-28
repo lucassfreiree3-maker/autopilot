@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 260,
+  "branch": "claude/codex-sync",
+  "mergeSha": "40d352778204db29db02376f1036ba0fc328540f",
+  "timestamp": "2026-03-28T14:14:11Z",
+  "runId": "23687006938",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 279,
+  "branch": "copilot/fix-autonomous-merge-timeout",
+  "timestamp": "2026-03-28T19:11:55Z",
+  "runId": "23692329879",
+  "healthStatus": "degraded"
+}

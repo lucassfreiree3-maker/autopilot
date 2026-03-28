@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (297 files)
+  audit/ (298 files)
   improvements/ (1 files)
   metrics/ (6 files)
   handoffs/ (1 files)
@@ -124,6 +124,7 @@ Edit a trigger file on `main` branch, bump the `run` field.
 | `trigger/clone-repos.json` | clone-corporate-repos.yml | GETRONICS | ws-default | BBVINET_TOKEN | note, repos |
 | `trigger/codex-commit.json` | codex-apply.yml | SHARED | all workspaces | Codex agent commit automation | auto_merge, branch_suffix, model, target_files, task, workspace_id |
 | `trigger/codex-deploy.json` | codex-deploy.yml | GETRONICS | ws-default | BBVINET_TOKEN | auto_merge, component, corporate_files, model, task, workspace_id |
+| `trigger/copilot-task.json` | copilot-task-dispatch.yml | SHARED | all workspaces | Dispatch tasks to Copilot Coding Agent | component, task, task_type, version |
 | `trigger/e2e-test.json` | test-corporate-flow.yml | GETRONICS | ws-default | BBVINET_TOKEN | dry_run, workspace_id |
 | `trigger/fetch-files.json` | fetch-files.yml | GETRONICS | ws-default | BBVINET_TOKEN | component, files, workspace_id |
 | `trigger/fix-and-validate.json` | fix-and-validate.yml | GETRONICS | ws-default | BBVINET_TOKEN | workspace_id |
@@ -235,6 +236,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | copilot-post-deploy-sync.yml | copilot-post-deploy-sync.yml | unknown |
+| copilot-task-dispatch.yml | [Agent] Copilot Task Dispatch | trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
 | enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
@@ -286,6 +288,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | codex-autonomous-pr.yml | task |
 | codex-deploy.yml | task, component, workspace_id, model, auto_merge, run |
 | continuous-improvement.yml | workspace_id, auto_fix, scope |
+| copilot-task-dispatch.yml | task, task_type, component, version |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
 | fetch-files.yml | workspace_id, component, files |
@@ -356,4 +359,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-28T13:22:02Z | Run: 23686113520*
+*Last synced: 2026-03-28T13:30:23Z | Run: 23686256549*

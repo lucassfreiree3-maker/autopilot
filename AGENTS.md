@@ -40,7 +40,7 @@ This is your persistent memory from ALL previous sessions, embedded automaticall
 - Workspace: ws-default (Getronics)
 
 ### Claude Status
-- Claude: **idle** | Task: none
+- Claude: **active** | Task: Fix dashboard sync + upgrade Spark dashboard intelligence
 
 ### Lessons Learned (NEVER repeat these errors)
 - **Campo run no trigger DEVE ser incrementado — sem incremento workflow NAO dispara** → Fix: Verificar valor atual e somar 1
@@ -135,7 +135,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (326 files)
+  audit/ (327 files)
   improvements/ (1 files)
   metrics/ (6 files)
   handoffs/ (1 files)
@@ -314,7 +314,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | restore-state.yml | [Core] Restore: State Rollback | manual |
 | seed-workspace.yml | [Core] Seed Workspace | manual |
 | session-guard.yml | [Core] Session Guard | reusable |
-| spark-sync-state.yml | [Infra] Spark Dashboard Sync | scheduled, manual |
+| spark-sync-state.yml | [Infra] Spark Dashboard Sync | scheduled, trigger file, manual |
 | sync-copilot-prompt.yml | [Infra] Sync Copilot Prompt | trigger file, manual |
 | test-corporate-flow.yml | [Corp] Test: Corporate E2E Flow | trigger file, manual |
 | test-full-flow.yml | [Corp] Test: Full Flow (Controller + Agent) | trigger file, manual |
@@ -413,4 +413,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-28T18:29:01Z | Run: 23691553368*
+*Last synced: 2026-03-28T18:56:53Z | Run: 23692063034*

@@ -361,6 +361,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | copilot-post-deploy-sync.yml | copilot-post-deploy-sync.yml | unknown |
+| copilot-setup-steps.yml | Copilot Setup Steps | workflow_call |
 | copilot-task-dispatch.yml | [Agent] Copilot Task Dispatch | trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
@@ -619,4 +620,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T13:31:00Z | Run: 23686268806*
+*Last synced: 2026-03-28T13:33:11Z | Run: 23686304748*

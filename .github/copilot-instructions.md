@@ -364,7 +364,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-autonomous-pr.yml | Codex autonomous PR | manual |
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
-| copilot-post-deploy-sync.yml | copilot-post-deploy-sync.yml | unknown |
+| copilot-post-deploy-sync.yml | [Copilot] Post-Deploy Sync | manual |
 | copilot-setup-steps.yml | Copilot Setup Steps | workflow_call |
 | copilot-task-dispatch.yml | [Agent] Copilot Task Dispatch | trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
@@ -419,6 +419,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-autonomous-pr.yml | task |
 | codex-deploy.yml | task, component, workspace_id, model, auto_merge, run |
 | continuous-improvement.yml | workspace_id, auto_fix, scope |
+| copilot-post-deploy-sync.yml | version, run_number |
 | copilot-task-dispatch.yml | task, task_type, component, version |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
@@ -625,4 +626,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T17:45:09Z | Run: 23690762224*
+*Last synced: 2026-03-28T17:49:08Z | Run: 23690836701*

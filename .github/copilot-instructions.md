@@ -363,10 +363,8 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
 | auto-merge-sweeper.yml | [Core] Auto-Merge Sweeper | scheduled, manual |
-| auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
 | autonomous-merge-direct.yml | [Core] Autonomous Direct Merge | unknown |
-| autonomous-pr-lane.yml | [Core] Autonomous PR Lane | unknown |
 | autopilot-dispatcher.yml | [Core] Autopilot Dispatcher | manual |
 | backup-state.yml | [Core] Backup: State Snapshot | scheduled, manual |
 | bootstrap.yml | [Core] Bootstrap: Full Setup | manual |
@@ -651,4 +649,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T19:20:15Z | Run: 23692476392*
+*Last synced: 2026-03-28T19:22:39Z | Run: 23692522164*

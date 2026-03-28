@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "description": "Memoria cumulativa do Copilot. OBRIGATORIO: Ler no inicio de CADA sessao. Atualizar ao final de CADA sessao com commit no main.",
-  "lastUpdated": "2026-03-27T16:52:39Z",
-  "lastSessionId": "session-2026-03-27-bootstrap",
-  "sessionCount": 1,
+  "lastUpdated": "2026-03-27T19:18:48Z",
+  "lastSessionId": "session-2026-03-27-absorb-mega-prompt",
+  "sessionCount": 2,
   "currentState": {
     "controllerVersion": "3.6.8",
     "agentVersion": "2.2.9",
@@ -30,6 +30,25 @@
         "Sync pos-deploy deve ser automatico via workflow_run",
         "values.yaml de referencia deve ser atualizado automaticamente"
       ]
+    },
+    {
+      "date": "2026-03-27",
+      "summary": "Mega prompt absorvido. Gravados em memoria: boot sequence, deploy flow completo (10 fases), 20 regras de ouro, tooling (push_files obrigatorio), erros conhecidos, isolamento, progresso com checkboxes.",
+      "actions": [
+        "read-copilot-mega-prompt-md-all-11-sections",
+        "added-8-new-lessons-learned",
+        "added-3-new-decisions",
+        "added-2-new-error-patterns",
+        "updated-session-count-to-2"
+      ],
+      "triggeredBy": "Issue: Absorver mega prompt e gravar na memoria persistente",
+      "lessonsLearned": [
+        "SEMPRE usar push_files — NUNCA create_or_update_file",
+        "Fluxo ideal = 3 tool calls: push_files → create_pull_request → merge_pull_request",
+        "NUNCA pedir ao usuario para fazer algo manualmente",
+        "Boot sequence obrigatorio a cada sessao",
+        "Se erro em deploy: diagnosticar + corrigir + re-deploy AUTOMATICAMENTE"
+      ]
     }
   ],
   "decisions": [
@@ -47,6 +66,21 @@
       "date": "2026-03-27",
       "decision": "Copilot tem workflow automatico separado do Claude — NUNCA modifica arquivos do Claude",
       "context": "Lucas mandou: funcionamento do Copilot deve ser 100% separado. copilot-post-deploy-sync.yml cuida de tudo automaticamente."
+    },
+    {
+      "date": "2026-03-27",
+      "decision": "push_files e a UNICA ferramenta para editar arquivos — create_or_update_file BANIDO",
+      "context": "push_files faz N arquivos em 1 chamada = 1 confirmacao. create_or_update_file gera 1 confirmacao por arquivo."
+    },
+    {
+      "date": "2026-03-27",
+      "decision": "Mega prompt absorvido — contracts/copilot-mega-prompt.md e a referencia completa",
+      "context": "Todas as 11 secoes lidas e gravadas em memoria: identidade, boot sequence, deploy flow, erros, tooling, progresso, memoria, backup, isolamento, regras de ouro, docs."
+    },
+    {
+      "date": "2026-03-27",
+      "decision": "Antes de perguntar ao usuario, tentar resolver sozinho lendo docs e memoria",
+      "context": "Boot sequence le copilot-session-memory → claude-live-status → claude-session-memory. Documentacao completa em ops/docs/deploy-process/ (12 fases)."
     }
   ],
   "lessonsLearned": [
@@ -124,6 +158,46 @@
       "lesson": "references/controller-cap/values.yaml DEVE refletir versao real deployada",
       "source": "session 2026-03-27 — drift detectado (3.6.3 header, 3.6.6 image, 3.6.8 real)",
       "fix": "copilot-post-deploy-sync.yml atualiza automaticamente apos cada deploy"
+    },
+    {
+      "lesson": "SEMPRE usar push_files para TODAS as operacoes de arquivo — NUNCA create_or_update_file. push_files faz N arquivos em 1 chamada = 1 confirmacao",
+      "source": "contracts/copilot-mega-prompt.md — Secao 5 e Regra de Ouro #2",
+      "fix": "Substituir qualquer uso de create_or_update_file por push_files com array de files"
+    },
+    {
+      "lesson": "Fluxo ideal de deploy = 3 tool calls: push_files → create_pull_request → merge_pull_request",
+      "source": "contracts/copilot-mega-prompt.md — Secao 3.2 e Secao 5",
+      "fix": "Planejar todas as alteracoes antecipadamente para fazer push_files com todos os arquivos de uma vez"
+    },
+    {
+      "lesson": "NUNCA pedir ao usuario para fazer algo manualmente — usar API para tudo",
+      "source": "contracts/copilot-mega-prompt.md — Regra de Ouro #1 e #12",
+      "fix": "Se precisar marcar PR como ready: usar update_pull_request(draft: false). Se precisar mergear: usar merge_pull_request."
+    },
+    {
+      "lesson": "NUNCA dizer 'clique em Ready for Review' — usar update_pull_request(draft: false) ou GraphQL markPullRequestReadyForReview",
+      "source": "contracts/copilot-mega-prompt.md — Secao 5.6",
+      "fix": "update_pull_request(owner, repo, pullNumber, draft: false)"
+    },
+    {
+      "lesson": "SEMPRE mostrar progresso com checkboxes [x] concluido, [~] em andamento, [ ] pendente",
+      "source": "contracts/copilot-mega-prompt.md — Secao 6",
+      "fix": "Usar formato: [x] passo 1, [~] passo 2 em andamento, [ ] passo 3"
+    },
+    {
+      "lesson": "Boot sequence OBRIGATORIO: ler copilot-session-memory → claude-live-status → claude-session-memory antes de QUALQUER acao",
+      "source": "contracts/copilot-mega-prompt.md — Secao 2",
+      "fix": "Executar os 4 passos da boot sequence no inicio de cada sessao"
+    },
+    {
+      "lesson": "Se erro em deploy: diagnosticar + corrigir + re-deploy AUTOMATICAMENTE sem perguntar ao usuario",
+      "source": "contracts/copilot-mega-prompt.md — Secao 3.3 Fase 10 e Regra de Ouro #19",
+      "fix": "1. Identificar erro nos logs. 2. Corrigir patch. 3. Bumpar versao. 4. Incrementar run. 5. Novo push_files → PR → merge → monitorar."
+    },
+    {
+      "lesson": "Documentacao completa de deploy em ops/docs/deploy-process/ (12 fases). Nunca inventar — sempre consultar os docs.",
+      "source": "contracts/copilot-mega-prompt.md — Secao 11",
+      "fix": "Para cada fase do deploy, consultar o arquivo correspondente em ops/docs/deploy-process/"
     }
   ],
   "errorPatterns": {
@@ -136,7 +210,9 @@
     "swagger_garbled": "Acentos no swagger. Substituir por ASCII.",
     "test_mock_broken": "validateTrustedUrl adicionado em fetch. Remover.",
     "pr_dirty": "Conflito com main. git pull --rebase origin main.",
-    "draft_pr_cant_merge": "PR esta em draft. Marcar como ready via GraphQL markPullRequestReadyForReview."
+    "draft_pr_cant_merge": "PR esta em draft. Marcar como ready via GraphQL markPullRequestReadyForReview.",
+    "multiple_confirmations": "Estava usando create_or_update_file (1 confirm por arquivo). Fix: usar push_files (1 confirm para N arquivos)",
+    "asking_user_manual_action": "Estava pedindo 'clique em Ready for Review'. Fix: usar update_pull_request(draft: false) via API"
   },
   "importantFiles": {
     "triggerDeploy": "trigger/source-change.json",

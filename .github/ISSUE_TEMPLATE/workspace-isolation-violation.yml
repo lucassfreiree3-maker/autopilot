@@ -1,0 +1,90 @@
+name: Workspace Isolation Violation
+description: Reportar violação do isolamento entre workspaces — acesso não autorizado a ws-socnew, ws-corp-1 ou mistura de contextos corporativos
+labels: [security, workspace-isolation, critical]
+assignees: [lucassfreiree]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⛔ Workspace Isolation Violation
+
+        Use este template para reportar qualquer violação de isolamento entre workspaces.
+        Este é um incidente de segurança e deve ser tratado com prioridade.
+
+  - type: dropdown
+    id: workspace_violated
+    attributes:
+      label: Workspace violado
+      description: Qual workspace foi acessado de forma não autorizada?
+      options:
+        - ws-socnew (BLOQUEADO — pertence a terceiro)
+        - ws-corp-1 (BLOQUEADO — pertence a terceiro)
+        - ws-default (acesso indevido por outro workspace)
+        - ws-cit (acesso indevido por outro workspace)
+        - Outro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: violation_type
+    attributes:
+      label: Tipo de violação
+      options:
+        - Leitura não autorizada de state
+        - Escrita não autorizada em state
+        - Deploy não autorizado para repo corporativo
+        - Uso indevido de token de outro workspace
+        - Mistura de dados entre workspaces
+        - Agente operou workspace sem verificar isolamento
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do incidente
+      description: Descreva o que aconteceu, quando e como foi detectado
+      placeholder: |
+        - O que aconteceu
+        - Quando foi detectado
+        - Qual agente ou workflow estava ativo
+        - Evidências (logs, commits, runs)
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Links para commits, workflow runs, logs ou screenshots relevantes
+      placeholder: |
+        - Workflow run: https://github.com/lucassfreiree/autopilot/actions/runs/...
+        - Commit: https://github.com/...
+        - Log: state/workspaces/.../audit/...
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto
+      description: Dados expostos, operações executadas indevidamente, etc.
+
+  - type: textarea
+    id: remediation
+    attributes:
+      label: Remediação proposta
+      description: O que foi feito ou deve ser feito para corrigir a violação
+      placeholder: |
+        - Reverter operação X
+        - Invalidar token Y
+        - Corrigir workflow Z para verificar workspace_id
+
+  - type: checkboxes
+    id: acknowledgment
+    attributes:
+      label: Confirmação
+      options:
+        - label: Confirmo que este é um incidente real de violação de isolamento
+          required: true
+        - label: Já notifiquei o proprietário da conta sobre o incidente
+          required: false

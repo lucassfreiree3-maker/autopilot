@@ -1,0 +1,118 @@
+name: Incident Report
+description: Reportar incidente de produção, degradação de serviço, falha de CI/CD ou problema crítico de infraestrutura
+labels: [incident, needs-triage]
+assignees: [lucassfreiree]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚨 Incident Report
+
+        Use este template para reportar incidentes que afetam produção, CI/CD ou infraestrutura.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severidade
+      options:
+        - "P1 — Produção fora do ar / impacto total"
+        - "P2 — Deploy bloqueado / CI falhando repetidamente"
+        - "P3 — Degradação de funcionalidade / warning"
+        - "P4 — Melhoria / não urgente"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Workspace afetado
+      options:
+        - ws-default (Getronics)
+        - ws-cit (CIT)
+        - Autopilot control plane (todos)
+        - Desconhecido
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Componente afetado
+      options:
+        - controller
+        - agent
+        - apply-source-change pipeline
+        - ci-monitor-loop
+        - promote-cap
+        - autopilot-state branch
+        - Outro workflow
+        - Infraestrutura K8s
+        - Outro
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Resumo do incidente
+      description: O que está falhando, desde quando e qual o impacto
+      placeholder: |
+        - O que falhou
+        - Desde quando
+        - Qual o impacto (deploy bloqueado, serviço degradado, etc.)
+    validations:
+      required: true
+
+  - type: textarea
+    id: symptoms
+    attributes:
+      label: Sintomas observados
+      placeholder: |
+        - Workflow X retorna erro Y
+        - CI falha com mensagem Z
+        - Health check retorna degraded
+        - Lock não está sendo liberado
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      placeholder: |
+        - HH:MM — Último deploy bem-sucedido
+        - HH:MM — Primeiro erro observado
+        - HH:MM — Ação tomada X
+        - HH:MM — Resultado de X
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Links para workflow runs, logs, audit entries, etc.
+      placeholder: |
+        - Workflow run: https://github.com/lucassfreiree/autopilot/actions/runs/...
+        - CI logs: state/workspaces/ws-default/ci-logs-controller-<job_id>.txt
+        - Health: state/workspaces/<ws_id>/health.json
+
+  - type: textarea
+    id: hypotheses
+    attributes:
+      label: Hipóteses (opcional)
+      description: O que você acredita que causou o incidente
+
+  - type: textarea
+    id: steps_taken
+    attributes:
+      label: Ações tomadas até agora
+      placeholder: |
+        - Executei workspace-lock-gc.yml
+        - Disparei ci-diagnose.yml
+        - Aguardando resultado de ci-monitor-loop.yml
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist de investigação
+      options:
+        - label: Verifiquei `contracts/claude-live-status.json` (deploy ativo?)
+        - label: Verifiquei lock em `state/workspaces/<ws_id>/locks/session-lock.json`
+        - label: Consultei logs reais em `ci-logs-*.txt` (não apenas `ci-diagnosis-*.json`)
+        - label: Consultei runbook relevante em `ops/runbooks/`
+        - label: Verifiquei histórico de falhas em `contracts/claude-session-memory.json`

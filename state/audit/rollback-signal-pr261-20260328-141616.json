@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 261,
+  "branch": "claude/multi-company-orchestration",
+  "mergeSha": "e142178567c34ca5fb5618d86750d542e89ee415",
+  "timestamp": "2026-03-28T14:16:16Z",
+  "runId": "23687044355",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

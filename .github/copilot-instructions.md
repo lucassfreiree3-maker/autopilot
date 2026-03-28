@@ -87,6 +87,7 @@ You already know everything below. Apply it immediately.
 - **trigger/source-change.json current state: version 3.6.8, run 66, component controller, workspace ws-default** → Fix: Next deploy MUST use version >= 3.6.9 (or 3.7.0 if after 3.6.9) and run >= 67
 - **The Autopilot has 3 agent types: Claude (primary, has filesystem), Copilot (backup, API-only), Codex (secondary). Each has own session-memory, agent-contract, and branch prefix.** → Fix: Claude: claude/*, Copilot: copilot/*, Codex: codex/*. Never cross-modify agent files.
 - **COMPLETE BOOT SEQUENCE for every session: 1) Read copilot-session-memory.json 2) Try read claude-live-status.json (may not exist) 3) Read claude-session-memory.json 4) Read trigger/source-change.json for current version/run 5) Show estado atual to user** → Fix: Execute ALL steps. If any file missing, log and continue. Never skip memory read.
+- **NUNCA modificar autonomous-pr-lane.yml ou auto-merge-to-main.yml — estao DESABILITADOS de proposito. autonomous-merge-direct.yml e o UNICO handler de PRs de agentes. Reativar os outros causa workflows duplicados.** → Fix: autonomous-pr-lane.yml tem if:false. auto-merge-to-main.yml tem skip para agent branches. NAO TOCAR.
 
 ### Error Patterns (quick fix reference)
 - `post_deploy_sync_push_403`: git push direto no main falha com branch protection. Usar branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto com RELEASE_TOKEN.
@@ -638,4 +639,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T18:28:20Z | Run: 23691547973*
+*Last synced: 2026-03-28T18:28:42Z | Run: 23691553366*

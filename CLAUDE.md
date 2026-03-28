@@ -708,6 +708,24 @@ Every new Claude Code session MUST:
 | `OPENAI_API_KEY` | Shared | OpenAI API key for LangChain orchestrator |
 | `CIT_TOKEN` | CIT | PAT for CIT corporate repos (to be configured) |
 
+### Delegate to Copilot (Claude → Copilot task dispatch)
+Claude can delegate tasks to Copilot automatically:
+
+**Via MCP (preferred):**
+1. `mcp__github__issue_write` — create issue with `[Copilot]` prefix + labels `copilot`, `autonomous`
+2. `mcp__github__assign_copilot_to_issue` — assign with `custom_instructions` for autonomy
+3. `mcp__github__get_copilot_job_status` — monitor progress
+
+**Via trigger file:**
+Edit `trigger/copilot-task.json` with task description, bump `run` → workflow `copilot-task-dispatch.yml` creates issue + assigns Copilot.
+
+**Via script:**
+```bash
+./scripts/copilot/launch-task.sh "Deploy controller 3.6.9"
+```
+
+**When to delegate:** Simple tasks (doc updates, memory sync, version bump), when Claude is overloaded, or when Claude session is ending and work needs continuation.
+
 ### Auto-Mapping for Future Sessions (MANDATORY — No user intervention required)
 Claude Code MUST automatically and proactively keep this file (CLAUDE.md) up to date. This is NOT optional and does NOT require the user to ask.
 

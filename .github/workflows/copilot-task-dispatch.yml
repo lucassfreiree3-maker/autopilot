@@ -1,0 +1,128 @@
+name: "[Agent] Copilot Task Dispatch"
+run-name: "${{ github.workflow }} • ${{ github.event.inputs.task || 'trigger file' }}"
+
+# Dispatches tasks to Copilot Coding Agent via issue creation + assignment.
+# Can be triggered by:
+#   1. trigger/copilot-task.json (edit + bump run)
+#   2. workflow_dispatch with task description
+#   3. Another workflow calling this as reusable
+
+on:
+  push:
+    branches: [main]
+    paths: ['trigger/copilot-task.json']
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Task description for Copilot"
+        required: true
+      task_type:
+        description: "Type: general, deploy, fix, docs"
+        required: false
+        default: "general"
+      component:
+        description: "Component (for deploy): controller or agent"
+        required: false
+      version:
+        description: "Version (for deploy): e.g. 3.6.9"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  dispatch:
+    name: "Create issue + assign Copilot"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read task from trigger or inputs
+        id: task
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TASK=$(jq -r '.task // "No task specified"' trigger/copilot-task.json)
+            TASK_TYPE=$(jq -r '.task_type // "general"' trigger/copilot-task.json)
+            COMPONENT=$(jq -r '.component // ""' trigger/copilot-task.json)
+            VERSION=$(jq -r '.version // ""' trigger/copilot-task.json)
+          else
+            TASK="${{ github.event.inputs.task }}"
+            TASK_TYPE="${{ github.event.inputs.task_type }}"
+            COMPONENT="${{ github.event.inputs.component }}"
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+
+          echo "task=$TASK" >> "$GITHUB_OUTPUT"
+          echo "task_type=$TASK_TYPE" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # Read current state
+          CURRENT_RUN=$(jq -r '.run // "?"' trigger/source-change.json 2>/dev/null || echo "?")
+          CURRENT_VER=$(jq -r '.version // "?"' trigger/source-change.json 2>/dev/null || echo "?")
+          echo "current_run=$CURRENT_RUN" >> "$GITHUB_OUTPUT"
+          echo "current_ver=$CURRENT_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Create issue and assign Copilot
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const task = '${{ steps.task.outputs.task }}';
+            const taskType = '${{ steps.task.outputs.task_type }}';
+            const component = '${{ steps.task.outputs.component }}';
+            const version = '${{ steps.task.outputs.version }}';
+            const currentRun = '${{ steps.task.outputs.current_run }}';
+            const currentVer = '${{ steps.task.outputs.current_ver }}';
+
+            let body = `## Task\n${task}\n\n`;
+            body += `## Current State\n- Version: \`${currentVer}\` | Run: \`${currentRun}\`\n\n`;
+            body += `## Execution Rules\n`;
+            body += `- 100% autonomous — zero user intervention\n`;
+            body += `- Use \`push_files\` for ALL file changes\n`;
+            body += `- NEVER create PR as draft\n`;
+            body += `- Read \`contracts/copilot-mega-prompt.md\` for complete guide\n`;
+            body += `- Read \`contracts/copilot-session-memory.json\` for your memory\n`;
+
+            if (taskType === 'deploy') {
+              body += `\n## Deploy Info\n`;
+              body += `- Component: \`${component || 'auto-detect'}\`\n`;
+              body += `- Version: \`${version || 'next patch'}\`\n`;
+              body += `- Guide: \`contracts/copilot-deploy-guide.md\`\n`;
+              body += `- Detailed: \`ops/docs/deploy-process/\`\n`;
+            }
+
+            // Create issue
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[Copilot] ${task}`,
+              body: body,
+              labels: ['copilot', 'autonomous']
+            });
+
+            core.notice(`Issue #${issue.data.number} created`);
+
+            // Assign Copilot
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.data.number,
+                assignees: ['copilot']
+              });
+              core.notice(`Copilot assigned to issue #${issue.data.number}`);
+            } catch (e) {
+              core.warning(`Could not assign Copilot: ${e.message}`);
+            }
+
+            core.setOutput('issue_number', issue.data.number);
+            core.setOutput('issue_url', issue.data.html_url);
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Copilot Task Dispatched" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Task: ${{ steps.task.outputs.task }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Type: ${{ steps.task.outputs.task_type }}" >> "$GITHUB_STEP_SUMMARY"

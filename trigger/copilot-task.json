@@ -1,0 +1,8 @@
+{
+  "_context": "SHARED | all workspaces | Dispatch tasks to Copilot Coding Agent",
+  "task": "Read contracts/copilot-mega-prompt.md and absorb all knowledge into your memory",
+  "task_type": "general",
+  "component": "",
+  "version": "",
+  "run": 1
+}

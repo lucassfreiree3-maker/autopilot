@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr268-20260328-182542",
+  "event": "post-merge-monitor",
+  "prNumber": 268,
+  "branch": "claude/fix-workflows-final",
+  "mergeSha": "04658a70fa577be311da25ea07360fe421a8e825",
+  "timestamp": "2026-03-28T18:25:42Z",
+  "runId": "23691501370",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

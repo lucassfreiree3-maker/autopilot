@@ -136,5 +136,29 @@
       "forbidden": ["personal-data", "autopilot-state", "audit-logs"],
       "requiresSessionGuard": true
     }
+  },
+  "multiAgentOrchestration": {
+    "description": "3 agentes (Claude, Codex, Copilot) operam em multiplas empresas de forma 100% autonoma sem intervencao do usuario.",
+    "guide": "ops/docs/multi-agent/orchestration-guide.md",
+    "agents": {
+      "claude": {"role": "primary", "backup": "copilot", "memory": "claude-session-memory.json"},
+      "codex": {"role": "specialist", "memory": "codex-session-memory.json"},
+      "copilot": {"role": "backup+tasks", "backupOf": "claude", "memory": "copilot-session-memory.json"}
+    },
+    "sharedState": "claude-live-status.json",
+    "workspaces": {
+      "ws-default": {"company": "Getronics", "token": "BBVINET_TOKEN", "status": "active"},
+      "ws-cit": {"company": "CIT", "token": "CIT_TOKEN", "status": "setup"},
+      "ws-corp-1": {"company": "TBD", "token": "TBD", "status": "empty"}
+    },
+    "rules": [
+      "NUNCA misturar dados entre empresas",
+      "Identificar workspace ANTES de qualquer acao",
+      "Cada empresa usa EXCLUSIVAMENTE seu proprio token",
+      "Se outro agente tem lock: ESPERAR ou criar handoff",
+      "Se Claude cair: Copilot assume em < 30 min",
+      "Spark dashboard mostra estado de TODAS as empresas",
+      "Memoria de cada agente e EXCLUSIVA — so ler a dos outros"
+    ]
   }
 }

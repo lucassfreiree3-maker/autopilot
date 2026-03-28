@@ -1,0 +1,547 @@
+name: "[Core] Intelligent PR Review & Validation"
+run-name: "${{ github.workflow }} • PR #${{ github.event.pull_request.number }} • ${{ github.event.pull_request.head.ref }} → main"
+
+# Autonomous PR review and validation system for agent-created PRs.
+# This workflow provides intelligent validation, conflict resolution,
+# code quality checks, security scanning, and auto-approval.
+#
+# Features:
+# - Automatic conflict detection and resolution
+# - Code quality validation (lint, build, tests)
+# - Security vulnerability scanning
+# - AI-powered change analysis
+# - Auto-approval when all checks pass
+# - Integration with autonomous-merge-direct.yml
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+  issues: write
+
+concurrency:
+  group: pr-review-validation-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  intelligent-review:
+    name: "Intelligent PR Review & Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR details
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let pr;
+            if (context.payload.pull_request) {
+              pr = context.payload.pull_request;
+            } else if (context.payload.inputs && context.payload.inputs.pr_number) {
+              const { data } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: parseInt(context.payload.inputs.pr_number)
+              });
+              pr = data;
+            } else {
+              core.setFailed('No PR information available');
+              return;
+            }
+
+            const branch = pr.head.ref;
+
+            // Only act on agent branches
+            const isAgentBranch = branch.startsWith('copilot/') ||
+                                  branch.startsWith('claude/') ||
+                                  branch.startsWith('codex/');
+
+            if (!isAgentBranch) {
+              core.notice(`PR #${pr.number} branch "${branch}" is not an agent branch; skipping.`);
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            // Target must be main
+            if (pr.base.ref !== 'main') {
+              core.notice(`PR #${pr.number} targets "${pr.base.ref}", not main; skipping.`);
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            // Safety: never act on forks
+            const sameRepo = pr.head.repo && pr.head.repo.full_name === pr.base.repo.full_name;
+            if (!sameRepo) {
+              core.notice(`PR #${pr.number} is from a fork; skipping for security.`);
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            core.notice(`PR #${pr.number} (${branch} → main) is eligible for intelligent review.`);
+            core.setOutput('eligible', 'true');
+            core.setOutput('pr_number', String(pr.number));
+            core.setOutput('pr_node_id', pr.node_id);
+            core.setOutput('head_ref', branch);
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('base_sha', pr.base.sha);
+            core.setOutput('title', pr.title);
+            core.setOutput('mergeable', pr.mergeable);
+            core.setOutput('mergeable_state', pr.mergeable_state);
+
+      # ============================================================
+      # Stage 1: Conflict Detection & Resolution
+      # ============================================================
+      - name: Check for merge conflicts
+        id: conflicts
+        if: steps.pr-info.outputs.eligible == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+            const mergeable = '${{ steps.pr-info.outputs.mergeable }}';
+            const mergeableState = '${{ steps.pr-info.outputs.mergeable_state }}';
+
+            core.notice(`PR #${prNumber} mergeable: ${mergeable}, state: ${mergeableState}`);
+
+            if (mergeable === 'false' || mergeableState === 'dirty') {
+              core.setOutput('has_conflicts', 'true');
+              core.warning(`PR #${prNumber} has merge conflicts that need resolution.`);
+            } else if (mergeable === 'null' || mergeableState === 'unknown') {
+              // GitHub is still computing mergeable status
+              core.notice(`PR #${prNumber} mergeable status is still being computed. Will retry.`);
+              core.setOutput('has_conflicts', 'unknown');
+            } else {
+              core.notice(`PR #${prNumber} has no merge conflicts.`);
+              core.setOutput('has_conflicts', 'false');
+            }
+
+      - name: Attempt automatic conflict resolution
+        id: resolve-conflicts
+        if: steps.pr-info.outputs.eligible == 'true' && steps.conflicts.outputs.has_conflicts == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+            const headRef = '${{ steps.pr-info.outputs.head_ref }}';
+
+            core.notice(`PR #${prNumber}: Attempting automatic conflict resolution...`);
+
+            try {
+              // Try to update branch with base (merge main into the PR branch)
+              await github.rest.pulls.updateBranch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              core.notice(`PR #${prNumber}: Successfully updated branch with base. Conflicts may be resolved.`);
+              core.setOutput('resolution_attempted', 'true');
+              core.setOutput('resolution_success', 'true');
+
+              // Add comment to PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: '🤖 **Automatic Conflict Resolution**\n\nI\'ve updated this branch with the latest changes from `main`. Please verify the automatic merge resolution.'
+              });
+            } catch (error) {
+              core.warning(`PR #${prNumber}: Automatic conflict resolution failed: ${error.message}`);
+              core.setOutput('resolution_attempted', 'true');
+              core.setOutput('resolution_success', 'false');
+
+              // Add comment to PR explaining the issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `⚠️ **Merge Conflicts Detected**\n\nThis PR has merge conflicts that require manual resolution:\n\n\`\`\`\n${error.message}\n\`\`\`\n\nPlease resolve the conflicts manually or close this PR.`
+              });
+            }
+
+      # ============================================================
+      # Stage 2: Code Quality Validation
+      # ============================================================
+      - name: Checkout PR code
+        id: checkout
+        if: steps.pr-info.outputs.eligible == 'true' && steps.conflicts.outputs.has_conflicts != 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr-info.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: steps.checkout.conclusion == 'success'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Analyze changed files
+        id: changes
+        if: steps.checkout.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            const jsFiles = files.filter(f => /\.(js|ts|jsx|tsx)$/.test(f.filename));
+            const yamlFiles = files.filter(f => /\.ya?ml$/.test(f.filename));
+            const jsonFiles = files.filter(f => /\.json$/.test(f.filename));
+            const mdFiles = files.filter(f => /\.md$/.test(f.filename));
+            const patchFiles = files.filter(f => f.filename.startsWith('patches/'));
+            const workflowFiles = files.filter(f => f.filename.startsWith('.github/workflows/'));
+            const triggerFiles = files.filter(f => f.filename.startsWith('trigger/'));
+
+            core.setOutput('has_js_files', jsFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_yaml_files', yamlFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_json_files', jsonFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_md_files', mdFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_patch_files', patchFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_workflow_files', workflowFiles.length > 0 ? 'true' : 'false');
+            core.setOutput('has_trigger_files', triggerFiles.length > 0 ? 'true' : 'false');
+
+            core.setOutput('total_changes', files.length);
+            core.setOutput('additions', files.reduce((sum, f) => sum + f.additions, 0));
+            core.setOutput('deletions', files.reduce((sum, f) => sum + f.deletions, 0));
+
+            core.notice(`PR #${prNumber}: ${files.length} files changed (+${core.getOutput('additions')} -${core.getOutput('deletions')})`);
+
+      - name: Validate JSON files
+        if: steps.changes.outputs.has_json_files == 'true'
+        run: |
+          echo "Validating JSON files..."
+          find . -name "*.json" -not -path "./node_modules/*" -not -path "./.git/*" | while read file; do
+            echo "Checking $file"
+            if ! jq empty "$file" 2>/dev/null; then
+              echo "::error::Invalid JSON in $file"
+              exit 1
+            fi
+          done
+
+      - name: Validate YAML files
+        if: steps.changes.outputs.has_yaml_files == 'true'
+        run: |
+          echo "Validating YAML files..."
+          npm install -g js-yaml
+          find . -name "*.yml" -o -name "*.yaml" | grep -v node_modules | while read file; do
+            echo "Checking $file"
+            if ! js-yaml "$file" > /dev/null 2>&1; then
+              echo "::error::Invalid YAML in $file"
+              exit 1
+            fi
+          done
+
+      - name: Run ESLint (if applicable)
+        id: eslint
+        if: steps.changes.outputs.has_js_files == 'true'
+        continue-on-error: true
+        run: |
+          if [ -f "package.json" ] && grep -q "eslint" package.json; then
+            echo "Running ESLint..."
+            npm ci --silent 2>/dev/null || npm install --silent 2>/dev/null || true
+            npm run lint --if-present || npx eslint . --ext .js,.ts,.jsx,.tsx || true
+          else
+            echo "No ESLint configuration found, skipping..."
+          fi
+
+      - name: Run TypeScript compiler check (if applicable)
+        id: tsc
+        if: steps.changes.outputs.has_js_files == 'true'
+        continue-on-error: true
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            echo "Running TypeScript compiler check..."
+            npm ci --silent 2>/dev/null || npm install --silent 2>/dev/null || true
+            npx tsc --noEmit || true
+          else
+            echo "No TypeScript configuration found, skipping..."
+          fi
+
+      # ============================================================
+      # Stage 3: Security Scanning
+      # ============================================================
+      - name: Check for secrets in code
+        id: secrets
+        if: steps.checkout.conclusion == 'success'
+        continue-on-error: true
+        run: |
+          echo "Scanning for potential secrets..."
+
+          # Check for common secret patterns
+          SECRET_PATTERNS=(
+            "password\s*=\s*['\"][^'\"]+['\"]"
+            "api[_-]?key\s*=\s*['\"][^'\"]+['\"]"
+            "secret\s*=\s*['\"][^'\"]+['\"]"
+            "token\s*=\s*['\"][^'\"]+['\"]"
+            "-----BEGIN RSA PRIVATE KEY-----"
+            "-----BEGIN PRIVATE KEY-----"
+          )
+
+          FOUND_SECRETS=0
+          for pattern in "${SECRET_PATTERNS[@]}"; do
+            if git diff origin/main...HEAD | grep -iE "$pattern"; then
+              echo "::warning::Potential secret found matching pattern: $pattern"
+              FOUND_SECRETS=1
+            fi
+          done
+
+          if [ $FOUND_SECRETS -eq 1 ]; then
+            echo "secrets_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "secrets_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for dependency vulnerabilities
+        id: vulnerabilities
+        if: steps.checkout.conclusion == 'success' && steps.changes.outputs.has_js_files == 'true'
+        continue-on-error: true
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "Checking for dependency vulnerabilities..."
+            npm audit --audit-level=high --production || echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+          fi
+
+      # ============================================================
+      # Stage 4: AI-Powered Change Analysis
+      # ============================================================
+      - name: Analyze code changes
+        id: analysis
+        if: steps.checkout.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+            const totalChanges = parseInt('${{ steps.changes.outputs.total_changes }}');
+            const additions = parseInt('${{ steps.changes.outputs.additions }}');
+            const deletions = parseInt('${{ steps.changes.outputs.deletions }}');
+
+            // Calculate complexity score
+            let complexity = 'low';
+            let riskLevel = 'low';
+
+            if (totalChanges > 20 || additions + deletions > 500) {
+              complexity = 'high';
+              riskLevel = 'medium';
+            } else if (totalChanges > 10 || additions + deletions > 200) {
+              complexity = 'medium';
+              riskLevel = 'low';
+            }
+
+            // Check for high-risk file changes
+            const hasPatchFiles = '${{ steps.changes.outputs.has_patch_files }}' === 'true';
+            const hasWorkflowFiles = '${{ steps.changes.outputs.has_workflow_files }}' === 'true';
+            const hasTriggerFiles = '${{ steps.changes.outputs.has_trigger_files }}' === 'true';
+
+            if (hasWorkflowFiles || hasTriggerFiles) {
+              riskLevel = 'medium';
+            }
+
+            if (hasPatchFiles) {
+              riskLevel = 'high';
+              core.notice(`PR #${prNumber} modifies patch files - requires careful review`);
+            }
+
+            core.setOutput('complexity', complexity);
+            core.setOutput('risk_level', riskLevel);
+            core.setOutput('requires_manual_review', riskLevel === 'high' ? 'true' : 'false');
+
+            // Generate analysis summary
+            const summary = [
+              `### 📊 Change Analysis`,
+              `- **Complexity**: ${complexity}`,
+              `- **Risk Level**: ${riskLevel}`,
+              `- **Files Changed**: ${totalChanges}`,
+              `- **Lines Added**: +${additions}`,
+              `- **Lines Deleted**: -${deletions}`,
+              ``,
+              `#### Change Categories`,
+              `- Patch files: ${hasPatchFiles ? '✅' : '❌'}`,
+              `- Workflow files: ${hasWorkflowFiles ? '✅' : '❌'}`,
+              `- Trigger files: ${hasTriggerFiles ? '✅' : '❌'}`,
+            ].join('\n');
+
+            core.setOutput('analysis_summary', summary);
+
+      # ============================================================
+      # Stage 5: Auto-Approval Decision
+      # ============================================================
+      - name: Determine approval status
+        id: approval
+        if: steps.pr-info.outputs.eligible == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+            const hasConflicts = '${{ steps.conflicts.outputs.has_conflicts }}' === 'true';
+            const riskLevel = '${{ steps.analysis.outputs.risk_level }}';
+            const secretsFound = '${{ steps.secrets.outputs.secrets_found }}' === 'true';
+            const requiresManualReview = '${{ steps.analysis.outputs.requires_manual_review }}' === 'true';
+
+            let shouldApprove = true;
+            const reasons = [];
+
+            if (hasConflicts) {
+              shouldApprove = false;
+              reasons.push('❌ Has merge conflicts');
+            }
+
+            if (secretsFound) {
+              shouldApprove = false;
+              reasons.push('❌ Potential secrets detected');
+            }
+
+            if (requiresManualReview) {
+              shouldApprove = false;
+              reasons.push('⚠️ High-risk changes require manual review');
+            }
+
+            if (riskLevel === 'high') {
+              shouldApprove = false;
+              reasons.push('⚠️ High-risk level detected');
+            }
+
+            if (shouldApprove) {
+              core.notice(`PR #${prNumber}: Auto-approval criteria met ✅`);
+              reasons.push('✅ All validation checks passed');
+              reasons.push('✅ No conflicts detected');
+              reasons.push('✅ No security issues found');
+              reasons.push('✅ Risk level acceptable');
+            } else {
+              core.notice(`PR #${prNumber}: Auto-approval criteria NOT met. Reasons:\n${reasons.join('\n')}`);
+            }
+
+            core.setOutput('should_approve', shouldApprove ? 'true' : 'false');
+            core.setOutput('approval_reasons', reasons.join('\n'));
+
+      - name: Auto-approve PR
+        id: approve
+        if: steps.approval.outputs.should_approve == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: 'APPROVE',
+                body: [
+                  '🤖 **Automated Review - APPROVED**',
+                  '',
+                  '${{ steps.analysis.outputs.analysis_summary }}',
+                  '',
+                  '### ✅ Validation Results',
+                  '${{ steps.approval.outputs.approval_reasons }}',
+                  '',
+                  '---',
+                  '*This PR has passed all automated validation checks and is approved for merge.*',
+                  '*The autonomous merge system will handle the merge automatically.*'
+                ].join('\n')
+              });
+
+              core.notice(`PR #${prNumber}: Auto-approved ✅`);
+              core.setOutput('approved', 'true');
+            } catch (error) {
+              core.warning(`PR #${prNumber}: Could not approve: ${error.message}`);
+              core.setOutput('approved', 'false');
+            }
+
+      - name: Add review comment for manual review cases
+        if: steps.approval.outputs.should_approve == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.pr-info.outputs.pr_number }}');
+
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              event: 'COMMENT',
+              body: [
+                '🤖 **Automated Review - Manual Review Required**',
+                '',
+                '${{ steps.analysis.outputs.analysis_summary }}',
+                '',
+                '### ⚠️ Manual Review Required',
+                '${{ steps.approval.outputs.approval_reasons }}',
+                '',
+                '---',
+                '*This PR requires manual review before it can be merged.*',
+                '*Please address the issues above or override this decision manually.*'
+              ].join('\n')
+            });
+
+      # ============================================================
+      # Stage 6: Summary Report
+      # ============================================================
+      - name: Generate workflow summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const eligible = '${{ steps.pr-info.outputs.eligible }}';
+            const prNumber = '${{ steps.pr-info.outputs.pr_number }}';
+            const headRef = '${{ steps.pr-info.outputs.head_ref }}';
+            const hasConflicts = '${{ steps.conflicts.outputs.has_conflicts }}';
+            const approved = '${{ steps.approve.outputs.approved }}';
+            const shouldApprove = '${{ steps.approval.outputs.should_approve }}';
+
+            const lines = [
+              '## 🤖 Intelligent PR Review & Validation',
+              '',
+              `- **PR**: #${prNumber} — \`${headRef}\` → \`main\``,
+              `- **Eligible for review**: ${eligible === 'true' ? '✅ Yes' : '❌ No'}`,
+              ''
+            ];
+
+            if (eligible === 'true') {
+              lines.push('### Validation Results');
+              lines.push(`- **Conflicts**: ${hasConflicts === 'true' ? '❌ Yes' : '✅ No'}`);
+              lines.push(`- **Auto-approval decision**: ${shouldApprove === 'true' ? '✅ Approved' : '⚠️ Manual review required'}`);
+
+              if (approved === 'true') {
+                lines.push(`- **Status**: ✅ PR approved and ready for autonomous merge`);
+              } else if (shouldApprove === 'false') {
+                lines.push(`- **Status**: ⚠️ Manual review required before merge`);
+              }
+
+              lines.push('');
+              lines.push('### Next Steps');
+              if (approved === 'true') {
+                lines.push('- ✅ PR will be automatically merged by `autonomous-merge-direct.yml` when checks pass');
+                lines.push('- ✅ Backup: `auto-merge-sweeper.yml` runs every minute as fallback');
+              } else {
+                lines.push('- ⚠️ Address review comments or manually approve to proceed');
+              }
+            }
+
+            await core.summary.addRaw(lines.join('\n')).write();

@@ -509,6 +509,7 @@ Note: Some directories (`locks/`, `approvals/`, `metrics/`, `release-freeze.json
 ### Infrastructure
 | Workflow | Purpose |
 |----------|---------|
+| pr-review-and-validation.yml | **NEW** Intelligent autonomous PR review with conflict resolution, code quality checks, security scanning, and auto-approval |
 | sync-codex-prompt.yml | Auto-regenerates Codex prompt (AGENTS.md) when project changes |
 | session-guard.yml | Multi-agent lock acquisition and release |
 | ci-failure-analysis.yml | Analyze CI failures with diagnostics |
@@ -525,6 +526,7 @@ Note: Some directories (`locks/`, `approvals/`, `metrics/`, `release-freeze.json
 | auto-merge-to-main.yml | Auto-merge PRs from claude/*/codex/* branches to main (squash) |
 | auto-pr-codex.yml | Auto-create PRs for Codex branches |
 | autonomous-merge-direct.yml | Direct autonomous merge for agent PRs (bypasses branch protection auto-merge requirement) |
+| auto-merge-sweeper.yml | Backup merger that runs every minute to merge eligible agent PRs |
 | ops-workflow-observability.yml | Workflow run observability and metrics |
 
 ### Codex Automation

@@ -1,0 +1,28 @@
+name: "Copilot Setup Steps"
+
+# This workflow runs BEFORE the Copilot Coding Agent starts working.
+# It pre-configures the environment so Copilot has everything it needs.
+# MUST be on the default branch (main) to take effect.
+
+on: workflow_call
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Display current state for agent context
+        run: |
+          echo "=== Autopilot State ==="
+          echo "Controller version: $(jq -r '.version // "?"' trigger/source-change.json 2>/dev/null)"
+          echo "Last run: $(jq -r '.run // "?"' trigger/source-change.json 2>/dev/null)"
+          echo ""
+          echo "=== Copilot Memory ==="
+          jq -r '.currentState | "Controller: \(.controllerVersion) | Agent: \(.agentVersion) | Run: \(.lastTriggerRun) | Status: \(.pipelineStatus)"' contracts/copilot-session-memory.json 2>/dev/null || echo "No memory yet"
+          echo ""
+          echo "=== Claude Status ==="
+          jq -r '"Status: \(.currentSession.status) | Task: \(.currentSession.task)"' contracts/claude-live-status.json 2>/dev/null || echo "No status"

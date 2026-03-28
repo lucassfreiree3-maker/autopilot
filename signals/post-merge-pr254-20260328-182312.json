@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 254,
+  "branch": "copilot/update-session-memory-metadata",
+  "timestamp": "2026-03-28T18:23:12Z",
+  "runId": "23691455848",
+  "healthStatus": "degraded"
+}

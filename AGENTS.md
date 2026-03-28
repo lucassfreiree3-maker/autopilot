@@ -59,7 +59,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (13 files)
+  audit/ (14 files)
   improvements/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
   metrics/ (3 files)
   handoffs/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
@@ -85,7 +85,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (300 files)
+  audit/ (302 files)
   improvements/ (1 files)
   metrics/ (6 files)
   handoffs/ (1 files)
@@ -236,6 +236,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | copilot-post-deploy-sync.yml | copilot-post-deploy-sync.yml | unknown |
+| copilot-setup-steps.yml | Copilot Setup Steps | workflow_call |
 | copilot-task-dispatch.yml | [Agent] Copilot Task Dispatch | trigger file, manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
@@ -359,4 +360,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-28T13:31:04Z | Run: 23686268811*
+*Last synced: 2026-03-28T13:33:18Z | Run: 23686304761*

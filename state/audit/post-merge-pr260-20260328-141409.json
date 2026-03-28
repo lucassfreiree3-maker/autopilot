@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr260-20260328-141409",
+  "event": "post-merge-monitor",
+  "prNumber": 260,
+  "branch": "claude/codex-sync",
+  "mergeSha": "40d352778204db29db02376f1036ba0fc328540f",
+  "timestamp": "2026-03-28T14:14:09Z",
+  "runId": "23687006938",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

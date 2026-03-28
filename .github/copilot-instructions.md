@@ -108,9 +108,9 @@ You already know everything below. Apply it immediately.
 - `duplicate_pr`: PR already exists for same branch/fix. Fix: check open PRs before creating.
 
 ### Recent Sessions
-- [2026-03-28] Conhecimento do Coding Agent absorvido. Aprendido: Coding Agent roda em background via issue assignment, Custom Agents em .github/agents/, Skills em .github/skills/, Hooks em .github/hooks/ auto-aprovam tools, copilot-setup-steps.yml roda antes do agent.
 - [2026-03-27] Mega prompt absorvido. Gravados em memoria: boot sequence, deploy flow completo (10 fases), 20 regras de ouro, tooling (push_files obrigatorio), erros conhecidos, isolamento, progresso com checkboxes.
 - [2026-03-28] Full autonomy learning session. Diagnosed copilot-post-deploy-sync.yml failure (git push to protected main = 403). Confirmed claude-live-status.json does not exist (only Claude creates it). Verified all .github agents/skills/hooks structure. Created PR #252 to fix sync workflow. Absorbed complete operational knowledge for future sessions.
+- [2026-03-28] Test auto-merge sweeper validation. Created branch copilot/copilottest-sweeper, updated session memory, opened non-draft PR targeting main. Goal: confirm sweeper auto-merges agent PRs within ~5 minutes.
 
 ### Key Decisions
 - [2026-03-27] Mega prompt absorvido — contracts/copilot-mega-prompt.md e a referencia completa
@@ -639,4 +639,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T19:10:01Z | Run: 23692297086*
+*Last synced: 2026-03-28T19:10:31Z | Run: 23692305788*

@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 271,
+  "branch": "claude/auto-sweep",
+  "timestamp": "2026-03-28T18:28:22Z",
+  "runId": "23691547954",
+  "healthStatus": "degraded"
+}

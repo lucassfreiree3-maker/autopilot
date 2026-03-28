@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "description": "Memoria cumulativa do Copilot. OBRIGATORIO: Ler no inicio de CADA sessao. Atualizar ao final de CADA sessao com commit no main.",
-  "lastUpdated": "2026-03-28T18:33:00Z",
-  "lastSessionId": "session-2026-03-28-test-sweeper",
-  "sessionCount": 4,
+  "lastUpdated": "2026-03-28T19:18:00Z",
+  "lastSessionId": "session-2026-03-28-absorb-auto-monitor",
+  "sessionCount": 5,
   "currentState": {
     "controllerVersion": "3.6.8",
     "agentVersion": "2.2.9",
@@ -120,6 +120,24 @@
       ],
       "triggeredBy": "Lucas — validar que auto-merge-sweeper funciona corretamente",
       "lessonsLearned": []
+    },
+    {
+      "date": "2026-03-28",
+      "summary": "Absorbed: post-deploy monitoring is 100% AUTOMATIC via ci-monitor-loop.yml. Self-merge rule enforced: Copilot MUST call merge_pull_request immediately after create_pull_request without waiting for sweeper or user.",
+      "actions": [
+        "added-5-new-lessons-auto-monitor",
+        "added-2-new-decisions-auto-monitor-and-self-merge",
+        "updated-session-count-to-5"
+      ],
+      "triggeredBy": "Issue: Absorver monitoramento pos-deploy automatico + self-merge",
+      "lessonsLearned": [
+        "ci-monitor-loop.yml dispara automaticamente apos apply-source-change — ZERO intervencao manual",
+        "fix-corporate-ci.yml corrige ESLint/TS automaticamente e re-executa esteira",
+        "Resultado disponivel em ci-monitor-controller.json no autopilot-state",
+        "Fluxo pos-merge: apply-source-change → ci-monitor-loop → promote-cap OU fix — ZERO intervencao",
+        "Self-merge: push_files → create_pull_request → merge_pull_request — IMEDIATO, sem esperar"
+      ],
+      "sessionId": "session-2026-03-28-absorb-auto-monitor"
     }
   ],
   "decisions": [
@@ -172,6 +190,18 @@
       "date": "2026-03-28",
       "decision": "Session memory update is the MOST IMPORTANT action — always do it even if other tasks fail",
       "context": "Without memory updates, all learning is lost. Priority: memory > deploy > docs."
+    },
+    {
+      "date": "2026-03-28",
+      "decision": "Pos-deploy e 100% automatico — ci-monitor-loop.yml faz tudo (poll, promote, diagnose, fix)",
+      "context": "Issue: Absorver que monitoramento pos-deploy e automatico. Copilot NAO precisa monitorar manualmente.",
+      "source": "issue-absorb-auto-monitor-2026-03-28"
+    },
+    {
+      "date": "2026-03-28",
+      "decision": "Copilot deve fazer merge_pull_request imediatamente apos create_pull_request — NUNCA esperar",
+      "context": "Fluxo correto: push_files → create_pull_request → merge_pull_request (3 tool calls). Sweeper e apenas backup.",
+      "source": "issue-absorb-auto-monitor-2026-03-28"
     }
   ],
   "lessonsLearned": [
@@ -344,6 +374,31 @@
       "lesson": "NUNCA modificar autonomous-pr-lane.yml ou auto-merge-to-main.yml — estao DESABILITADOS de proposito. autonomous-merge-direct.yml e o UNICO handler de PRs de agentes. Reativar os outros causa workflows duplicados.",
       "source": "session 2026-03-28 — Claude desabilitou, Copilot reativou acidentalmente",
       "fix": "autonomous-pr-lane.yml tem if:false. auto-merge-to-main.yml tem skip para agent branches. NAO TOCAR."
+    },
+    {
+      "lesson": "Monitoramento pos-deploy e 100% AUTOMATICO: ci-monitor-loop.yml dispara sozinho apos apply-source-change. Poll cada 2 min por 30 min. Se CI passou: promote-cap.yml. Se CI falhou: ci-diagnose + fix-corporate-ci. NUNCA monitorar manualmente.",
+      "source": "issue-absorb-auto-monitor-2026-03-28",
+      "learnedAt": "2026-03-28T19:18:00Z"
+    },
+    {
+      "lesson": "fix-corporate-ci.yml clona repo, instala deps, corrige ESLint/TS automaticamente, push fix. Esteira roda novamente sozinha.",
+      "source": "issue-absorb-auto-monitor-2026-03-28",
+      "learnedAt": "2026-03-28T19:18:00Z"
+    },
+    {
+      "lesson": "Para verificar resultado depois: ler ci-monitor-controller.json do autopilot-state (ciOutcome: success/failure)",
+      "source": "issue-absorb-auto-monitor-2026-03-28",
+      "learnedAt": "2026-03-28T19:18:00Z"
+    },
+    {
+      "lesson": "O fluxo completo apos merge e: apply-source-change → ci-monitor-loop → promote-cap OU ci-diagnose+fix. ZERO intervencao.",
+      "source": "issue-absorb-auto-monitor-2026-03-28",
+      "learnedAt": "2026-03-28T19:18:00Z"
+    },
+    {
+      "lesson": "VOCE faz o merge do PR imediatamente apos criar (push_files → create_pull_request → merge_pull_request). NUNCA esperar sweeper ou usuario.",
+      "source": "issue-absorb-auto-monitor-2026-03-28",
+      "learnedAt": "2026-03-28T19:18:00Z"
     }
   ],
   "errorPatterns": {

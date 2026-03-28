@@ -39,6 +39,63 @@ For the absolute latest state (versions, in-progress deploys), read:
 
 ---
 
+
+## YOUR MEMORY (auto-loaded — NO need to read files)
+
+This is your persistent memory from ALL previous sessions, embedded automatically.
+You already know everything below. Apply it immediately.
+
+### Current State
+- Controller: 3.6.8 | Agent: 2.2.9
+- Last run: 66 | Status: success
+- Workspace: ws-default (Getronics)
+
+### Claude Status
+- Claude: **idle** | Task: none | Phase: none
+
+### Lessons Learned (NEVER repeat these errors)
+- **NUNCA criar PR como draft — workflow nao consegue mergear draft PRs** → Fix: autonomous-merge-direct.yml auto-marca como ready via GraphQL
+- **Campo run no trigger DEVE ser incrementado — sem incremento workflow NAO dispara** → Fix: Verificar valor atual com jq '.run' trigger/source-change.json e somar 1
+- **Versao apos X.Y.9 e X.(Y+1).0 — NUNCA X.Y.10** → Fix: Sempre verificar padrao antes de bumpar
+- **JWT scope claim e 'scope' (singular) — NUNCA 'scopes' (plural)** → Fix: Agent middleware le payload.scope
+- **Swagger SOMENTE ASCII — sem acentos (c, a, e, etc)** → Fix: Testar com grep -P '[�-�]' antes de commitar
+- **search-replace NAO funciona com newlines — usar replace-file para multi-line** → Fix: Sempre replace-file quando envolve adicionar/remover linhas
+- **ESLint no-use-before-define — funcoes devem ser definidas ANTES de serem chamadas** → Fix: Ordenar funcoes auxiliares primeiro no arquivo
+- **NUNCA usar validateTrustedUrl dentro de fetch/postJson — quebra testes mock** → Fix: Validar URL no input (parseSafeIdentifier), nao no fetch
+- **CI Gate pre-existing detection esta QUEBRADO — nao confiar no resultado** → Fix: Para resultado REAL: ler ci-logs-controller-*.txt do autopilot-state
+- **apply-source-change SUCCESS != deploy completo — esteira corporativa roda depois** → Fix: SEMPRE monitorar esteira corporativa apos workflow do autopilot
+- **SEMPRE partir da base corporativa ATUAL — nunca de patches antigos** → Fix: Fetch arquivos via fetch-files.yml antes de criar patches
+- **NUNCA push direto para main — retorna 403** → Fix: Sempre branch copilot/* → PR → squash merge
+- **COPILOT NUNCA modifica arquivos do Claude — isolamento total** → Fix: Todos workflows do Copilot tem lista de arquivos permitidos. Se nao esta na lista, NAO TOCA.
+- **Sync pos-deploy DEVE ser automatico — copilot-post-deploy-sync.yml** → Fix: Workflow roda automatico apos apply-source-change. Atualiza values.yaml + copilot memory.
+- **references/controller-cap/values.yaml DEVE refletir versao real deployada** → Fix: copilot-post-deploy-sync.yml atualiza automaticamente apos cada deploy
+
+### Error Patterns (quick fix reference)
+- `403_on_push`: Branch nao comeca com copilot/ ou claude/ ou codex/. Renomear.
+- `trigger_not_firing`: Campo run nao incrementado. Verificar e somar 1.
+- `duplicate_tag`: Versao ja existe no registry. Incrementar patch.
+- `eslint_no_use_before_define`: Funcao usada antes de definir. Mover para cima.
+- `eslint_no_nested_ternary`: Usar if/else em vez de ternarios aninhados.
+- `ts2769_jwt_sign`: expiresIn precisa de parseExpiresIn() com cast.
+- `swagger_garbled`: Acentos no swagger. Substituir por ASCII.
+- `test_mock_broken`: validateTrustedUrl adicionado em fetch. Remover.
+- `pr_dirty`: Conflito com main. git pull --rebase origin main.
+- `draft_pr_cant_merge`: PR esta em draft. Marcar como ready via GraphQL markPullRequestReadyForReview.
+
+### Recent Sessions
+- [2026-03-27] Criado sistema automatico de sync pos-deploy isolado do Claude. Corrigido drift de versao (3.6.6->3.6.8). Criado copilot-isolation-rules.md.
+
+### Key Decisions
+- [2026-03-27] Copilot e backup oficial do Claude Code
+- [2026-03-27] Deploy flow e identico para todos os agentes
+- [2026-03-27] Copilot tem workflow automatico separado do Claude — NUNCA modifica arquivos do Claude
+
+### Full Memory File
+To see complete memory or update it: `contracts/copilot-session-memory.json`
+At END of session: update this file via push_files → PR → merge.
+
+---
+
 ## WORKSPACE IDENTIFICATION (DO THIS FIRST)
 This control plane manages **multiple companies**. Each is **completely isolated**.
 
@@ -546,4 +603,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-27T19:02:01Z | Run: 23662807296*
+*Last synced: 2026-03-28T13:21:49Z | Run: 23686113522*

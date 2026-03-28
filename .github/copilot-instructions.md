@@ -88,6 +88,11 @@ You already know everything below. Apply it immediately.
 - **The Autopilot has 3 agent types: Claude (primary, has filesystem), Copilot (backup, API-only), Codex (secondary). Each has own session-memory, agent-contract, and branch prefix.** → Fix: Claude: claude/*, Copilot: copilot/*, Codex: codex/*. Never cross-modify agent files.
 - **COMPLETE BOOT SEQUENCE for every session: 1) Read copilot-session-memory.json 2) Try read claude-live-status.json (may not exist) 3) Read claude-session-memory.json 4) Read trigger/source-change.json for current version/run 5) Show estado atual to user** → Fix: Execute ALL steps. If any file missing, log and continue. Never skip memory read.
 - **NUNCA modificar autonomous-pr-lane.yml ou auto-merge-to-main.yml — estao DESABILITADOS de proposito. autonomous-merge-direct.yml e o UNICO handler de PRs de agentes. Reativar os outros causa workflows duplicados.** → Fix: autonomous-pr-lane.yml tem if:false. auto-merge-to-main.yml tem skip para agent branches. NAO TOCAR.
+- **Monitoramento pos-deploy e 100% AUTOMATICO: ci-monitor-loop.yml dispara sozinho apos apply-source-change. Poll cada 2 min por 30 min. Se CI passou: promote-cap.yml. Se CI falhou: ci-diagnose + fix-corporate-ci. NUNCA monitorar manualmente.** → Fix: see source
+- **fix-corporate-ci.yml clona repo, instala deps, corrige ESLint/TS automaticamente, push fix. Esteira roda novamente sozinha.** → Fix: see source
+- **Para verificar resultado depois: ler ci-monitor-controller.json do autopilot-state (ciOutcome: success/failure)** → Fix: see source
+- **O fluxo completo apos merge e: apply-source-change → ci-monitor-loop → promote-cap OU ci-diagnose+fix. ZERO intervencao.** → Fix: see source
+- **VOCE faz o merge do PR imediatamente apos criar (push_files → create_pull_request → merge_pull_request). NUNCA esperar sweeper ou usuario.** → Fix: see source
 
 ### Error Patterns (quick fix reference)
 - `post_deploy_sync_push_403`: git push direto no main falha com branch protection. Usar branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto com RELEASE_TOKEN.
@@ -108,16 +113,16 @@ You already know everything below. Apply it immediately.
 - `duplicate_pr`: PR already exists for same branch/fix. Fix: check open PRs before creating.
 
 ### Recent Sessions
-- [2026-03-27] Mega prompt absorvido. Gravados em memoria: boot sequence, deploy flow completo (10 fases), 20 regras de ouro, tooling (push_files obrigatorio), erros conhecidos, isolamento, progresso com checkboxes.
 - [2026-03-28] Full autonomy learning session. Diagnosed copilot-post-deploy-sync.yml failure (git push to protected main = 403). Confirmed claude-live-status.json does not exist (only Claude creates it). Verified all .github agents/skills/hooks structure. Created PR #252 to fix sync workflow. Absorbed complete operational knowledge for future sessions.
 - [2026-03-28] Test auto-merge sweeper validation. Created branch copilot/copilottest-sweeper, updated session memory, opened non-draft PR targeting main. Goal: confirm sweeper auto-merges agent PRs within ~5 minutes.
+- [2026-03-28] Absorbed: post-deploy monitoring is 100% AUTOMATIC via ci-monitor-loop.yml. Self-merge rule enforced: Copilot MUST call merge_pull_request immediately after create_pull_request without waiting for sweeper or user.
 
 ### Key Decisions
-- [2026-03-27] Mega prompt absorvido — contracts/copilot-mega-prompt.md e a referencia completa
-- [2026-03-27] Antes de perguntar ao usuario, tentar resolver sozinho lendo docs e memoria
 - [2026-03-28] copilot-post-deploy-sync.yml MUST use RELEASE_TOKEN with branch+PR+merge flow instead of git push to main
 - [2026-03-28] If claude-live-status.json does not exist, skip boot step 2 gracefully — do NOT fail or create the file
 - [2026-03-28] Session memory update is the MOST IMPORTANT action — always do it even if other tasks fail
+- [2026-03-28] Pos-deploy e 100% automatico — ci-monitor-loop.yml faz tudo (poll, promote, diagnose, fix)
+- [2026-03-28] Copilot deve fazer merge_pull_request imediatamente apos create_pull_request — NUNCA esperar
 
 ### Full Memory File
 To see complete memory or update it: `contracts/copilot-session-memory.json`
@@ -646,4 +651,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T19:13:22Z | Run: 23692357819*
+*Last synced: 2026-03-28T19:20:15Z | Run: 23692476392*

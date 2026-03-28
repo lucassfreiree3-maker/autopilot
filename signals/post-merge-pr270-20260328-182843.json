@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 270,
+  "branch": "copilot/add-lesson-never-modify-yml",
+  "timestamp": "2026-03-28T18:28:43Z",
+  "runId": "23691553159",
+  "healthStatus": "degraded"
+}

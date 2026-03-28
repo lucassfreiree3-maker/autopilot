@@ -54,6 +54,8 @@ You already know everything below. Apply it immediately.
 - Claude: **idle** | Task: none | Phase: none
 
 ### Lessons Learned (NEVER repeat these errors)
+- **copilot-post-deploy-sync.yml falhava por git push direto no main com branch protection — corrigido** → Fix: Substituir git push por branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto
+- **claude-live-status.json DEVE existir no repo — boot sequence falha sem ele** → Fix: Arquivo deve ser criado pelo Claude (Copilot nao toca arquivos do Claude). Notificar Claude para criar o arquivo.
 - **NUNCA criar PR como draft — workflow nao consegue mergear draft PRs** → Fix: autonomous-merge-direct.yml auto-marca como ready via GraphQL
 - **Campo run no trigger DEVE ser incrementado — sem incremento workflow NAO dispara** → Fix: Verificar valor atual com jq '.run' trigger/source-change.json e somar 1
 - **Versao apos X.Y.9 e X.(Y+1).0 — NUNCA X.Y.10** → Fix: Sempre verificar padrao antes de bumpar
@@ -79,6 +81,7 @@ You already know everything below. Apply it immediately.
 - **Documentacao completa de deploy em ops/docs/deploy-process/ (12 fases). Nunca inventar — sempre consultar os docs.** → Fix: Para cada fase do deploy, consultar o arquivo correspondente em ops/docs/deploy-process/
 
 ### Error Patterns (quick fix reference)
+- `post_deploy_sync_push_403`: git push direto no main falha com branch protection. Usar branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto com RELEASE_TOKEN.
 - `403_on_push`: Branch nao comeca com copilot/ ou claude/ ou codex/. Renomear.
 - `trigger_not_firing`: Campo run nao incrementado. Verificar e somar 1.
 - `duplicate_tag`: Versao ja existe no registry. Incrementar patch.
@@ -93,6 +96,7 @@ You already know everything below. Apply it immediately.
 - `asking_user_manual_action`: Estava pedindo 'clique em Ready for Review'. Fix: usar update_pull_request(draft: false) via API
 
 ### Recent Sessions
+- [2026-03-28] Corrigido copilot-post-deploy-sync.yml: substituido git push direto no main (retornava 403 com branch protection) por fluxo branch+PR+merge com RELEASE_TOKEN. Documentado claude-live-status.json como arquivo ausente. Decisao registrada: Copilot opera 100% autonomo sem perguntar ao Lucas.
 - [2026-03-27] Criado sistema automatico de sync pos-deploy isolado do Claude. Corrigido drift de versao (3.6.6->3.6.8). Criado copilot-isolation-rules.md.
 - [2026-03-27] Mega prompt absorvido. Gravados em memoria: boot sequence, deploy flow completo (10 fases), 20 regras de ouro, tooling (push_files obrigatorio), erros conhecidos, isolamento, progresso com checkboxes.
 
@@ -621,4 +625,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T14:16:13Z | Run: 23687044549*
+*Last synced: 2026-03-28T14:39:53Z | Run: 23687450088*

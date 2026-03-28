@@ -1,0 +1,115 @@
+name: "[Infra] Spark Dashboard Sync"
+run-name: "${{ github.workflow }} • sync state to Spark dashboard"
+
+# Syncs autopilot state data to the Spark dashboard app repo.
+# The Spark app reads this data to display real-time status.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_run:
+    workflows: ["[Corp] Deploy: Apply Source Change"]
+    types: [completed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: "Sync state to Spark"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Spark config
+        id: config
+        run: |
+          SPARK_REPO=$(jq -r '.sparkApp.repo // ""' integrations/spark/config.json 2>/dev/null)
+          if [ -z "$SPARK_REPO" ] || [ "$SPARK_REPO" = "" ]; then
+            echo "::notice ::Spark repo not configured yet. Skipping sync."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "repo=$SPARK_REPO" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect state data
+        if: steps.config.outputs.skip != 'true'
+        id: state
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Read release states from autopilot-state
+          CTRL_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          AGENT_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/agent-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+          # Read local files
+          TRIGGER=$(cat trigger/source-change.json 2>/dev/null || echo '{}')
+          COPILOT_MEM=$(cat contracts/copilot-session-memory.json 2>/dev/null || echo '{}')
+          CLAUDE_STATUS=$(cat contracts/claude-live-status.json 2>/dev/null || echo '{}')
+
+          # Build state.json for Spark
+          jq -n \
+            --argjson ctrl "$CTRL_STATE" \
+            --argjson agent "$AGENT_STATE" \
+            --argjson trigger "$TRIGGER" \
+            --argjson copilot "$COPILOT_MEM" \
+            --argjson claude "$CLAUDE_STATUS" \
+            '{
+              lastSync: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
+              controller: {
+                version: ($ctrl.lastTag // $trigger.version // "?"),
+                status: ($ctrl.status // "unknown"),
+                ciResult: ($ctrl.ciResult // "unknown"),
+                promoted: ($ctrl.promoted // false),
+                lastSha: ($ctrl.lastReleasedSha // "?")
+              },
+              agent: {
+                version: ($agent.lastTag // "?"),
+                status: ($agent.status // "unknown"),
+                ciResult: ($agent.ciResult // "unknown"),
+                promoted: ($agent.promoted // false)
+              },
+              pipeline: {
+                status: ($copilot.currentState.pipelineStatus // "idle"),
+                lastRun: ($trigger.run // 0),
+                component: ($trigger.component // "?"),
+                version: ($trigger.version // "?")
+              },
+              activeAgent: {
+                name: ($claude.lastUpdatedBy // "idle"),
+                status: ($claude.currentSession.status // "idle"),
+                task: ($claude.currentSession.task // null)
+              },
+              copilotMemory: {
+                sessionCount: ($copilot.sessionCount // 0),
+                lastSession: ($copilot.sessionsLog[-1].summary // "none"),
+                lessonsCount: ($copilot.lessonsLearned | length)
+              }
+            }' > /tmp/state.json
+
+          echo "state_b64=$(base64 -w0 /tmp/state.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Push state to Spark repo
+        if: steps.config.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          SPARK_REPO="${{ steps.config.outputs.repo }}"
+          STATE_B64="${{ steps.state.outputs.state_b64 }}"
+
+          # Check if file exists
+          EXISTING_SHA=$(gh api "repos/$SPARK_REPO/contents/public/state.json" --jq '.sha' 2>/dev/null || echo "")
+
+          PAYLOAD=$(jq -n \
+            --arg content "$STATE_B64" \
+            --arg sha "$EXISTING_SHA" \
+            --arg message "chore: sync autopilot state [automated]" \
+            '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
+
+          gh api "repos/$SPARK_REPO/contents/public/state.json" \
+            --method PUT \
+            --input - <<< "$PAYLOAD" || echo "::warning ::Failed to push state to Spark repo"

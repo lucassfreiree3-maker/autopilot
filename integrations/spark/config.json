@@ -1,0 +1,21 @@
+{
+  "sparkApp": {
+    "name": "autopilot-dashboard",
+    "repo": "",
+    "description": "Dashboard de operações do Autopilot — monitoramento de deploys, agentes e pipelines",
+    "status": "pending-creation",
+    "note": "Criar via Spark UI com o prompt em spark-dashboard-prompt.md, depois preencher repo aqui"
+  },
+  "sync": {
+    "workflow": "spark-sync-state.yml",
+    "schedule": "every 15 minutes",
+    "dataFile": "public/state.json",
+    "sources": [
+      "state/workspaces/ws-default/controller-release-state.json",
+      "state/workspaces/ws-default/agent-release-state.json",
+      "contracts/copilot-session-memory.json",
+      "contracts/claude-live-status.json",
+      "trigger/source-change.json"
+    ]
+  }
+}

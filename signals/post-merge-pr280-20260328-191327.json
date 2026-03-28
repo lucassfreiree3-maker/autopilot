@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 280,
+  "branch": "claude/copilot-self-merge",
+  "timestamp": "2026-03-28T19:13:27Z",
+  "runId": "23692357768",
+  "healthStatus": "degraded"
+}

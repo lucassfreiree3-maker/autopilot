@@ -96,8 +96,10 @@ jobs:
 
           echo "Updated $FILE -> version=$VERSION run=$RUN"
 
-      # Commit all changes
-      - name: Commit and push
+      # Commit all changes -- push via branch+PR to respect branch protection on main
+      - name: Commit and push via PR
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -113,11 +115,30 @@ jobs:
           else
             VERSION="${{ steps.trigger.outputs.version }}"
             RUN="${{ steps.trigger.outputs.run }}"
-            git commit -m "[copilot] chore: auto-sync post-deploy v${VERSION} run ${RUN} [skip ci]
+            BRANCH="copilot/post-deploy-sync-v${VERSION}-run${RUN}"
+            COMMIT_MSG="[copilot] chore: auto-sync post-deploy v${VERSION} run ${RUN} [skip ci]
 
 Automated by copilot-post-deploy-sync.yml
 - Updated references/controller-cap/values.yaml image tag
 - Updated contracts/copilot-session-memory.json
 - DOES NOT touch any Claude files"
-            git push
+            git checkout -b "$BRANCH"
+            git commit -m "$COMMIT_MSG"
+            git push origin "$BRANCH"
+            PR_URL=$(gh pr create \
+              --title "[copilot] chore: auto-sync post-deploy v${VERSION} run ${RUN}" \
+              --body "Automated post-deploy sync by copilot-post-deploy-sync.yml.
+- Component: ${COMPONENT}
+- Version: ${VERSION}
+- Run: ${RUN}" \
+              --base main \
+              --head "$BRANCH")
+            echo "PR created: $PR_URL"
+            PR_NUMBER=$(gh pr view "$BRANCH" --json number --jq '.number')
+            if [ -z "$PR_NUMBER" ]; then
+              echo "::error ::Failed to get PR number for branch $BRANCH"
+              exit 1
+            fi
+            gh pr merge "$PR_NUMBER" --squash --auto
+            echo "Auto-merge enabled for PR #${PR_NUMBER}"
           fi

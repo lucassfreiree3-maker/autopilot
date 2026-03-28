@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "description": "Memoria cumulativa do Copilot. OBRIGATORIO: Ler no inicio de CADA sessao. Atualizar ao final de CADA sessao com commit no main.",
-  "lastUpdated": "2026-03-27T19:18:48Z",
-  "lastSessionId": "session-2026-03-27-absorb-mega-prompt",
-  "sessionCount": 2,
+  "lastUpdated": "2026-03-28T13:36:00Z",
+  "lastSessionId": "session-2026-03-28-fix-sync-autonomy",
+  "sessionCount": 3,
   "currentState": {
     "controllerVersion": "3.6.8",
     "agentVersion": "2.2.9",
@@ -14,6 +14,23 @@
     "pipelineStatus": "success"
   },
   "sessionsLog": [
+    {
+      "date": "2026-03-28",
+      "summary": "Corrigido copilot-post-deploy-sync.yml: substituido git push direto no main (retornava 403 com branch protection) por fluxo branch+PR+merge com RELEASE_TOKEN. Documentado claude-live-status.json como arquivo ausente. Decisao registrada: Copilot opera 100% autonomo sem perguntar ao Lucas.",
+      "actions": [
+        "fixed-copilot-post-deploy-sync-push-branch-protection",
+        "documented-missing-claude-live-status-json",
+        "registered-autonomy-decision",
+        "added-new-lessons-learned",
+        "added-new-error-pattern-post-deploy-sync-push-403"
+      ],
+      "triggeredBy": "Lucas — pediu operacao 100% autonoma, sem perguntar",
+      "lessonsLearned": [
+        "copilot-post-deploy-sync.yml falhava por git push direto no main com branch protection — corrigido para branch+PR+merge",
+        "claude-live-status.json DEVE existir no repo — boot sequence falha sem ele (Copilot nao cria pois e arquivo do Claude)",
+        "Copilot deve operar 100% autonomo: diagnosticar + corrigir + re-deploy sem pedir confirmacao"
+      ]
+    },
     {
       "date": "2026-03-27",
       "summary": "Criado sistema automatico de sync pos-deploy isolado do Claude. Corrigido drift de versao (3.6.6->3.6.8). Criado copilot-isolation-rules.md.",
@@ -53,6 +70,11 @@
   ],
   "decisions": [
     {
+      "date": "2026-03-28",
+      "decision": "Lucas mandou: Copilot deve operar 100% autonomo sem perguntar — fazer tudo automaticamente e gravar na memoria",
+      "context": "Usuario deixou claro que nao quer perguntas. Copilot deve diagnosticar, corrigir e executar sem confirmacao."
+    },
+    {
       "date": "2026-03-27",
       "decision": "Copilot e backup oficial do Claude Code",
       "context": "Se Claude cair, Copilot retoma usando claude-live-status.json"
@@ -84,6 +106,16 @@
     }
   ],
   "lessonsLearned": [
+    {
+      "lesson": "copilot-post-deploy-sync.yml falhava por git push direto no main com branch protection — corrigido",
+      "source": "session 2026-03-28",
+      "fix": "Substituir git push por branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto"
+    },
+    {
+      "lesson": "claude-live-status.json DEVE existir no repo — boot sequence falha sem ele",
+      "source": "session 2026-03-28",
+      "fix": "Arquivo deve ser criado pelo Claude (Copilot nao toca arquivos do Claude). Notificar Claude para criar o arquivo."
+    },
     {
       "lesson": "NUNCA criar PR como draft — workflow nao consegue mergear draft PRs",
       "source": "session 2026-03-27",
@@ -201,6 +233,7 @@
     }
   ],
   "errorPatterns": {
+    "post_deploy_sync_push_403": "git push direto no main falha com branch protection. Usar branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto com RELEASE_TOKEN.",
     "403_on_push": "Branch nao comeca com copilot/ ou claude/ ou codex/. Renomear.",
     "trigger_not_firing": "Campo run nao incrementado. Verificar e somar 1.",
     "duplicate_tag": "Versao ja existe no registry. Incrementar patch.",

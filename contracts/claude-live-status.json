@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "description": "Estado operacional VIVO do Claude Code. Copilot le este arquivo para saber onde retomar se Claude cair.",
+  "lastUpdated": "2026-03-28T18:00:00Z",
+  "lastUpdatedBy": "claude-code",
+  "currentSession": {
+    "status": "active",
+    "task": "Fix dashboard sync + upgrade Spark dashboard intelligence",
+    "phase": "commit",
+    "nextSteps": ["Merge PR", "Copilot updates spark-dashboard"],
+    "blockedBy": null,
+    "startedAt": "2026-03-28T14:00:00Z"
+  },
+  "activeDeploy": {
+    "inProgress": false,
+    "component": null,
+    "version": null,
+    "triggerRun": null,
+    "currentPhase": null,
+    "prNumber": null,
+    "prMerged": false,
+    "workflowRunId": null,
+    "workflowStatus": null,
+    "corporateCIStatus": null,
+    "corporateCommitSha": null,
+    "promoted": null,
+    "pendingFixes": [],
+    "attempts": 0
+  },
+  "pendingWork": [],
+  "openPRs": [],
+  "runningWorkflows": [],
+  "lastCompletedAction": {
+    "action": "Multi-agent orchestration + Spark integration + auto-merge sweeper",
+    "result": "success",
+    "timestamp": "2026-03-28T18:00:00Z",
+    "details": "Created deploy docs (12 phases), Copilot backup protocol, Codex sync, Spark dashboard, auto-merge sweeper, hooks, skills, agents"
+  },
+  "operationalState": {
+    "controllerVersion": "3.6.8",
+    "agentVersion": "2.2.9",
+    "lastTriggerRun": 66,
+    "lastSuccessfulRun": 66,
+    "workspace": "ws-default",
+    "company": "Getronics",
+    "pipelineStatus": "success"
+  }
+}

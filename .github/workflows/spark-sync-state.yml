@@ -1,19 +1,29 @@
 name: "[Infra] Spark Dashboard Sync"
 run-name: "${{ github.workflow }} • sync state to Spark dashboard"
 
-# Syncs autopilot state data to the Spark dashboard app repo.
-# The Spark app reads this data to display real-time status.
-
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Every 15 minutes
+    - cron: '*/5 * * * *'  # Every 5 minutes for near real-time
   workflow_run:
-    workflows: ["[Corp] Deploy: Apply Source Change"]
+    workflows:
+      - "[Corp] Deploy: Apply Source Change"
+      - "[Core] Auto-Merge Sweeper"
     types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/claude-live-status.json'
+      - 'contracts/copilot-session-memory.json'
+      - 'contracts/codex-session-memory.json'
+      - 'trigger/source-change.json'
   workflow_dispatch: {}
 
 permissions:
   contents: read
+
+concurrency:
+  group: spark-sync
+  cancel-in-progress: true
 
 jobs:
   sync:
@@ -27,14 +37,14 @@ jobs:
         run: |
           SPARK_REPO=$(jq -r '.sparkApp.repo // ""' integrations/spark/config.json 2>/dev/null)
           if [ -z "$SPARK_REPO" ] || [ "$SPARK_REPO" = "" ]; then
-            echo "::notice ::Spark repo not configured yet. Skipping sync."
+            echo "::notice ::Spark repo not configured. Skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "repo=$SPARK_REPO" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Collect state data
+      - name: Collect comprehensive state
         if: steps.config.outputs.skip != 'true'
         id: state
         env:
@@ -42,55 +52,138 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Read release states from autopilot-state
+          # ── Release states from autopilot-state ──
           CTRL_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
           AGENT_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/agent-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
 
-          # Read local files
+          # ── Local files ──
           TRIGGER=$(cat trigger/source-change.json 2>/dev/null || echo '{}')
-          COPILOT_MEM=$(cat contracts/copilot-session-memory.json 2>/dev/null || echo '{}')
-          CLAUDE_STATUS=$(cat contracts/claude-live-status.json 2>/dev/null || echo '{}')
+          COPILOT_MEM=$(cat contracts/copilot-session-memory.json 2>/dev/null || echo '{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}')
+          CODEX_MEM=$(cat contracts/codex-session-memory.json 2>/dev/null || echo '{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}')
+          CLAUDE_STATUS=$(cat contracts/claude-live-status.json 2>/dev/null || echo '{"currentSession":{"status":"idle","task":null},"operationalState":{},"lastUpdatedBy":"unknown"}')
+          CLAUDE_MEM=$(cat contracts/claude-session-memory.json 2>/dev/null || echo '{}')
 
-          # Build state.json for Spark
+          # ── Recent workflow runs ──
+          RECENT_RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" --jq '[.workflow_runs[:10] | .[] | {name: .name, status: .status, conclusion: .conclusion, created: .created_at, url: .html_url}]' 2>/dev/null || echo '[]')
+
+          # ── Open PRs ──
+          OPEN_PRS=$(gh api "repos/${{ github.repository }}/pulls?state=open&per_page=10" --jq '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, draft: .draft, created: .created_at}]' 2>/dev/null || echo '[]')
+
+          # ── Recent deploys from audit ──
+          DEPLOY_HISTORY=$(gh api "repos/${{ github.repository }}/git/trees/autopilot-state?recursive=1" --jq '[.tree[] | select(.path | test("audit/source-change")) | .path] | sort | reverse | .[:10]' 2>/dev/null || echo '[]')
+
+          # ── Build comprehensive state.json ──
           jq -n \
             --argjson ctrl "$CTRL_STATE" \
             --argjson agent "$AGENT_STATE" \
             --argjson trigger "$TRIGGER" \
             --argjson copilot "$COPILOT_MEM" \
+            --argjson codex "$CODEX_MEM" \
             --argjson claude "$CLAUDE_STATUS" \
+            --argjson claude_mem "$CLAUDE_MEM" \
+            --argjson runs "$RECENT_RUNS" \
+            --argjson prs "$OPEN_PRS" \
+            --argjson deploys "$DEPLOY_HISTORY" \
             '{
               lastSync: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
+              syncSource: "autopilot/spark-sync-state.yml",
+
               controller: {
                 version: ($ctrl.lastTag // $trigger.version // "?"),
                 status: ($ctrl.status // "unknown"),
                 ciResult: ($ctrl.ciResult // "unknown"),
                 promoted: ($ctrl.promoted // false),
-                lastSha: ($ctrl.lastReleasedSha // "?")
+                lastSha: ($ctrl.lastReleasedSha // "?"),
+                updatedAt: ($ctrl.updatedAt // null)
               },
+
               agent: {
                 version: ($agent.lastTag // "?"),
                 status: ($agent.status // "unknown"),
                 ciResult: ($agent.ciResult // "unknown"),
-                promoted: ($agent.promoted // false)
+                promoted: ($agent.promoted // false),
+                lastSha: ($agent.lastReleasedSha // "?"),
+                updatedAt: ($agent.updatedAt // null)
               },
+
               pipeline: {
                 status: ($copilot.currentState.pipelineStatus // "idle"),
                 lastRun: ($trigger.run // 0),
                 component: ($trigger.component // "?"),
-                version: ($trigger.version // "?")
+                version: ($trigger.version // "?"),
+                promote: ($trigger.promote // false),
+                workspace: ($trigger._context // "?")
               },
-              activeAgent: {
-                name: ($claude.lastUpdatedBy // "idle"),
-                status: ($claude.currentSession.status // "idle"),
-                task: ($claude.currentSession.task // null)
+
+              agents: {
+                claude: {
+                  status: ($claude.currentSession.status // "idle"),
+                  task: ($claude.currentSession.task // null),
+                  phase: ($claude.currentSession.phase // null),
+                  lastUpdated: ($claude.lastUpdated // null),
+                  lastAction: ($claude.lastCompletedAction.action // null)
+                },
+                copilot: {
+                  sessionCount: ($copilot.sessionCount // 0),
+                  lastSession: ($copilot.sessionsLog[-1].summary // "none"),
+                  lessonsCount: ($copilot.lessonsLearned | length),
+                  lastUpdated: ($copilot.lastUpdated // null)
+                },
+                codex: {
+                  sessionCount: ($codex.sessionCount // 0),
+                  lastSession: ($codex.sessionsLog[-1].summary // "none"),
+                  lessonsCount: ($codex.lessonsLearned | length),
+                  lastUpdated: ($codex.lastUpdated // null)
+                }
               },
-              copilotMemory: {
-                sessionCount: ($copilot.sessionCount // 0),
-                lastSession: ($copilot.sessionsLog[-1].summary // "none"),
-                lessonsCount: ($copilot.lessonsLearned | length)
+
+              workspaces: [
+                {
+                  id: "ws-default",
+                  company: "Getronics",
+                  status: "active",
+                  controllerVersion: ($ctrl.lastTag // $trigger.version // "?"),
+                  agentVersion: ($agent.lastTag // "?"),
+                  pipelineStatus: ($copilot.currentState.pipelineStatus // "idle")
+                },
+                {
+                  id: "ws-cit",
+                  company: "CIT",
+                  status: "setup",
+                  controllerVersion: null,
+                  agentVersion: null,
+                  pipelineStatus: "not-configured"
+                },
+                {
+                  id: "ws-corp-1",
+                  company: "Empresa 3",
+                  status: "empty",
+                  controllerVersion: null,
+                  agentVersion: null,
+                  pipelineStatus: "not-configured"
+                }
+              ],
+
+              recentWorkflows: $runs,
+              openPRs: $prs,
+              deployHistory: $deploys,
+
+              lessonsLearned: {
+                total: (($copilot.lessonsLearned | length) + ($codex.lessonsLearned | length)),
+                copilot: ($copilot.lessonsLearned | length),
+                codex: ($codex.lessonsLearned | length)
+              },
+
+              metadata: {
+                autopilotRepo: "lucassfreiree/autopilot",
+                sparkRepo: "lucassfreiree/spark-dashboard",
+                totalAgents: 3,
+                totalWorkspaces: 3,
+                syncInterval: "5 minutes"
               }
             }' > /tmp/state.json
 
+          cat /tmp/state.json | jq '.lastSync'
           echo "state_b64=$(base64 -w0 /tmp/state.json)" >> "$GITHUB_OUTPUT"
 
       - name: Push state to Spark repo
@@ -101,7 +194,6 @@ jobs:
           SPARK_REPO="${{ steps.config.outputs.repo }}"
           STATE_B64="${{ steps.state.outputs.state_b64 }}"
 
-          # Check if file exists
           EXISTING_SHA=$(gh api "repos/$SPARK_REPO/contents/public/state.json" --jq '.sha' 2>/dev/null || echo "")
 
           PAYLOAD=$(jq -n \
@@ -110,6 +202,10 @@ jobs:
             --arg message "chore: sync autopilot state [automated]" \
             '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
 
-          gh api "repos/$SPARK_REPO/contents/public/state.json" \
+          if gh api "repos/$SPARK_REPO/contents/public/state.json" \
             --method PUT \
-            --input - <<< "$PAYLOAD" || echo "::warning ::Failed to push state to Spark repo"
+            --input - <<< "$PAYLOAD" > /dev/null 2>&1; then
+            echo "::notice ::State synced to $SPARK_REPO"
+          else
+            echo "::warning ::Failed to push state to $SPARK_REPO"
+          fi

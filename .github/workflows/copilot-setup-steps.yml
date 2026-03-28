@@ -12,17 +12,86 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
-      - name: Display current state for agent context
+      - name: Install tools
         run: |
-          echo "=== Autopilot State ==="
-          echo "Controller version: $(jq -r '.version // "?"' trigger/source-change.json 2>/dev/null)"
-          echo "Last run: $(jq -r '.run // "?"' trigger/source-change.json 2>/dev/null)"
+          sudo apt-get update -qq
+          sudo apt-get install -y jq
+
+      - name: Validate context files exist
+        run: |
+          echo "=== Validating context files ==="
+          FILES=(
+            "contracts/copilot-session-memory.json"
+            "trigger/source-change.json"
+            ".github/copilot-instructions.md"
+            ".github/agents/autopilot-spark.agent.md"
+            ".github/agents/autopilot-deploy.agent.md"
+            ".github/agents/autopilot-ops.agent.md"
+            ".github/skills/deploy-flow/SKILL.md"
+            ".github/skills/fix-ci-failure/SKILL.md"
+            ".github/skills/memory-sync/SKILL.md"
+            ".github/skills/version-bump/SKILL.md"
+            ".github/skills/monitor-workflow/SKILL.md"
+            ".github/skills/backup-claude/SKILL.md"
+            ".github/hooks/auto-approve-tools.json"
+            ".github/hooks/auto-approve.sh"
+          )
+          ALL_OK=true
+          for f in "${FILES[@]}"; do
+            if [ -f "$f" ]; then
+              echo "  [OK] $f"
+            else
+              echo "  [MISSING] $f"
+              ALL_OK=false
+            fi
+          done
+          if [ "$ALL_OK" = "true" ]; then
+            echo "All context files present."
+          else
+            echo "WARNING: some context files are missing."
+          fi
+
+      - name: Show autopilot state
+        run: |
+          echo "=== Copilot Coding Agent Boot ==="
           echo ""
-          echo "=== Copilot Memory ==="
-          jq -r '.currentState | "Controller: \(.controllerVersion) | Agent: \(.agentVersion) | Run: \(.lastTriggerRun) | Status: \(.pipelineStatus)"' contracts/copilot-session-memory.json 2>/dev/null || echo "No memory yet"
+          echo "--- Trigger State ---"
+          if [ -f "trigger/source-change.json" ]; then
+            echo "Version : $(jq -r '.version // "?"' trigger/source-change.json)"
+            echo "Run     : $(jq -r '.run // "?"' trigger/source-change.json)"
+            echo "Component: $(jq -r '.component // "?"' trigger/source-change.json)"
+          else
+            echo "trigger/source-change.json not found"
+          fi
           echo ""
-          echo "=== Claude Status ==="
-          jq -r '"Status: \(.currentSession.status) | Task: \(.currentSession.task)"' contracts/claude-live-status.json 2>/dev/null || echo "No status"
+          echo "--- Copilot Memory ---"
+          MEMORY="contracts/copilot-session-memory.json"
+          if [ -f "$MEMORY" ]; then
+            echo "Controller : $(jq -r '.currentState.controllerVersion // "?"' $MEMORY)"
+            echo "Agent      : $(jq -r '.currentState.agentVersion // "?"' $MEMORY)"
+            echo "Last Run   : $(jq -r '.currentState.lastTriggerRun // "?"' $MEMORY)"
+            echo "Status     : $(jq -r '.currentState.pipelineStatus // "?"' $MEMORY)"
+            echo "Sessions   : $(jq -r '.sessionCount // "?"' $MEMORY)"
+            echo "Updated    : $(jq -r '.lastUpdated // "?"' $MEMORY)"
+          else
+            echo "No memory file found"
+          fi
+          echo ""
+          echo "--- Claude Status ---"
+          if [ -f "contracts/claude-live-status.json" ]; then
+            jq -r '"Status: \(.currentSession.status // "?") | Task: \(.currentSession.task // "none")"' contracts/claude-live-status.json 2>/dev/null || echo "Could not parse claude-live-status.json"
+          else
+            echo "claude-live-status.json not found (skip)"
+          fi
+          echo ""
+          echo "--- Available Agents ---"
+          for f in .github/agents/*.agent.md; do
+            [ -f "$f" ] && echo "  @$(basename $f .agent.md)"
+          done
+          echo ""
+          echo "--- Available Skills ---"
+          for d in .github/skills/*/; do
+            [ -f "${d}SKILL.md" ] && echo "  skill: $(basename $d)"
+          done
+          echo ""
+          echo "=== Boot Complete. Agent is ready. ==="

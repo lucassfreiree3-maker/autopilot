@@ -621,3 +621,28 @@ Rules:
 
 ---
 *Last synced: 2026-03-28T13:33:11Z | Run: 23686304748*
+
+---
+
+## Custom Agents disponíveis
+
+Use `@agent-name` para rotear para o agente correto:
+
+| Agent | Quando usar |
+|---|---|
+| `@autopilot-spark` | **Qualquer tarefa** — orquestrador principal, detecta tipo e roteia automaticamente |
+| `@autopilot-deploy` | Deploy, version bump, patches para repos corporativos |
+| `@autopilot-ops` | Docs, configs, memory updates, manutenção do repo |
+
+## Skills disponíveis
+
+Skills são carregadas sob demanda (`.github/skills/*/SKILL.md`):
+
+| Skill | Quando usar |
+|---|---|
+| `deploy-flow` | Fluxo completo de deploy via apply-source-change |
+| `fix-ci-failure` | Diagnóstico e fix automático de falhas de CI |
+| `memory-sync` | Sincronização da memória persistente ao final de cada sessão |
+| `version-bump` | Version bump nos 5 arquivos obrigatórios (regra X.Y.9 → X.(Y+1).0) |
+| `monitor-workflow` | Monitoramento dos 7 stages do apply-source-change pós-deploy |
+| `backup-claude` | Protocolo completo para assumir como backup quando Claude estiver indisponível |

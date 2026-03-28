@@ -29,6 +29,16 @@ SAFE_TOOLS=(
   "update_pull_request"
   "create_branch"
   "get_commit"
+  "list_workflow_runs"
+  "get_workflow_run"
+  "get_workflow_job"
+  "list_workflow_jobs"
+  "assign_copilot_to_issue"
+  "get_copilot_job_status"
+  "create_issue"
+  "update_issue"
+  "list_tags"
+  "list_releases"
 )
 
 for safe in "${SAFE_TOOLS[@]}"; do

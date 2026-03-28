@@ -136,7 +136,7 @@ Automated by copilot-post-deploy-sync.yml
             echo "PR created: $PR_URL"
             PR_NUMBER=$(gh pr view "$BRANCH" --json number --jq '.number')
             if [ -z "$PR_NUMBER" ]; then
-              echo "::error ::Failed to get PR number for branch $BRANCH"
+              echo "::error::Failed to get PR number for branch $BRANCH"
               exit 1
             fi
             gh pr merge "$PR_NUMBER" --squash --auto

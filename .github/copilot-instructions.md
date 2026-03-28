@@ -356,6 +356,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
+| auto-merge-sweeper.yml | [Core] Auto-Merge Sweeper | scheduled, manual |
 | auto-merge-to-main.yml | [Core] Auto-Merge PR to main | unknown |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
 | autonomous-merge-direct.yml | [Core] Autonomous Direct Merge | unknown |
@@ -637,4 +638,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-28T18:25:42Z | Run: 23691501498*
+*Last synced: 2026-03-28T18:28:20Z | Run: 23691547973*

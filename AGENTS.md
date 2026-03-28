@@ -135,7 +135,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (306 files)
+  audit/ (309 files)
   improvements/ (1 files)
   metrics/ (6 files)
   handoffs/ (1 files)
@@ -411,4 +411,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-28T14:14:12Z | Run: 23687007112*
+*Last synced: 2026-03-28T14:16:28Z | Run: 23687044566*

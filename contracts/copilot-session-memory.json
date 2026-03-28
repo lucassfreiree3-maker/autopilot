@@ -326,6 +326,11 @@
       "lesson": "COMPLETE BOOT SEQUENCE for every session: 1) Read copilot-session-memory.json 2) Try read claude-live-status.json (may not exist) 3) Read claude-session-memory.json 4) Read trigger/source-change.json for current version/run 5) Show estado atual to user",
       "source": "session 2026-03-28 — consolidated from mega-prompt + experience",
       "fix": "Execute ALL steps. If any file missing, log and continue. Never skip memory read."
+    },
+    {
+      "lesson": "NUNCA modificar autonomous-pr-lane.yml ou auto-merge-to-main.yml — estao DESABILITADOS de proposito. autonomous-merge-direct.yml e o UNICO handler de PRs de agentes. Reativar os outros causa workflows duplicados.",
+      "source": "session 2026-03-28 — Claude desabilitou, Copilot reativou acidentalmente",
+      "fix": "autonomous-pr-lane.yml tem if:false. auto-merge-to-main.yml tem skip para agent branches. NAO TOCAR."
     }
   ],
   "errorPatterns": {
@@ -389,4 +394,3 @@
     ]
   }
 }
-

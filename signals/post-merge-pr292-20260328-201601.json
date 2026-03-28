@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 292,
+  "branch": "claude/auto-review-merge",
+  "timestamp": "2026-03-28T20:16:01Z",
+  "runId": "23693461234",
+  "healthStatus": "degraded"
+}

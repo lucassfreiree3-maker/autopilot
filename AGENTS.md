@@ -116,7 +116,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (402 files)
+  audit/ (403 files)
   improvements/ (1 files)
   metrics/ (7 files)
   handoffs/ (1 files)
@@ -272,7 +272,9 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | dashboard-auto-improve.yml | [Core] Dashboard Auto-Improve | scheduled, manual |
 | deploy-auto-learn.yml | [Core] Deploy Auto-Learn | manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
+| dispatch-proxy.yml | [Core] Operations Dispatch Proxy | manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
+| emergency-watchdog.yml | emergency-watchdog.yml | unknown |
 | enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
 | fetch-files.yml | [Corp] Fetch: Source Files | trigger file, manual |
 | fix-and-validate.yml | [Corp] Fix: CI + Validate Full Flow | trigger file, manual |
@@ -330,6 +332,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | copilot-post-deploy-sync.yml | version, run_number |
 | copilot-task-dispatch.yml | task, task_type, component, version |
 | deploy-auto-learn.yml | source |
+| dispatch-proxy.yml | operation, confirm, workspace |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
 | fetch-files.yml | workspace_id, component, files |
@@ -402,4 +405,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-29T19:27:03Z | Run: 23717146213*
+*Last synced: 2026-03-29T19:36:06Z | Run: 23717325183*

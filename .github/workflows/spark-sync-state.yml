@@ -429,3 +429,26 @@ jobs:
           else
             echo "::warning ::Failed to push dashboard HTML to $SPARK_REPO (repo may not exist yet)"
           fi
+
+      - name: Update panel/dashboard/state.json (GitHub Pages)
+        if: steps.config.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          STATE_B64="${{ steps.state.outputs.state_b64 }}"
+
+          EXISTING_SHA=$(gh api "repos/${{ github.repository }}/contents/panel/dashboard/state.json" --jq '.sha' 2>/dev/null || echo "")
+
+          PAYLOAD=$(jq -n \
+            --arg content "$STATE_B64" \
+            --arg sha "$EXISTING_SHA" \
+            --arg message "chore: sync dashboard state.json [auto]" \
+            '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
+
+          if gh api "repos/${{ github.repository }}/contents/panel/dashboard/state.json" \
+            --method PUT \
+            --input - <<< "$PAYLOAD" > /dev/null 2>&1; then
+            echo "::notice ::State synced to panel/dashboard/state.json"
+          else
+            echo "::warning ::Failed to update panel/dashboard/state.json"
+          fi

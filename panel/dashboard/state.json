@@ -1,0 +1,49 @@
+{
+  "lastSync": "2026-03-29T12:00:00Z",
+  "syncSource": "placeholder — will be updated by spark-sync-state.yml",
+  "controller": {"version": "3.6.6", "status": "success", "ciResult": "success", "promoted": true, "lastSha": "?", "updatedAt": null},
+  "agent": {"version": "2.2.9", "status": "success", "ciResult": "success", "promoted": true, "lastSha": "?", "updatedAt": null},
+  "pipeline": {"status": "idle", "lastRun": 69, "component": "agent", "version": "2.3.1", "promote": true, "workspace": "GETRONICS | ws-default"},
+  "agents": {
+    "claude": {"status": "idle", "task": null, "phase": null, "lastUpdated": null, "lastAction": null},
+    "copilot": {"sessionCount": 6, "lastSession": "Compliance pipeline + dashboard + memory sync", "lessonsCount": 30, "lastUpdated": "2026-03-29T18:00:00Z"},
+    "codex": {"sessionCount": 0, "lastSession": "none", "lessonsCount": 0, "lastUpdated": null}
+  },
+  "sessionLock": {"agentId": "none", "expiresAt": null, "acquiredAt": null, "operation": null},
+  "health": {},
+  "ciMonitor": {},
+  "workspaces": [
+    {"id": "ws-default", "company": "Getronics", "status": "active", "stack": "Node/TypeScript", "token": "BBVINET_TOKEN", "controllerVersion": "3.6.6", "agentVersion": "2.2.9", "pipelineStatus": "idle", "repos": ["controller", "agent", "cap-controller", "cap-agent"]},
+    {"id": "ws-cit", "company": "CIT", "status": "setup", "stack": "DevOps", "token": "CIT_TOKEN", "controllerVersion": null, "agentVersion": null, "pipelineStatus": "not-configured", "repos": []},
+    {"id": "ws-socnew", "company": "SocNew (terceiro)", "status": "locked", "stack": null, "token": null, "controllerVersion": null, "agentVersion": null, "pipelineStatus": "locked", "repos": []},
+    {"id": "ws-corp-1", "company": "Corp-1 (terceiro)", "status": "locked", "stack": null, "token": null, "controllerVersion": null, "agentVersion": null, "pipelineStatus": "locked", "repos": []}
+  ],
+  "recentWorkflows": [],
+  "openPRs": [],
+  "deployHistory": [],
+  "lessonsLearned": {"total": 30, "copilot": 30, "codex": 0},
+  "versionRules": {"currentController": "3.6.6", "currentAgent": "2.2.9", "pattern": "After X.Y.9 next is X.(Y+1).0", "lastTriggerRun": 69, "lastSuccessfulRun": 63},
+  "executionHistory": [],
+  "knownErrors": [
+    {"code": "403_push", "desc": "Branch prefix wrong", "fix": "Use claude/copilot/codex prefix"},
+    {"code": "trigger_not_firing", "desc": "Run not incremented", "fix": "Increment run +1"},
+    {"code": "duplicate_tag", "desc": "Version exists", "fix": "Increment patch"},
+    {"code": "swagger_garbled", "desc": "Accented chars", "fix": "ASCII only"},
+    {"code": "jwt_scope_plural", "desc": "scopes not scope", "fix": "Use singular"}
+  ],
+  "pipelineStages": [
+    {"name": "Setup", "desc": "Read workspace config"},
+    {"name": "Session Guard", "desc": "Acquire lock"},
+    {"name": "Apply & Push", "desc": "Clone, patch, push"},
+    {"name": "CI Gate", "desc": "Wait corporate CI"},
+    {"name": "Promote", "desc": "Update CAP tag"},
+    {"name": "Save State", "desc": "Record state"},
+    {"name": "Audit", "desc": "Trail + unlock"}
+  ],
+  "corporateReal": {
+    "controller": {"sourceVersion": "?", "capTag": "?", "drift": false, "driftDetail": null},
+    "agent": {"sourceVersion": "?", "capTag": "?", "drift": false, "driftDetail": null},
+    "lastChecked": ""
+  },
+  "metadata": {"autopilotRepo": "lucassfreiree/autopilot", "sparkRepo": "lucassfreiree/spark-dashboard", "totalAgents": 3, "totalWorkspaces": 4, "syncInterval": "5 minutes", "stateVersion": 3}
+}

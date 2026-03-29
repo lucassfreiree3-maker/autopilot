@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autopilot Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #1c2128; --border: #30363d;
+      --text: #e6edf3; --muted: #8b949e;
+      --green: #3fb950; --green-dim: rgba(63,185,80,0.15);
+      --yellow: #d29922; --yellow-dim: rgba(210,153,34,0.15);
+      --red: #f85149; --red-dim: rgba(248,81,73,0.15);
+      --blue: #58a6ff; --blue-dim: rgba(88,166,255,0.15);
+      --purple: #8b5cf6; --purple-dim: rgba(139,92,246,0.15);
+      --orange: #f97316; --orange-dim: rgba(249,115,22,0.15);
+      --cyan: #39d2c0; --cyan-dim: rgba(57,210,192,0.15);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; min-height:100vh; }
+    .layout { display:flex; min-height:100vh; }
+    .sidebar { width:230px; background:var(--surface); border-right:1px solid var(--border); padding:16px 0; flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto; display:flex; flex-direction:column; }
+    .sidebar-logo { padding:0 16px 16px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+    .sidebar-logo h1 { font-size:16px; font-weight:700; }
+    .sidebar-logo p { font-size:11px; color:var(--muted); margin-top:2px; }
+    .sidebar-nav { padding:8px 0; flex:1; }
+    .nav-item { display:flex; align-items:center; gap:10px; padding:8px 16px; cursor:pointer; color:var(--muted); font-size:13px; border-left:3px solid transparent; transition:all .15s; }
+    .nav-item:hover { background:var(--surface2); color:var(--text); }
+    .nav-item.active { color:var(--text); border-left-color:var(--blue); background:var(--blue-dim); }
+    .nav-badge { margin-left:auto; font-size:10px; background:var(--surface2); color:var(--muted); padding:1px 6px; border-radius:8px; }
+    .main { flex:1; padding:24px; min-width:0; overflow-x:hidden; }
+    .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-header h2 { font-size:20px; font-weight:600; }
+    .sync-info { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--muted); }
+    .sync-dot { width:8px; height:8px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; }
+    .card-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:6px; }
+    .card-value { font-size:28px; font-weight:700; line-height:1.2; }
+    .card-sub { font-size:11px; color:var(--muted); margin-top:4px; }
+    .grid-4 { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+    .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+    .section { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; margin-bottom:16px; }
+    .section h3 { font-size:14px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; }
+    .b-green { background:var(--green-dim); color:var(--green); }
+    .b-yellow { background:var(--yellow-dim); color:var(--yellow); }
+    .b-red { background:var(--red-dim); color:var(--red); }
+    .b-blue { background:var(--blue-dim); color:var(--blue); }
+    .b-purple { background:var(--purple-dim); color:var(--purple); }
+    .b-orange { background:var(--orange-dim); color:var(--orange); }
+    .b-cyan { background:var(--cyan-dim); color:var(--cyan); }
+    .b-gray { background:rgba(139,148,158,.15); color:var(--muted); }
+    .dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
+    .dot-green { background:var(--green); }
+    .dot-yellow { background:var(--yellow); }
+    .dot-red { background:var(--red); }
+    .dot-gray { background:var(--muted); }
+    .dot-pulse { animation:pulse 1.5s infinite; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 10px; color:var(--muted); font-weight:500; font-size:11px; border-bottom:1px solid var(--border); }
+    td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--surface2); }
+    .mono { font-family:'Courier New',monospace; font-size:12px; }
+    .alert-bar { border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:12px; display:flex; align-items:flex-start; gap:10px; }
+    .alert-warn { background:var(--yellow-dim); border:1px solid rgba(210,153,34,.3); }
+    .alert-error { background:var(--red-dim); border:1px solid rgba(248,81,73,.3); }
+    .alert-info { background:var(--blue-dim); border:1px solid rgba(88,166,255,.3); }
+    .alert-ok { background:var(--green-dim); border:1px solid rgba(63,185,80,.3); }
+    .ws-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+    .ws-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; position:relative; overflow:hidden; }
+    .ws-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .ws-active::before { background:var(--green); }
+    .ws-setup::before { background:var(--yellow); }
+    .ws-locked::before { background:var(--red); }
+    .ws-empty::before { background:var(--border); }
+    .agent-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
+    .agent-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; position:relative; }
+    .agent-active-ind { position:absolute; top:12px; right:12px; display:flex; align-items:center; gap:4px; font-size:11px; }
+    .pipeline-stages { display:flex; flex-direction:column; position:relative; }
+    .pipeline-line { position:absolute; left:15px; top:32px; bottom:12px; width:2px; background:var(--border); z-index:0; }
+    .p-stage { display:flex; align-items:flex-start; gap:16px; padding:10px 0; position:relative; }
+    .p-dot { width:20px; height:20px; border-radius:50%; border:2px solid var(--border); background:var(--surface); z-index:1; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; font-size:10px; }
+    .p-dot.success { border-color:var(--green); background:var(--green); color:#fff; }
+    .p-dot.running { border-color:var(--yellow); background:var(--yellow); animation:pulse 1s infinite; }
+    .p-dot.failed { border-color:var(--red); background:var(--red); color:#fff; }
+    .p-dot.pending { border-color:var(--border); background:var(--surface2); }
+    .health-ring { width:120px; height:120px; position:relative; }
+    .health-ring svg { transform:rotate(-90deg); }
+    .health-score { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:28px; font-weight:700; }
+    .lesson-item { background:var(--surface2); border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:12px; border-left:3px solid var(--purple); }
+    .lesson-fix { color:var(--green); font-size:11px; margin-top:4px; }
+    .error-item { background:var(--surface2); border-radius:6px; padding:10px 12px; margin-bottom:8px; font-size:12px; border-left:3px solid var(--red); }
+    .error-fix { color:var(--cyan); font-size:11px; margin-top:4px; }
+    .panel { display:none; }
+    .panel.active { display:block; }
+    .loading { text-align:center; padding:40px; color:var(--muted); }
+    .spinner { width:28px; height:28px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .empty { text-align:center; padding:24px; color:var(--muted); font-size:13px; }
+    .flex { display:flex; align-items:center; gap:8px; }
+    .flex-wrap { flex-wrap:wrap; }
+    a { color:var(--blue); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .mobile-nav { display:none; background:var(--surface); border-bottom:1px solid var(--border); padding:8px 12px; overflow-x:auto; gap:4px; }
+    .mobile-nav-item { display:inline-block; padding:5px 10px; border-radius:6px; font-size:12px; cursor:pointer; color:var(--muted); white-space:nowrap; }
+    .mobile-nav-item.active { background:var(--blue-dim); color:var(--blue); }
+    .progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:6px; }
+    .progress-fill { height:100%; border-radius:2px; transition:width .5s; }
+    .tag { font-size:10px; padding:1px 5px; border-radius:4px; font-weight:500; }
+    @media(max-width:768px) { .sidebar{display:none} .layout{flex-direction:column} .main{padding:14px} .mobile-nav{display:flex} .grid-4,.grid-3{grid-template-columns:1fr 1fr} .ws-grid,.agent-grid{grid-template-columns:1fr} }
+    @media(max-width:480px) { .grid-4,.grid-3{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><h1>Autopilot</h1><p>Intelligence Dashboard v2</p></div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="go('overview')">Overview <span class="nav-badge" id="navHealth"></span></div>
+      <div class="nav-item" onclick="go('alerts')">Alerts <span class="nav-badge" id="navAlerts">0</span></div>
+      <div class="nav-item" onclick="go('pipeline')">Pipeline</div>
+      <div class="nav-item" onclick="go('corporate')">Corporate Real <span class="nav-badge" id="navDrift" style="color:var(--cyan)">—</span></div>
+      <div class="nav-item" onclick="go('agents')">Agents <span class="nav-badge" id="navAgents">3</span></div>
+      <div class="nav-item" onclick="go('compliance')">Compliance</div>
+      <div class="nav-item" onclick="go('workspaces')">Workspaces</div>
+      <div class="nav-item" onclick="go('workflows')">Workflows</div>
+      <div class="nav-item" onclick="go('prs')">Open PRs <span class="nav-badge" id="navPRs">0</span></div>
+      <div class="nav-item" onclick="go('history')">Deploy History</div>
+      <div class="nav-item" onclick="go('lessons')">Lessons <span class="nav-badge" id="navLessons">0</span></div>
+      <div class="nav-item" onclick="go('errors')">Error Patterns</div>
+      <div class="nav-item" onclick="go('architecture')">Architecture</div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)" id="sidebarSync">Loading...</div>
+  </nav>
+  <main class="main">
+    <div class="mobile-nav" id="mobileNav"></div>
+    <div id="alertsBanner"></div>
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="page-header"><h2>Overview</h2><div class="sync-info"><span class="sync-dot" id="syncDot"></span><span id="syncTime">...</span></div></div>
+      <div id="smartAlerts"></div>
+      <div class="grid-4" id="overviewCards"><div class="card"><div class="loading"><div class="spinner"></div></div></div></div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="section" id="activeAgentSection"><h3>Active Agent</h3><div id="activeAgentContent"><div class="loading"><div class="spinner"></div></div></div></div>
+        <div class="section" id="lockSection"><h3>Session Lock</h3><div id="lockContent"></div></div>
+      </div>
+      <div class="section" style="margin-top:0" id="healthSection"><h3>System Health</h3><div id="healthContent"></div></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="panel" id="panel-alerts">
+      <div class="page-header"><h2>Smart Alerts</h2><span class="badge b-yellow" id="alertCount">0</span></div>
+      <div id="alertsList"></div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div class="panel" id="panel-pipeline">
+      <div class="page-header"><h2>Pipeline Monitor</h2><span class="badge b-gray" id="pipelineBadge">idle</span></div>
+      <div class="section"><h3>apply-source-change &mdash; 7 Stages</h3>
+        <div id="pipelineInfo" style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px"></div>
+        <div class="pipeline-stages" id="pipelineStages"><div class="pipeline-line"></div></div>
+      </div>
+      <div class="section"><h3>CI Monitor</h3><div id="ciMonitorContent"></div></div>
+      <div class="section"><h3>Version Rules</h3><div id="versionRules"></div></div>
+    </div>
+
+    <!-- CORPORATE REALITY -->
+    <div class="panel" id="panel-corporate">
+      <div class="page-header"><h2>Corporate Reality</h2><span class="badge b-cyan" id="driftBadge">checking</span></div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Versions read directly from corporate repos (bbvinet/*). Other people may deploy independently without autopilot.</p>
+      <div id="driftAlerts"></div>
+      <div class="grid-2" id="corporateCards"></div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="section"><h3>Controller Recent Commits</h3><div id="ctrlCommits"></div></div>
+        <div class="section"><h3>Agent Recent Commits</h3><div id="agentCommits"></div></div>
+      </div>
+    </div>
+
+    <!-- AGENTS -->
+    <div class="panel" id="panel-agents">
+      <div class="page-header"><h2>Agent Activity</h2><span class="badge b-blue" id="agentsBadge">3 agents</span></div>
+      <div class="agent-grid" id="agentsGrid"></div>
+      <div class="section" style="margin-top:16px"><h3>Recent Sessions</h3><div id="sessionTimeline"></div></div>
+    </div>
+
+    <!-- COMPLIANCE -->
+    <div class="panel" id="panel-compliance">
+      <div class="page-header"><h2>Compliance Pipeline</h2><span class="badge b-cyan" id="complianceBadge">4 stages</span></div>
+      <div id="compliancePipeline"></div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="section"><h3>14 Compliance Rules</h3><div id="complianceRules"></div></div>
+        <div class="section"><h3>Security Checks</h3><div id="securityChecks"></div></div>
+      </div>
+    </div>
+
+    <!-- WORKSPACES -->
+    <div class="panel" id="panel-workspaces">
+      <div class="page-header"><h2>Workspaces</h2><span class="badge b-blue" id="wsCount">0</span></div>
+      <div class="ws-grid" id="wsGrid"></div>
+    </div>
+
+    <!-- WORKFLOWS -->
+    <div class="panel" id="panel-workflows">
+      <div class="page-header"><h2>Recent Workflows</h2><span class="badge b-blue" id="wfCount">0</span></div>
+      <div class="section"><div id="wfTable"></div></div>
+    </div>
+
+    <!-- PRs -->
+    <div class="panel" id="panel-prs">
+      <div class="page-header"><h2>Open Pull Requests</h2><span class="badge b-blue" id="prCount">0</span></div>
+      <div class="section"><div id="prsList"></div></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel" id="panel-history">
+      <div class="page-header"><h2>Deploy History</h2></div>
+      <div class="section"><div id="historyTable"></div></div>
+    </div>
+
+    <!-- LESSONS -->
+    <div class="panel" id="panel-lessons">
+      <div class="page-header"><h2>Lessons Learned</h2><span class="badge b-purple" id="lessonsTotal">0</span></div>
+      <div class="grid-3" id="lessonsStats"></div>
+      <div class="grid-2" style="margin-top:16px"><div class="section"><h3>Copilot Lessons</h3><div id="copilotLessons"></div></div><div class="section"><h3>Codex Lessons</h3><div id="codexLessons"></div></div></div>
+    </div>
+
+    <!-- ERROR PATTERNS -->
+    <div class="panel" id="panel-errors">
+      <div class="page-header"><h2>Known Error Patterns</h2></div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Quick reference for diagnosing and fixing common failures across the pipeline.</p>
+      <div id="errorPatterns"></div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <div class="panel" id="panel-architecture">
+      <div class="page-header"><h2>Architecture</h2></div>
+      <div class="grid-2">
+        <div class="section"><h3>Control Plane</h3><div id="archControlPlane"></div></div>
+        <div class="section"><h3>Corporate Repos (Getronics)</h3><div id="archRepos"></div></div>
+      </div>
+      <div class="section"><h3>Deploy Pipeline Flow</h3><div id="archPipeline"></div></div>
+      <div class="section"><h3>Multi-Agent System</h3><div id="archAgents"></div></div>
+    </div>
+  </main>
+</div>
+<script>
+  let state = {};
+  const REFRESH = 30000;
+  const PAGES = ['overview','alerts','pipeline','corporate','compliance','agents','workspaces','workflows','prs','history','lessons','errors','architecture'];
+  const STAGES = [
+    {name:'Setup',desc:'Read workspace config'},
+    {name:'Session Guard',desc:'Acquire multi-agent lock'},
+    {name:'Apply & Push',desc:'Clone → apply patches → push'},
+    {name:'CI Gate',desc:'Wait corporate CI (Esteira Build NPM)'},
+    {name:'Promote',desc:'Update CAP values.yaml image tag'},
+    {name:'Save State',desc:'Record on autopilot-state'},
+    {name:'Audit',desc:'Audit trail + release lock'}
+  ];
+
+  function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+  function fmtDate(d){if(!d)return'—';try{const dt=new Date(d);const now=new Date();const diff=now-dt;if(diff<60000)return'just now';if(diff<3600000)return Math.floor(diff/60000)+'m ago';if(diff<86400000)return Math.floor(diff/3600000)+'h ago';return dt.toLocaleDateString('en',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return String(d).slice(0,16)}}
+  function statusColor(s){const m={success:'green',completed:'green',active:'green',idle:'gray',running:'yellow',in_progress:'yellow',queued:'yellow',failed:'red',failure:'red',error:'red',locked:'red',setup:'yellow',empty:'gray',unknown:'gray'};return m[(s||'').toLowerCase()]||'gray'}
+  function badge(text,color){return`<span class="badge b-${color||statusColor(text)}">${esc(text)}</span>`}
+  function dot(color,pulse){return`<span class="dot dot-${color}${pulse?' dot-pulse':''}"></span>`}
+  function isActive(a){return a&&a.status&&a.status!=='idle'}
+
+  // Navigation
+  function go(page){
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.mobile-nav-item').forEach(n=>n.classList.remove('active'));
+    const el=document.getElementById('panel-'+page);
+    if(el)el.classList.add('active');
+    const navItems=document.querySelectorAll('.nav-item');
+    const idx=PAGES.indexOf(page);
+    if(idx>=0&&navItems[idx])navItems[idx].classList.add('active');
+    document.querySelectorAll('.mobile-nav-item').forEach(m=>{if(m.dataset.page===page)m.classList.add('active')});
+  }
+
+  // Build mobile nav
+  (function(){
+    const mn=document.getElementById('mobileNav');
+    mn.innerHTML=PAGES.map(p=>`<div class="mobile-nav-item${p==='overview'?' active':''}" data-page="${p}" onclick="go('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</div>`).join('');
+  })();
+
+  // Fetch state
+  async function fetchState(){
+    try{
+      const r=await fetch('state.json?t='+Date.now());
+      if(!r.ok)throw new Error(r.status);
+      state=await r.json();
+      renderAll();
+    }catch(e){
+      document.getElementById('alertsBanner').innerHTML=`<div class="alert-bar alert-error">Failed to load state.json: ${esc(e.message)}</div>`;
+    }
+  }
+
+  function scheduleRefresh(){setInterval(fetchState,REFRESH)}
+
+  // Smart alerts engine
+  function computeAlerts(){
+    const alerts=[];
+    const p=state.pipeline||{};
+    const c=state.controller||{};
+    const a=state.agent||{};
+    const lock=state.sessionLock||{};
+    const sync=state.lastSync;
+
+    // Stale sync
+    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;if(age>15)alerts.push({type:'warn',msg:`State sync is ${Math.floor(age)} minutes old — may be stale`,icon:'clock'})}
+
+    // Pipeline running
+    if(p.status==='running'||p.status==='in_progress')alerts.push({type:'info',msg:`Pipeline running: ${p.component} v${p.version} (run #${p.lastRun})`,icon:'play'});
+
+    // Pipeline failed
+    if(p.status==='failure'||p.status==='failed')alerts.push({type:'error',msg:`Pipeline FAILED: ${p.component} v${p.version} (run #${p.lastRun})`,icon:'x'});
+
+    // CI failed
+    if(c.ciResult==='failure')alerts.push({type:'error',msg:`Controller CI failed — check ci-logs on autopilot-state`,icon:'alert'});
+    if(a.ciResult==='failure')alerts.push({type:'error',msg:`Agent CI failed — check ci-logs on autopilot-state`,icon:'alert'});
+
+    // Not promoted
+    if(c.status==='success'&&c.promoted===false)alerts.push({type:'warn',msg:`Controller deployed but NOT promoted to CAP`,icon:'arrow'});
+    if(a.status==='success'&&a.promoted===false)alerts.push({type:'warn',msg:`Agent deployed but NOT promoted to CAP`,icon:'arrow'});
+
+    // Lock active
+    if(lock.agentId&&lock.agentId!=='none'){
+      const exp=lock.expiresAt?new Date(lock.expiresAt):null;
+      if(exp&&exp>new Date())alerts.push({type:'warn',msg:`Session locked by ${lock.agentId} until ${fmtDate(lock.expiresAt)}`,icon:'lock'});
+      else if(exp&&exp<=new Date())alerts.push({type:'info',msg:`Expired lock by ${lock.agentId} — should be cleaned up`,icon:'unlock'});
+    }
+
+    // Claude active
+    const claude=state.agents?.claude;
+    if(claude&&claude.status==='active')alerts.push({type:'info',msg:`Claude active: ${claude.task||'working'} (phase: ${claude.phase||'?'})`,icon:'bot'});
+
+    // Open PRs from agents
+    const prs=state.openPRs||[];
+    const agentPRs=prs.filter(p=>p.branch&&(p.branch.startsWith('claude/')||p.branch.startsWith('copilot/')||p.branch.startsWith('codex/')));
+    if(agentPRs.length>2)alerts.push({type:'warn',msg:`${agentPRs.length} open agent PRs — possible queue buildup`,icon:'pr'});
+
+    // Version mismatch (memory vs state)
+    const vr=state.versionRules||{};
+    if(vr.currentController&&c.version&&vr.currentController!==c.version&&c.version!=='?')alerts.push({type:'info',msg:`Version mismatch: memory says ${vr.currentController}, state says ${c.version}`,icon:'diff'});
+
+    // CORPORATE DRIFT — real repos vs autopilot knowledge
+    const corp=state.corporateReal||{};
+    const ctrlReal=corp.controller||{};
+    const agentReal=corp.agent||{};
+    if(ctrlReal.drift)alerts.push({type:'error',msg:`CONTROLLER DRIFT: ${ctrlReal.driftDetail} — someone deployed outside autopilot!`,icon:'alert'});
+    if(agentReal.drift)alerts.push({type:'error',msg:`AGENT DRIFT: ${agentReal.driftDetail} — someone deployed outside autopilot!`,icon:'alert'});
+    // CAP vs source drift
+    if(ctrlReal.sourceVersion&&ctrlReal.capTag&&ctrlReal.sourceVersion!=='?'&&ctrlReal.capTag!=='?'&&ctrlReal.sourceVersion!==ctrlReal.capTag)alerts.push({type:'warn',msg:`Controller source (${ctrlReal.sourceVersion}) != CAP tag (${ctrlReal.capTag}) — promote may be pending`,icon:'arrow'});
+    if(agentReal.sourceVersion&&agentReal.capTag&&agentReal.sourceVersion!=='?'&&agentReal.capTag!=='?'&&agentReal.sourceVersion!==agentReal.capTag)alerts.push({type:'warn',msg:`Agent source (${agentReal.sourceVersion}) != CAP tag (${agentReal.capTag}) — promote may be pending`,icon:'arrow'});
+
+    return alerts;
+  }
+
+  function alertIcon(type){const icons={warn:'⚠️',error:'🔴',info:'ℹ️',ok:'✅'};return icons[type]||'•'}
+
+  // Health score computation
+  function computeHealth(){
+    let score=100;
+    const reasons=[];
+    const c=state.controller||{};
+    const a=state.agent||{};
+    const p=state.pipeline||{};
+
+    if(c.ciResult==='failure'){score-=20;reasons.push('Controller CI failed (-20)')}
+    if(a.ciResult==='failure'){score-=20;reasons.push('Agent CI failed (-20)')}
+    if(p.status==='failed'||p.status==='failure'){score-=15;reasons.push('Pipeline failed (-15)')}
+    if(c.promoted===false&&c.status==='success'){score-=10;reasons.push('Controller not promoted (-10)')}
+    if(a.promoted===false&&a.status==='success'){score-=10;reasons.push('Agent not promoted (-10)')}
+
+    const sync=state.lastSync;
+    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;if(age>30){score-=10;reasons.push('Sync stale >30min (-10)')}}
+
+    const lock=state.sessionLock||{};
+    if(lock.agentId&&lock.agentId!=='none'){const exp=lock.expiresAt?new Date(lock.expiresAt):null;if(exp&&exp<=new Date()){score-=5;reasons.push('Expired lock not cleaned (-5)')}}
+
+    // Corporate drift = critical
+    const corp=state.corporateReal||{};
+    if(corp.controller&&corp.controller.drift){score-=25;reasons.push('CONTROLLER VERSION DRIFT (-25)')}
+    if(corp.agent&&corp.agent.drift){score-=25;reasons.push('AGENT VERSION DRIFT (-25)')}
+
+    score=Math.max(0,Math.min(100,score));
+    return{score,reasons,color:score>=80?'green':score>=50?'yellow':'red'};
+  }
+</script>
+<script>
+  function renderAll(){
+    renderSync();renderOverview();renderSmartAlerts();renderAlerts();renderPipeline();
+    renderCorporate();renderCompliance();renderAgents();renderWorkspaces();renderWorkflows();renderPRs();
+    renderHistory();renderLessons();renderErrors();renderArchitecture();renderNavBadges();
+  }
+
+  function renderSync(){
+    const t=fmtDate(state.lastSync);
+    document.getElementById('syncTime').textContent=`Synced ${t}`;
+    document.getElementById('sidebarSync').innerHTML=`Last sync: ${t}<br>v${state.metadata?.stateVersion||1}`;
+  }
+
+  function renderNavBadges(){
+    const h=computeHealth();
+    document.getElementById('navHealth').textContent=h.score;
+    document.getElementById('navHealth').style.color=`var(--${h.color})`;
+    document.getElementById('navAlerts').textContent=computeAlerts().length;
+    document.getElementById('navPRs').textContent=(state.openPRs||[]).length;
+    document.getElementById('navLessons').textContent=(state.lessonsLearned||{}).total||0;
+  }
+
+  function renderOverview(){
+    const c=state.controller||{};const a=state.agent||{};const p=state.pipeline||{};
+    const h=computeHealth();
+    document.getElementById('overviewCards').innerHTML=`
+      <div class="card"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(c.ciResult)})">${esc(c.version||'?')}</div><div class="card-sub">${badge(c.ciResult||'unknown')} ${c.promoted?badge('promoted','green'):badge('not promoted','gray')}</div></div>
+      <div class="card"><div class="card-title">Agent</div><div class="card-value" style="color:var(--${statusColor(a.ciResult)})">${esc(a.version||'?')}</div><div class="card-sub">${badge(a.ciResult||'unknown')} ${a.promoted?badge('promoted','green'):badge('not promoted','gray')}</div></div>
+      <div class="card"><div class="card-title">Pipeline</div><div class="card-value">#${p.lastRun||0}</div><div class="card-sub">${badge(p.status||'idle')} ${esc(p.component||'')} v${esc(p.version||'?')}</div></div>
+      <div class="card"><div class="card-title">Health</div><div class="card-value" style="color:var(--${h.color})">${h.score}</div><div class="card-sub">${h.reasons.length?h.reasons[0]:'All systems nominal'}</div></div>
+    `;
+
+    // Active agent
+    const claude=state.agents?.claude||{};
+    if(isActive(claude)){
+      document.getElementById('activeAgentContent').innerHTML=`<div class="flex" style="gap:12px">${dot('green',true)}<div><strong>Claude Code</strong> — ${esc(claude.task||'working')}<br><span style="color:var(--muted);font-size:12px">Phase: ${esc(claude.phase||'?')} | Last action: ${esc(claude.lastAction||'?')}</span></div></div>`;
+    }else{
+      document.getElementById('activeAgentContent').innerHTML=`<div class="flex" style="gap:8px">${dot('gray')}<span style="color:var(--muted)">No agent currently active</span></div>`;
+    }
+
+    // Lock
+    const lock=state.sessionLock||{};
+    if(lock.agentId&&lock.agentId!=='none'){
+      const exp=lock.expiresAt?new Date(lock.expiresAt):null;
+      const expired=exp&&exp<=new Date();
+      document.getElementById('lockContent').innerHTML=`<div class="flex" style="gap:8px">${dot(expired?'yellow':'red',!expired)}<div><strong>${esc(lock.agentId)}</strong> holds lock<br><span style="font-size:12px;color:var(--muted)">Op: ${esc(lock.operation||'?')} | Expires: ${fmtDate(lock.expiresAt)}${expired?' <span class="badge b-yellow">EXPIRED</span>':''}</span></div></div>`;
+    }else{
+      document.getElementById('lockContent').innerHTML=`<div class="flex" style="gap:8px">${dot('green')}<span style="color:var(--green)">No active lock — system free</span></div>`;
+    }
+
+    // Health detail
+    const hrs=h.reasons;
+    document.getElementById('healthContent').innerHTML=`
+      <div class="flex" style="gap:24px;flex-wrap:wrap">
+        <div style="text-align:center"><div style="font-size:48px;font-weight:700;color:var(--${h.color})">${h.score}</div><div style="font-size:12px;color:var(--muted)">/ 100</div></div>
+        <div style="flex:1;min-width:200px">${hrs.length?hrs.map(r=>`<div style="font-size:12px;color:var(--muted);padding:2px 0">• ${esc(r)}</div>`).join(''):'<div style="color:var(--green);font-size:13px">All systems operational</div>'}</div>
+      </div>`;
+  }
+
+  function renderSmartAlerts(){
+    const alerts=computeAlerts().slice(0,3);
+    if(!alerts.length){document.getElementById('smartAlerts').innerHTML='';return}
+    document.getElementById('smartAlerts').innerHTML=alerts.map(a=>`<div class="alert-bar alert-${a.type}">${alertIcon(a.type)} ${esc(a.msg)}</div>`).join('');
+  }
+
+  function renderAlerts(){
+    const alerts=computeAlerts();
+    document.getElementById('alertCount').textContent=alerts.length+' alerts';
+    if(!alerts.length){document.getElementById('alertsList').innerHTML='<div class="empty">No alerts — all systems nominal</div>';return}
+    document.getElementById('alertsList').innerHTML=alerts.map(a=>`<div class="alert-bar alert-${a.type}">${alertIcon(a.type)} <div>${esc(a.msg)}</div></div>`).join('');
+  }
+
+  function renderPipeline(){
+    const p=state.pipeline||{};const ps=p.status||'idle';
+    document.getElementById('pipelineBadge').className=`badge b-${statusColor(ps)}`;
+    document.getElementById('pipelineBadge').textContent=ps;
+    document.getElementById('pipelineInfo').innerHTML=`
+      <div class="flex flex-wrap" style="gap:16px;font-size:13px">
+        <span><strong>Run:</strong> #${p.lastRun||0}</span>
+        <span><strong>Component:</strong> ${esc(p.component||'?')}</span>
+        <span><strong>Version:</strong> v${esc(p.version||'?')}</span>
+        <span><strong>Changes:</strong> ${p.changesCount||0} files</span>
+        <span><strong>Workspace:</strong> ${esc(p.workspace||'?')}</span>
+      </div>
+      ${p.commitMessage?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">Commit: ${esc(p.commitMessage)}</div>`:''}`;
+
+    const stages=(state.pipelineStages||STAGES);
+    const stagesHtml=stages.map((s,i)=>{
+      const ss=stageStatus(ps,i,stages.length);
+      return`<div class="p-stage"><div class="p-dot ${ss}">${ss==='success'?'✓':ss==='failed'?'✕':ss==='running'?'…':''}</div><div><div style="font-size:13px;font-weight:600">${i<=1?['1','1.5'][i]:(i)}. ${esc(s.name)}</div><div style="font-size:11px;color:var(--muted)">${esc(s.desc)}</div></div></div>`;
+    }).join('');
+    document.getElementById('pipelineStages').innerHTML=`<div class="pipeline-line"></div>${stagesHtml}`;
+
+    // CI Monitor
+    const ci=state.ciMonitor||{};
+    document.getElementById('ciMonitorContent').innerHTML=ci.ciOutcome?`
+      <div class="flex" style="gap:8px">${dot(statusColor(ci.ciOutcome))} <strong>Corporate CI:</strong> ${badge(ci.ciOutcome)}</div>
+      ${ci.component?`<div style="font-size:12px;color:var(--muted);margin-top:6px">Component: ${esc(ci.component)} | SHA: <code>${esc((ci.commitSha||'').slice(0,8))}</code></div>`:''}
+    `:'<div style="color:var(--muted);font-size:13px">No CI monitor data available</div>';
+
+    // Version rules
+    const vr=state.versionRules||{};
+    document.getElementById('versionRules').innerHTML=`
+      <table>
+        <tr><td style="color:var(--muted)">Controller</td><td><strong>${esc(vr.currentController||'?')}</strong></td></tr>
+        <tr><td style="color:var(--muted)">Agent</td><td><strong>${esc(vr.currentAgent||'?')}</strong></td></tr>
+        <tr><td style="color:var(--muted)">Last trigger run</td><td>#${vr.lastTriggerRun||0}</td></tr>
+        <tr><td style="color:var(--muted)">Last successful run</td><td>#${vr.lastSuccessfulRun||0}</td></tr>
+        <tr><td style="color:var(--muted)">Version rule</td><td style="font-size:12px">${esc(vr.pattern||'After X.Y.9 → X.(Y+1).0')}</td></tr>
+      </table>`;
+  }
+
+  function stageStatus(pipelineStatus,idx,total){
+    if(pipelineStatus==='idle'||pipelineStatus==='unknown')return'pending';
+    if(pipelineStatus==='success'||pipelineStatus==='completed')return'success';
+    if(pipelineStatus==='failure'||pipelineStatus==='failed'){return idx<total-1?'success':'failed'}
+    if(pipelineStatus==='running'||pipelineStatus==='in_progress'){if(idx<3)return'success';if(idx===3)return'running';return'pending'}
+    return'pending';
+  }
+
+  function renderAgents(){
+    const agents=state.agents||{};const claude=agents.claude||{};const copilot=agents.copilot||{};const codex=agents.codex||{};
+    document.getElementById('agentsGrid').innerHTML=`
+      <div class="agent-card">
+        ${isActive(claude)?`<div class="agent-active-ind">${dot('green',true)} active</div>`:''}
+        <div style="font-size:24px;margin-bottom:6px">🧠</div>
+        <div class="flex" style="margin-bottom:6px"><strong>Claude Code</strong> ${badge(claude.status||'idle')}</div>
+        <div style="font-size:12px;color:var(--muted)">Primary agent — Architecture, releases, complex implementations</div>
+        ${claude.task?`<div style="background:var(--surface2);border-radius:6px;padding:8px;margin-top:10px;font-size:12px;border-left:3px solid var(--blue)">Task: ${esc(claude.task)}<br>Phase: ${esc(claude.phase||'?')}</div>`:''}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Updated: ${fmtDate(claude.lastUpdated)}</div>
+      </div>
+      <div class="agent-card">
+        ${isActive(copilot)?`<div class="agent-active-ind">${dot('green',true)} active</div>`:''}
+        <div style="font-size:24px;margin-bottom:6px">🧑‍✈️</div>
+        <div class="flex" style="margin-bottom:6px"><strong>Copilot</strong> ${badge(isActive(copilot)?'active':'standby')}</div>
+        <div style="font-size:12px;color:var(--muted)">Backup agent — Dispatch, PR review, coordination</div>
+        <div class="flex" style="gap:16px;margin-top:10px">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700">${copilot.sessionCount||0}</div><div style="font-size:10px;color:var(--muted)">Sessions</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700">${copilot.lessonsCount||0}</div><div style="font-size:10px;color:var(--muted)">Lessons</div></div>
+        </div>
+        ${copilot.lastSession&&copilot.lastSession!=='none'?`<div style="background:var(--surface2);border-radius:6px;padding:8px;margin-top:10px;font-size:11px;border-left:3px solid var(--purple)">${esc(copilot.lastSession)}</div>`:''}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Updated: ${fmtDate(copilot.lastUpdated)}</div>
+      </div>
+      <div class="agent-card">
+        ${isActive(codex)?`<div class="agent-active-ind">${dot('green',true)} active</div>`:''}
+        <div style="font-size:24px;margin-bottom:6px">⚡</div>
+        <div class="flex" style="margin-bottom:6px"><strong>Codex</strong> ${badge(isActive(codex)?'active':'standby')}</div>
+        <div style="font-size:12px;color:var(--muted)">Code specialist — Implementation, refactoring, CI monitoring</div>
+        <div class="flex" style="gap:16px;margin-top:10px">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700">${codex.sessionCount||0}</div><div style="font-size:10px;color:var(--muted)">Sessions</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700">${codex.lessonsCount||0}</div><div style="font-size:10px;color:var(--muted)">Lessons</div></div>
+        </div>
+        ${codex.lastSession&&codex.lastSession!=='none'?`<div style="background:var(--surface2);border-radius:6px;padding:8px;margin-top:10px;font-size:11px;border-left:3px solid var(--orange)">${esc(codex.lastSession)}</div>`:''}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Updated: ${fmtDate(codex.lastUpdated)}</div>
+      </div>`;
+
+    // Session timeline (combine copilot + codex sessions)
+    const sessions=[];
+    (state.agents?.copilot?.sessions||[]).forEach(s=>sessions.push({...s,agent:'Copilot',color:'purple'}));
+    (state.agents?.codex?.sessions||[]).forEach(s=>sessions.push({...s,agent:'Codex',color:'orange'}));
+    sessions.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+    document.getElementById('sessionTimeline').innerHTML=sessions.length?sessions.slice(0,10).map(s=>`
+      <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:80px"><span class="badge b-${s.color}">${esc(s.agent)}</span></div>
+        <div style="flex:1;font-size:12px">${esc(s.summary||'No summary')}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap">${esc(s.date||'?')} · ${s.actions||0} actions</div>
+      </div>`).join(''):'<div class="empty">No session data available</div>';
+  }
+</script>
+<script>
+  function renderCorporate(){
+    const corp=state.corporateReal||{};const cc=corp.controller||{};const ca=corp.agent||{};
+    const c=state.controller||{};const a=state.agent||{};
+    const hasDrift=cc.drift||ca.drift;
+    document.getElementById('driftBadge').className=`badge b-${hasDrift?'red':'green'}`;
+    document.getElementById('driftBadge').textContent=hasDrift?'DRIFT DETECTED':'in sync';
+    document.getElementById('navDrift').textContent=hasDrift?'DRIFT':'ok';
+    document.getElementById('navDrift').style.color=hasDrift?'var(--red)':'var(--green)';
+
+    // Drift alerts
+    const dAlerts=[];
+    if(cc.drift)dAlerts.push(`<div class="alert-bar alert-error">CONTROLLER DRIFT: Autopilot knows <strong>${esc(c.version)}</strong> but corporate repo has <strong>${esc(cc.sourceVersion)}</strong>. Someone deployed outside autopilot!</div>`);
+    if(ca.drift)dAlerts.push(`<div class="alert-bar alert-error">AGENT DRIFT: Autopilot knows <strong>${esc(a.version)}</strong> but corporate repo has <strong>${esc(ca.sourceVersion)}</strong>. Someone deployed outside autopilot!</div>`);
+    if(cc.sourceVersion&&cc.capTag&&cc.sourceVersion!=='?'&&cc.capTag!=='?'&&cc.sourceVersion!==cc.capTag)dAlerts.push(`<div class="alert-bar alert-warn">Controller source (${esc(cc.sourceVersion)}) differs from CAP deploy tag (${esc(cc.capTag)}) — promote may be pending or someone changed source without deploy</div>`);
+    if(ca.sourceVersion&&ca.capTag&&ca.sourceVersion!=='?'&&ca.capTag!=='?'&&ca.sourceVersion!==ca.capTag)dAlerts.push(`<div class="alert-bar alert-warn">Agent source (${esc(ca.sourceVersion)}) differs from CAP deploy tag (${esc(ca.capTag)}) — promote may be pending</div>`);
+    if(!hasDrift&&cc.sourceVersion!=='?')dAlerts.push(`<div class="alert-bar alert-ok">All versions in sync. Last checked: ${fmtDate(corp.lastChecked)}</div>`);
+    document.getElementById('driftAlerts').innerHTML=dAlerts.join('');
+
+    // Cards: autopilot vs real
+    document.getElementById('corporateCards').innerHTML=`
+      <div class="section"><h3>Controller</h3>
+        <table>
+          <tr><td style="color:var(--muted);width:180px">Autopilot state version</td><td><strong>${esc(c.version||'?')}</strong></td><td>${badge(c.ciResult||'unknown')}</td></tr>
+          <tr><td style="color:var(--muted)">Real source (package.json)</td><td><strong style="color:var(--${cc.drift?'red':'green'})">${esc(cc.sourceVersion||'?')}</strong></td><td>${cc.drift?badge('DRIFT','red'):badge('match','green')}</td></tr>
+          <tr><td style="color:var(--muted)">Real CAP tag (deployed)</td><td><strong>${esc(cc.capTag||'?')}</strong></td><td>${cc.sourceVersion===cc.capTag?badge('synced','green'):(cc.capTag!=='?'?badge('differs','yellow'):badge('unknown','gray'))}</td></tr>
+          <tr><td style="color:var(--muted)">Memory version</td><td>${esc(state.versionRules?.currentController||'?')}</td><td></td></tr>
+        </table>
+      </div>
+      <div class="section"><h3>Agent</h3>
+        <table>
+          <tr><td style="color:var(--muted);width:180px">Autopilot state version</td><td><strong>${esc(a.version||'?')}</strong></td><td>${badge(a.ciResult||'unknown')}</td></tr>
+          <tr><td style="color:var(--muted)">Real source (package.json)</td><td><strong style="color:var(--${ca.drift?'red':'green'})">${esc(ca.sourceVersion||'?')}</strong></td><td>${ca.drift?badge('DRIFT','red'):badge('match','green')}</td></tr>
+          <tr><td style="color:var(--muted)">Real CAP tag (deployed)</td><td><strong>${esc(ca.capTag||'?')}</strong></td><td>${ca.sourceVersion===ca.capTag?badge('synced','green'):(ca.capTag!=='?'?badge('differs','yellow'):badge('unknown','gray'))}</td></tr>
+          <tr><td style="color:var(--muted)">Memory version</td><td>${esc(state.versionRules?.currentAgent||'?')}</td><td></td></tr>
+        </table>
+      </div>`;
+
+    // Recent commits
+    function renderCommits(commits,elId){
+      const el=document.getElementById(elId);
+      if(!commits||!commits.length){el.innerHTML='<div class="empty">No commit data (BBVINET_TOKEN may not be available)</div>';return}
+      el.innerHTML=commits.map(cm=>`
+        <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <code style="color:var(--blue);min-width:60px">${esc(cm.sha)}</code>
+          <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(cm.message)}">${esc(cm.message)}</div>
+          <div style="color:var(--muted);white-space:nowrap">${esc(cm.author)} · ${fmtDate(cm.date)}</div>
+        </div>`).join('');
+    }
+    renderCommits(cc.recentCommits||[],'ctrlCommits');
+    renderCommits(ca.recentCommits||[],'agentCommits');
+  }
+
+  function renderCompliance(){
+    const RULES=[
+      {n:'version-format',d:'No X.Y.10+',cat:'Version'},
+      {n:'version-4-files',d:'pkg + lock + swagger + cap',cat:'Version'},
+      {n:'swagger-ascii',d:'No accented characters',cat:'Encoding'},
+      {n:'jwt-scope-singular',d:'scope not scopes',cat:'Auth'},
+      {n:'no-validate-in-fetch',d:'Breaks mock tests',cat:'Testing'},
+      {n:'no-nested-ternary',d:'ESLint rejects',cat:'Lint'},
+      {n:'search-replace-newlines',d:'sed cant handle',cat:'Deploy'},
+      {n:'run-not-incremented',d:'Workflow wont fire',cat:'Deploy'},
+      {n:'blocked-workspace',d:'Third-party isolation',cat:'Security'},
+      {n:'security-xss',d:'sanitizeForOutput required',cat:'Security'},
+      {n:'security-ssrf',d:'parseSafeIdentifier at input',cat:'Security'},
+      {n:'security-dos-loop',d:'MAX_RESULTS limit',cat:'Security'},
+      {n:'hardcoded-secret',d:'No secrets in patches',cat:'Security'},
+      {n:'use-before-define',d:'Function order',cat:'Lint'}
+    ];
+    const STAGES=[
+      {n:'Compliance Gate',wf:'compliance-gate.yml',when:'PRE-DEPLOY',icon:'🛡️',checks:'14 static + pull & test + tag'},
+      {n:'apply-source-change',wf:'apply-source-change.yml',when:'DURING',icon:'🚀',checks:'7 stages (setup→audit)'},
+      {n:'Post-Deploy Validation',wf:'post-deploy-validation.yml',when:'POST-DEPLOY',icon:'✅',checks:'source + CAP + state + CI'},
+      {n:'Auto-Learn',wf:'deploy-auto-learn.yml',when:'AFTER',icon:'🧠',checks:'error mapping + learning report'}
+    ];
+
+    document.getElementById('compliancePipeline').innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:0;position:relative">
+        <div style="position:absolute;left:19px;top:40px;bottom:20px;width:2px;background:var(--border);z-index:0"></div>
+        ${STAGES.map((s,i)=>`
+          <div style="display:flex;align-items:flex-start;gap:16px;padding:12px 0;position:relative">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;z-index:1;font-size:12px;flex-shrink:0">${i+1}</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:600">${s.icon} ${esc(s.n)}</div>
+              <div style="font-size:12px;color:var(--muted)">${esc(s.when)} — ${esc(s.checks)}</div>
+              <div style="font-size:11px;color:var(--blue);margin-top:2px">${esc(s.wf)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+
+    document.getElementById('complianceRules').innerHTML=RULES.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <div><strong class="mono">${esc(r.n)}</strong> <span style="color:var(--muted)">— ${esc(r.d)}</span></div>
+        <span class="badge b-${r.cat==='Security'?'red':r.cat==='Version'?'blue':r.cat==='Lint'?'yellow':'gray'}">${esc(r.cat)}</span>
+      </div>`).join('');
+
+    document.getElementById('securityChecks').innerHTML=`
+      <div style="font-size:13px">
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--red)">XSS (Reflected)</strong><br><span style="color:var(--muted);font-size:12px">req.body/query flowing to res.json without sanitizeForOutput()</span></div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--red)">SSRF</strong><br><span style="color:var(--muted);font-size:12px">User input used in fetch/http without parseSafeIdentifier()</span></div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--red)">DoS by Loop</strong><br><span style="color:var(--muted);font-size:12px">Loop driven by user input without MAX_RESULTS limit</span></div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)"><strong style="color:var(--red)">Hardcoded Secrets</strong><br><span style="color:var(--muted);font-size:12px">API keys, passwords, tokens in patch files</span></div>
+        <div style="padding:8px 0"><strong style="color:var(--red)">Error Detail Leak</strong><br><span style="color:var(--muted);font-size:12px">Error responses without sanitizeForOutput()</span></div>
+      </div>`;
+  }
+
+  function renderWorkspaces(){
+    const ws=state.workspaces||[];
+    document.getElementById('wsCount').textContent=ws.length+' workspaces';
+    document.getElementById('wsGrid').innerHTML=ws.map(w=>{
+      const sc=w.status==='active'?'active':w.status==='setup'?'setup':w.status==='locked'?'locked':'empty';
+      return`<div class="ws-card ws-${sc}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><div style="font-size:16px;font-weight:600">${esc(w.company)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${esc(w.id)}</div></div>
+          ${badge(w.status)}
+        </div>
+        ${w.stack?`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">${esc(w.stack)}</div>`:''}
+        ${w.status==='locked'?'<div style="font-size:12px;color:var(--red);margin-top:8px">🔒 Third-party workspace — DO NOT OPERATE without explicit authorization</div>':`
+        <div style="display:flex;gap:10px;margin-bottom:8px">
+          <div style="flex:1;background:var(--surface2);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted)">Controller</div><div style="font-size:14px;font-weight:600">${esc(w.controllerVersion||'—')}</div></div>
+          <div style="flex:1;background:var(--surface2);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted)">Agent</div><div style="font-size:14px;font-weight:600">${esc(w.agentVersion||'—')}</div></div>
+        </div>
+        <div class="flex" style="gap:6px">${badge(w.pipelineStatus||'idle')} ${w.token?`<span class="tag" style="background:var(--surface2);color:var(--muted)">${esc(w.token)}</span>`:''}</div>
+        ${w.repos&&w.repos.length?`<div style="margin-top:8px;font-size:11px;color:var(--muted)">${w.repos.length} repos: ${w.repos.map(r=>esc(r)).join(', ')}</div>`:''}`}
+      </div>`;
+    }).join('');
+  }
+
+  function renderWorkflows(){
+    const wfs=state.recentWorkflows||[];
+    document.getElementById('wfCount').textContent=wfs.length+' recent';
+    if(!wfs.length){document.getElementById('wfTable').innerHTML='<div class="empty">No recent workflows</div>';return}
+
+    // Group by category
+    const cats={};
+    wfs.forEach(wf=>{
+      let cat='Other';
+      const n=wf.name||'';
+      if(n.startsWith('[Corp]'))cat='Corporate';
+      else if(n.startsWith('[Core]'))cat='Core';
+      else if(n.startsWith('[Release]'))cat='Release';
+      else if(n.startsWith('[Agent]'))cat='Agent';
+      else if(n.startsWith('[Infra]'))cat='Infra';
+      else if(n.startsWith('Ops:'))cat='Ops';
+      else if(n.startsWith('[Copilot]'))cat='Copilot';
+      if(!cats[cat])cats[cat]=[];
+      cats[cat].push(wf);
+    });
+
+    document.getElementById('wfTable').innerHTML=`<table><thead><tr><th>Workflow</th><th>Status</th><th>Result</th><th>Branch</th><th>When</th></tr></thead><tbody>
+      ${wfs.map(wf=>`<tr>
+        <td>${wf.url?`<a href="${esc(wf.url)}" target="_blank" rel="noopener">${esc(wf.name)}</a>`:esc(wf.name)}</td>
+        <td>${badge(wf.status)}</td>
+        <td>${wf.conclusion?badge(wf.conclusion):badge('in progress','yellow')}</td>
+        <td class="mono" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(wf.head_branch||'')}</td>
+        <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDate(wf.created)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  function renderPRs(){
+    const prs=state.openPRs||[];
+    document.getElementById('prCount').textContent=prs.length+' open';
+    if(!prs.length){document.getElementById('prsList').innerHTML='<div class="empty">No open pull requests</div>';return}
+    document.getElementById('prsList').innerHTML=prs.map(pr=>`
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="min-width:40px" class="mono">#${pr.number}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:500">${esc(pr.title)}</div>
+          <div class="flex flex-wrap" style="gap:6px;margin-top:4px;font-size:12px;color:var(--muted)">
+            <span>by <strong>${esc(pr.author||'?')}</strong></span>
+            <span class="mono" style="background:var(--blue-dim);color:var(--blue);padding:1px 5px;border-radius:4px;font-size:11px">${esc(pr.branch||'')}</span>
+            ${pr.draft?badge('draft','gray'):''}
+            ${(pr.labels||[]).map(l=>`<span class="tag" style="background:var(--purple-dim);color:var(--purple)">${esc(l)}</span>`).join('')}
+            <span>${fmtDate(pr.created)}</span>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderHistory(){
+    const h=state.deployHistory||[];
+    if(!h.length){document.getElementById('historyTable').innerHTML='<div class="empty">No deploy history</div>';return}
+    document.getElementById('historyTable').innerHTML=`<table><thead><tr><th>#</th><th>Audit File</th><th>Workspace</th></tr></thead><tbody>
+      ${h.map((p,i)=>{const parts=(p||'').split('/');const ws=parts[2]||'?';const f=parts[parts.length-1]||'';
+        return`<tr><td style="color:var(--muted)">${i+1}</td><td class="mono" style="font-size:11px" title="${esc(p)}">${esc(f)}</td><td>${badge(ws,'blue')}</td></tr>`;
+      }).join('')}</tbody></table>`;
+  }
+
+  function renderLessons(){
+    const ll=state.lessonsLearned||{};
+    const total=ll.total||0;const cp=ll.copilot||0;const cx=ll.codex||0;
+    document.getElementById('lessonsTotal').textContent=total+' lessons';
+    document.getElementById('lessonsStats').innerHTML=`
+      <div class="card" style="text-align:center"><div class="card-title">Total</div><div class="card-value">${total}</div></div>
+      <div class="card" style="text-align:center;border-top:3px solid var(--purple)"><div class="card-title">Copilot</div><div class="card-value" style="color:var(--purple)">${cp}</div></div>
+      <div class="card" style="text-align:center;border-top:3px solid var(--orange)"><div class="card-title">Codex</div><div class="card-value" style="color:var(--orange)">${cx}</div></div>`;
+
+    const cpl=ll.copilotLessons||[];
+    document.getElementById('copilotLessons').innerHTML=cpl.length?cpl.map(l=>`<div class="lesson-item"><strong>${esc(l.lesson)}</strong>${l.fix?`<div class="lesson-fix">Fix: ${esc(l.fix)}</div>`:''}</div>`).join(''):'<div class="empty">No lessons yet</div>';
+
+    const cxl=ll.codexLessons||[];
+    document.getElementById('codexLessons').innerHTML=cxl.length?cxl.map(l=>`<div class="lesson-item" style="border-left-color:var(--orange)"><strong>${esc(l.lesson)}</strong>${l.fix?`<div class="lesson-fix">Fix: ${esc(l.fix)}</div>`:''}</div>`).join(''):'<div class="empty">No lessons yet</div>';
+  }
+
+  function renderErrors(){
+    const errors=state.knownErrors||[];
+    if(!errors.length){document.getElementById('errorPatterns').innerHTML='<div class="empty">No error patterns loaded</div>';return}
+    document.getElementById('errorPatterns').innerHTML=errors.map(e=>`
+      <div class="error-item">
+        <div class="flex" style="justify-content:space-between"><strong class="mono">${esc(e.code)}</strong></div>
+        <div style="margin-top:4px">${esc(e.desc)}</div>
+        <div class="error-fix">Fix: ${esc(e.fix)}</div>
+      </div>`).join('');
+  }
+
+  function renderArchitecture(){
+    document.getElementById('archControlPlane').innerHTML=`
+      <div style="font-size:13px">
+        <div style="margin-bottom:12px"><strong>Repository:</strong> <code>lucassfreiree/autopilot</code></div>
+        <table>
+          <tr><td style="color:var(--muted)">main branch</td><td>Workflows, schemas, contracts, panel, triggers</td></tr>
+          <tr><td style="color:var(--muted)">autopilot-state</td><td>Runtime state (source of truth)</td></tr>
+          <tr><td style="color:var(--muted)">autopilot-backups</td><td>Snapshots for rollback</td></tr>
+          <tr><td style="color:var(--muted)">panel/</td><td>GitHub Pages UI</td></tr>
+        </table>
+        <div style="margin-top:12px"><strong>Agents:</strong> Claude Code (primary), Copilot (backup), Codex (specialist)</div>
+        <div style="margin-top:6px"><strong>Branch rules:</strong> claude/* | copilot/* | codex/* → PR → squash merge (direct push to main = 403)</div>
+      </div>`;
+
+    const c=state.controller||{};const a=state.agent||{};
+    document.getElementById('archRepos').innerHTML=`
+      <div style="font-size:13px">
+        <table>
+          <tr><td style="color:var(--muted)">Controller source</td><td class="mono" style="font-size:11px">${esc(c.repo||'bbvinet/psc-sre-automacao-controller')}</td></tr>
+          <tr><td style="color:var(--muted)">Controller CAP</td><td class="mono" style="font-size:11px">${esc(c.capRepo||'bbvinet/psc_releases_cap_sre-aut-controller')}</td></tr>
+          <tr><td style="color:var(--muted)">Agent source</td><td class="mono" style="font-size:11px">${esc(a.repo||'bbvinet/psc-sre-automacao-agent')}</td></tr>
+          <tr><td style="color:var(--muted)">Agent CAP</td><td class="mono" style="font-size:11px">${esc(a.capRepo||'bbvinet/psc_releases_cap_sre-aut-agent')}</td></tr>
+          <tr><td style="color:var(--muted)">Stack</td><td>${esc(c.stack||'Node 22, TypeScript, Express, Jest')}</td></tr>
+          <tr><td style="color:var(--muted)">CI</td><td>Esteira de Build NPM (corporate runner)</td></tr>
+          <tr><td style="color:var(--muted)">Token</td><td><code>BBVINET_TOKEN</code></td></tr>
+        </table>
+      </div>`;
+
+    document.getElementById('archPipeline').innerHTML=`
+      <div style="font-size:13px">
+        <div style="margin-bottom:10px">The <strong>apply-source-change.yml</strong> pipeline runs in 7 stages:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          ${STAGES.map((s,i)=>`<div style="background:var(--surface2);border-radius:6px;padding:6px 10px;font-size:12px"><strong>${i<=1?['1','1.5'][i]:i}.</strong> ${esc(s.name)}</div>`).join('<div style="color:var(--muted);display:flex;align-items:center">→</div>')}
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+          <strong>Post-deploy:</strong> ci-monitor-loop.yml (auto) → promote-cap.yml (if CI passed) OR ci-diagnose + fix-corporate-ci (if failed)
+        </div>
+        <div style="margin-top:8px;font-size:12px"><strong>Golden rules:</strong></div>
+        <ul style="font-size:11px;color:var(--muted);margin-top:4px;padding-left:16px">
+          <li>NEVER push directly to corporate repos — use apply-source-change.yml</li>
+          <li>ALWAYS increment <code>run</code> field in trigger — no increment = no trigger</li>
+          <li>After X.Y.9 → X.(Y+1).0 — NEVER X.Y.10</li>
+          <li>apply-source-change SUCCESS ≠ deploy complete (corporate CI runs after)</li>
+          <li>Swagger: ASCII only — no accented characters</li>
+          <li>JWT scope claim: <code>scope</code> (singular) — NEVER <code>scopes</code></li>
+        </ul>
+      </div>`;
+
+    document.getElementById('archAgents').innerHTML=`
+      <div style="font-size:13px">
+        <table>
+          <thead><tr><th>Agent</th><th>Role</th><th>Branch</th><th>Memory</th><th>Tools</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Claude Code</strong></td><td>Primary — architecture, releases</td><td class="mono">claude/*</td><td class="mono" style="font-size:10px">claude-session-memory.json</td><td>Local filesystem + MCP</td></tr>
+            <tr><td><strong>Copilot</strong></td><td>Backup + task dispatch</td><td class="mono">copilot/*</td><td class="mono" style="font-size:10px">copilot-session-memory.json</td><td>GitHub API (push_files)</td></tr>
+            <tr><td><strong>Codex</strong></td><td>Code implementation</td><td class="mono">codex/*</td><td class="mono" style="font-size:10px">codex-session-memory.json</td><td>Sandbox + GitHub</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+          <strong>Isolation:</strong> Each agent has exclusive memory files. Copilot NEVER modifies Claude's files and vice versa.<br>
+          <strong>Lock protocol:</strong> Check session-lock.json before state-changing operations. If locked by another agent, create handoff.<br>
+          <strong>Merge:</strong> autonomous-merge-direct.yml handles all agent PRs. auto-merge-sweeper.yml is backup (2min cron).
+        </div>
+      </div>`;
+  }
+
+  // Init
+  async function init(){await fetchState();scheduleRefresh()}
+  init();
+</script>
+</body>
+</html>

@@ -116,7 +116,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (395 files)
+  audit/ (397 files)
   improvements/ (1 files)
   metrics/ (7 files)
   handoffs/ (1 files)
@@ -269,6 +269,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | copilot-post-deploy-sync.yml | [Copilot] Post-Deploy Sync | manual |
 | copilot-setup-steps.yml | Copilot Setup Steps | workflow_call |
 | copilot-task-dispatch.yml | [Agent] Copilot Task Dispatch | trigger file, manual |
+| dashboard-auto-improve.yml | [Core] Dashboard Auto-Improve | scheduled, manual |
 | deploy-auto-learn.yml | [Core] Deploy Auto-Learn | manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
@@ -399,4 +400,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-29T14:00:35Z | Run: 23710709726*
+*Last synced: 2026-03-29T14:12:04Z | Run: 23710936676*

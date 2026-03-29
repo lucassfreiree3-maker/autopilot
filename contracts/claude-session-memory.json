@@ -22,7 +22,7 @@
           "bbvinet/psc-sre-automacao-controller": {
             "role": "Controller — orquestra automacoes, despacha para agents, gerencia logs de execucao",
             "type": "source-code",
-            "currentVersion": "3.6.6",
+            "currentVersion": "3.6.9",
             "stack": "Node 22, TypeScript, Express, Jest, SQLite, S3",
             "ci": "Esteira de Build NPM (corporate runner)",
             "actionsUrl": "https://github.com/bbvinet/psc-sre-automacao-controller/actions",
@@ -33,7 +33,7 @@
           "bbvinet/psc-sre-automacao-agent": {
             "role": "Agent — executa automacoes nos clusters, recebe callbacks de cronjob, envia logs ao controller",
             "type": "source-code",
-            "currentVersion": "2.2.9",
+            "currentVersion": "2.3.1",
             "stack": "Node 22, TypeScript, Express, Jest, K8s client",
             "ci": "Esteira de Build NPM (corporate runner)",
             "actionsUrl": "https://github.com/bbvinet/psc-sre-automacao-agent/actions",
@@ -1056,7 +1056,7 @@
     ]
   },
   "versioningRules": {
-    "currentVersion": "3.6.5",
+    "currentVersion": "3.6.9",
     "previousVersion": "3.6.4",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
@@ -1126,8 +1126,8 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 54,
-    "lastSuccessfulRun": 38,
+    "lastTriggerRun": 69,
+    "lastSuccessfulRun": 69,
     "lastDeployPR": 197,
     "pipelineStatus": "IN_PROGRESS — deploy controller 3.6.5 (run #54). Historia #930217 cronjob callback.",
     "multiFilePayload": {
@@ -2087,10 +2087,10 @@
     "validatedBy": "usuario — elogiou o fluxo como 'excelente'"
   },
   "currentState": {
-    "controllerVersion": "3.6.6",
-    "agentVersion": "2.2.9",
+    "controllerVersion": "3.6.9",
+    "agentVersion": "2.3.1",
     "lastTriggerRun": 69,
-    "lastSuccessfulRun": 63,
+    "lastSuccessfulRun": 69,
     "historia930217": "completed — all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)"
   },
   "deployCompliancePipeline": {

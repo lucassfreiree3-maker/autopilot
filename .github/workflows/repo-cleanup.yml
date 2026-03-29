@@ -1,0 +1,98 @@
+name: "[Infra] Repo Cleanup"
+run-name: "${{ github.workflow }} • ${{ github.event_name }}"
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: "Analyze and clean unused files"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: "Scan for cleanup candidates"
+        id: scan
+        run: |
+          set -euo pipefail
+          CANDIDATES="[]"
+          add() { CANDIDATES=$(echo "$CANDIDATES" | jq --arg p "$1" --arg r "$2" --arg s "$3" '. + [{path: $p, reason: $r, safe: $s}]'); }
+
+          echo "::group::Scan for large untracked files"
+          # Files >1MB that might be accidentally committed
+          find . -not -path './.git/*' -type f -size +1M 2>/dev/null | while read f; do
+            SIZE=$(du -h "$f" | cut -f1)
+            add "$f" "Large file: $SIZE" "review"
+          done
+          echo "::endgroup::"
+
+          echo "::group::Scan for empty directories"
+          find . -type d -empty -not -path './.git/*' 2>/dev/null | while read d; do
+            add "$d" "Empty directory" "safe"
+          done
+          echo "::endgroup::"
+
+          echo "::group::Scan for temp/build artifacts"
+          for pattern in "*.log" "*.tmp" "*.bak" "*.orig" "node_modules" "dist" ".cache"; do
+            find . -name "$pattern" -not -path './.git/*' 2>/dev/null | while read f; do
+              add "$f" "Temp/build artifact: $pattern" "safe"
+            done
+          done
+          echo "::endgroup::"
+
+          echo "::group::Scan for gitignored files that are tracked"
+          git ls-files -i --exclude-standard 2>/dev/null | while read f; do
+            add "$f" "Tracked but gitignored" "safe"
+          done
+          echo "::endgroup::"
+
+          COUNT=$(echo "$CANDIDATES" | jq 'length')
+          echo "candidates=$(echo "$CANDIDATES" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: "Report"
+        run: |
+          COUNT=${{ steps.scan.outputs.count }}
+          echo "## Repo Cleanup Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Found **$COUNT** cleanup candidates." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$COUNT" -gt 0 ]; then
+            echo "${{ steps.scan.outputs.candidates }}" | jq -r '.[] | "- [\(.safe)] \(.path) — \(.reason)"' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Repository is clean." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: "Auto-clean safe candidates"
+        if: steps.scan.outputs.count != '0'
+        run: |
+          SAFE=$(echo '${{ steps.scan.outputs.candidates }}' | jq -r '.[] | select(.safe == "safe") | .path')
+          if [ -n "$SAFE" ]; then
+            echo "$SAFE" | while read f; do
+              if [ -d "$f" ]; then
+                rmdir "$f" 2>/dev/null && echo "Removed empty dir: $f" || true
+              elif [ -f "$f" ]; then
+                git rm --cached "$f" 2>/dev/null && echo "Untracked: $f" || true
+              fi
+            done
+
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git commit -m "chore: auto-cleanup unused files [skip ci]"
+              git push origin main
+            fi
+          fi

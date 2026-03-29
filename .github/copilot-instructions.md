@@ -413,7 +413,9 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | dashboard-auto-improve.yml | [Core] Dashboard Auto-Improve | scheduled, manual |
 | deploy-auto-learn.yml | [Core] Deploy Auto-Learn | manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
+| dispatch-proxy.yml | [Core] Operations Dispatch Proxy | manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
+| emergency-watchdog.yml | emergency-watchdog.yml | unknown |
 | enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
 | fetch-files.yml | [Corp] Fetch: Source Files | trigger file, manual |
 | fix-and-validate.yml | [Corp] Fix: CI + Validate Full Flow | trigger file, manual |
@@ -471,6 +473,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | copilot-post-deploy-sync.yml | version, run_number |
 | copilot-task-dispatch.yml | task, task_type, component, version |
 | deploy-auto-learn.yml | source |
+| dispatch-proxy.yml | operation, confirm, workspace |
 | drift-correction.yml | workspace_id, dry_run |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
 | fetch-files.yml | workspace_id, component, files |
@@ -685,4 +688,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T19:26:49Z | Run: 23717146214*
+*Last synced: 2026-03-29T19:36:01Z | Run: 23717325200*

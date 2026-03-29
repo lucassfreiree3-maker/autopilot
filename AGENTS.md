@@ -40,7 +40,7 @@ This is your persistent memory from ALL previous sessions, embedded automaticall
 - Workspace: ws-default (Getronics)
 
 ### Claude Status
-- Claude: **idle** | Task: none
+- Claude: **active** | Task: Fix dashboard sync + deploy intelligence
 
 ### Lessons Learned (NEVER repeat these errors)
 - **Campo run no trigger DEVE ser incrementado — sem incremento workflow NAO dispara** → Fix: Verificar valor atual e somar 1
@@ -135,7 +135,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (374 files)
+  audit/ (377 files)
   improvements/ (1 files)
   metrics/ (7 files)
   handoffs/ (1 files)
@@ -416,4 +416,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-29T12:43:10Z | Run: 23709298258*
+*Last synced: 2026-03-29T12:46:57Z | Run: 23709362977*

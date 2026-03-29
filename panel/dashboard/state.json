@@ -1,5 +1,5 @@
 {
-  "lastSync": "2026-03-29T12:49:22Z",
+  "lastSync": "2026-03-29T13:30:54Z",
   "syncSource": "autopilot/spark-sync-state.yml",
   "controller": {
     "version": "3.6.9",
@@ -25,14 +25,14 @@
   },
   "pipeline": {
     "status": "success",
-    "lastRun": 69,
-    "component": "agent",
-    "version": "2.3.1",
+    "lastRun": 70,
+    "component": "controller",
+    "version": "3.7.0",
     "promote": true,
     "workspace": "GETRONICS | ws-default | BBVINET_TOKEN",
     "changeType": "multi-file",
-    "commitMessage": "fix(agent): resolve no-nested-ternary in cronjob-callback + version 2.3.1",
-    "changesCount": 4
+    "commitMessage": "chore(controller): version bump 3.7.0 — e2e validation test",
+    "changesCount": 3
   },
   "agents": {
     "claude": {
@@ -92,7 +92,7 @@
   "health": {
     "schemaVersion": 2,
     "workspaceId": "ws-default",
-    "checkedAt": "2026-03-29T11:39:12Z",
+    "checkedAt": "2026-03-29T13:18:21Z",
     "overall": "degraded",
     "checks": {
       "workspace": {
@@ -102,12 +102,12 @@
       "controllerRelease": {
         "status": "pass",
         "message": "Tag: 3.6.9",
-        "detail": "Age: 17h"
+        "detail": "Age: 19h"
       },
       "agentRelease": {
         "status": "pass",
         "message": "Tag: 2.3.1",
-        "detail": "Age: 15h"
+        "detail": "Age: 17h"
       },
       "stuckRuns": {
         "status": "pass",
@@ -122,7 +122,7 @@
         "message": "? commits ahead"
       }
     },
-    "summary": "degraded at 2026-03-29T11:39:12Z"
+    "summary": "degraded at 2026-03-29T13:18:21Z"
   },
   "ciMonitor": {},
   "workspaces": [
@@ -179,203 +179,203 @@
   "recentWorkflows": [
     {
       "conclusion": null,
-      "created": "2026-03-29T12:49:11Z",
+      "created": "2026-03-29T13:30:37Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
-      "run_number": 40,
+      "run_number": 41,
       "status": "in_progress",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410132"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166819"
     },
     {
       "conclusion": null,
-      "created": "2026-03-29T12:49:11Z",
+      "created": "2026-03-29T13:30:37Z",
       "event": "push",
       "head_branch": "main",
-      "name": "[Infra] Sync Codex Prompt • push •  ref=main",
-      "run_number": 133,
+      "name": "[Corp] Deploy: Apply Source Change • push • ws=n/a • ref=main",
+      "run_number": 70,
       "status": "in_progress",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410130"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166816"
     },
     {
       "conclusion": null,
-      "created": "2026-03-29T12:49:11Z",
+      "created": "2026-03-29T13:30:37Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Sync Copilot Prompt • push ref=main",
-      "run_number": 148,
+      "run_number": 153,
       "status": "in_progress",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410122"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166811"
     },
     {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:49:10Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 24,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709409913"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:48:35Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Deploy Panel (GitHub Pages) • push • ws=n/a • ref=main",
-      "run_number": 9,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709399913"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:48:35Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 23,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709399643"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:47:53Z",
-      "event": "schedule",
-      "head_branch": "main",
-      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
-      "run_number": 39,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709387040"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:47:13Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Deploy Panel (GitHub Pages) • push • ws=n/a • ref=main",
-      "run_number": 8,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709376121"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:47:13Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 22,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709375871"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:46:30Z",
+      "conclusion": null,
+      "created": "2026-03-29T13:30:37Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Sync Codex Prompt • push •  ref=main",
-      "run_number": 132,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362977"
+      "run_number": 138,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166809"
     },
     {
       "conclusion": "success",
-      "created": "2026-03-29T12:46:30Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
-      "run_number": 38,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362966"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:46:30Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Sync Copilot Prompt • push ref=main",
-      "run_number": 147,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362960"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:46:29Z",
+      "created": "2026-03-29T13:30:37Z",
       "event": "pull_request",
       "head_branch": "claude/inject-project-context-GOeq7",
       "name": "[Infra] Cleanup: Stale Branches • pull_request • ws=n/a • ref=main",
-      "run_number": 243,
+      "run_number": 249,
       "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362808"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166715"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-03-29T13:30:37Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Post-Merge Monitor • PR #311 • claude/inject-project-context-GOeq7",
+      "run_number": 72,
+      "status": "queued",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166679"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-03-29T13:30:28Z",
+      "event": "pull_request",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Compliance Gate • auto",
+      "run_number": 8,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710163488"
     },
     {
       "conclusion": "success",
-      "created": "2026-03-29T12:46:29Z",
-      "event": "pull_request_target",
-      "head_branch": "claude/inject-project-context-GOeq7",
-      "name": "[Core] Post-Merge Monitor • PR #305 • claude/inject-project-context-GOeq7",
-      "run_number": 66,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362793"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:46:29Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 21,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709362752"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:46:24Z",
-      "event": "pull_request_target",
-      "head_branch": "claude/inject-project-context-GOeq7",
-      "name": "[Core] Autonomous Direct Merge • PR #305 • claude/inject-project-context-GOeq7 → main",
-      "run_number": 104,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709361368"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:46:24Z",
+      "created": "2026-03-29T13:30:28Z",
       "event": "pull_request_target",
       "head_branch": "claude/inject-project-context-GOeq7",
       "name": "[Core] Auto-Merge Sweeper • sweep open agent PRs",
-      "run_number": 53,
+      "run_number": 60,
       "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709361362"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710163450"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-03-29T13:30:28Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Autonomous Direct Merge • PR #311 • claude/inject-project-context-GOeq7 → main",
+      "run_number": 110,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710163443"
     },
     {
       "conclusion": "success",
-      "created": "2026-03-29T12:46:16Z",
+      "created": "2026-03-29T13:30:13Z",
       "event": "push",
       "head_branch": "claude/inject-project-context-GOeq7",
       "name": "[Agent] Auto PR + Auto-Merge (Codex) • push • ws=n/a • ref=claude/inject-project-context-GOeq7",
-      "run_number": 179,
+      "run_number": 185,
       "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709359198"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:46:15Z",
-      "event": "push",
-      "head_branch": "claude/inject-project-context-GOeq7",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 20,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709359011"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23710157981"
     },
     {
       "conclusion": "success",
-      "created": "2026-03-29T12:42:43Z",
+      "created": "2026-03-29T13:18:14Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Health Check • schedule • ws=n/a • ref=main",
+      "run_number": 87,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709937428"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:29Z",
+      "event": "pull_request",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Infra] Cleanup: Stale Branches • pull_request • ws=n/a • ref=main",
+      "run_number": 248,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709924649"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:29Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Post-Merge Monitor • PR #310 • claude/inject-project-context-GOeq7",
+      "run_number": 71,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709924644"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:29Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Sync Copilot Prompt • push ref=main",
+      "run_number": 152,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709924597"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:29Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Sync Codex Prompt • push •  ref=main",
-      "run_number": 131,
+      "run_number": 137,
       "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709298258"
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709924575"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:24Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Autonomous Direct Merge • PR #310 • claude/inject-project-context-GOeq7 → main",
+      "run_number": 109,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709923303"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:24Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Auto-Merge Sweeper • sweep open agent PRs",
+      "run_number": 59,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709923285"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:17:11Z",
+      "event": "push",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Agent] Auto PR + Auto-Merge (Codex) • push • ws=n/a • ref=claude/inject-project-context-GOeq7",
+      "run_number": 184,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709919392"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:14:17Z",
+      "event": "pull_request",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Infra] Cleanup: Stale Branches • pull_request • ws=n/a • ref=main",
+      "run_number": 247,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709868217"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T13:14:17Z",
+      "event": "pull_request_target",
+      "head_branch": "claude/inject-project-context-GOeq7",
+      "name": "[Core] Post-Merge Monitor • PR #309 • claude/inject-project-context-GOeq7",
+      "run_number": 70,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709868195"
     }
   ],
   "openPRs": [
@@ -570,11 +570,11 @@
     "codexLessons": []
   },
   "versionRules": {
-    "currentController": "3.6.5",
-    "currentAgent": "2.2.9",
+    "currentController": "3.6.9",
+    "currentAgent": "2.3.1",
     "pattern": "After X.Y.9 next is X.(Y+1).0 — NEVER X.Y.10",
-    "lastTriggerRun": 54,
-    "lastSuccessfulRun": 38
+    "lastTriggerRun": 69,
+    "lastSuccessfulRun": 69
   },
   "executionHistory": [
     {
@@ -973,7 +973,7 @@
       "drift": false,
       "driftDetail": null
     },
-    "lastChecked": "2026-03-29T12:49:22Z"
+    "lastChecked": "2026-03-29T13:30:54Z"
   },
   "corporateActivity": {
     "description": "Real-time activity from corporate repos — branches, PRs, external commits by other devs",
@@ -1098,36 +1098,11 @@
           "sha": "3f0284b8"
         }
       ],
-      "openPRs": [
-        {
-          "author": "C1342799_BBrasil",
-          "branch": "hotfix-2.3.4",
-          "created": "2026-03-03T21:16:01Z",
-          "draft": false,
-          "number": 10,
-          "title": "Hotfix 2.3.4"
-        },
-        {
-          "author": "C1342799_BBrasil",
-          "branch": "feature/oas-automations-routes",
-          "created": "2026-02-28T20:34:32Z",
-          "draft": false,
-          "number": 8,
-          "title": "Feature/oas automations routes"
-        },
-        {
-          "author": "C1342799_BBrasil",
-          "branch": "feature/oas-automations-routes",
-          "created": "2026-02-28T20:15:11Z",
-          "draft": false,
-          "number": 7,
-          "title": "fix(rotate) - corrigindo funcionamento do log rotate"
-        }
-      ],
-      "openPRCount": 3,
+      "openPRs": [],
+      "openPRCount": 0,
       "externalCommits": [],
       "externalCommitCount": 0,
-      "hasExternalActivity": true
+      "hasExternalActivity": false
     },
     "agent": {
       "branches": [

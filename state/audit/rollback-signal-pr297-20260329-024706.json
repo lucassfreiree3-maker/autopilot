@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 297,
+  "branch": "claude/inject-project-context-GOeq7",
+  "mergeSha": "cf2e9851248b55959e572d9633458a6b4b6b869d",
+  "timestamp": "2026-03-29T02:47:06Z",
+  "runId": "23699819267",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

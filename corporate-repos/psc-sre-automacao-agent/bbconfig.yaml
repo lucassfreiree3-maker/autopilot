@@ -1,8 +1,0 @@
-bbconfigVersion: v1
-# Para mais informações, acesse https://arquitetura.intranet.bb.com.br/docs/category/arquiteturas-de-referencia
-arquitetura:
-  arqrefs:
-      - alias: "arquitetura_de_aplicativos_cloud_bb:14"
-        id: "66ad4e92166a4315ff01cdb2"
-        url: "https://arquitetura.intranet.bb.com.br/docs/arqref/arqref-cloud/"
-  

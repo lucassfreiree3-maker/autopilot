@@ -1,1 +1,0 @@
-Copilot validou o sweeper

@@ -8,9 +8,14 @@ secrets/
 cache/
 repos/
 reports/
-state/
 *.sqlite
 *.sqlite-*
+
+# Corporate repo clones (fetched by clone-corporate-repos.yml — not for versioning)
+corporate-repos/
+
+# Local snapshots (backup-state.yml writes to autopilot-backups branch, not here)
+snapshots/
 
 # OS
 .DS_Store

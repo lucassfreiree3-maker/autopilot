@@ -1,6 +1,0 @@
-dependencies:
-- name: generico
-  repository: https://charts-repo.nuvem.bb.com.br/pre-prd/bb/psc
-  version: 2.0.8
-digest: sha256:5ed16aa97847d51300d12badac84697e9bd6163f84c2907c8deacb259a1efa5c
-generated: "2025-12-03T11:50:43.126856003-03:00"

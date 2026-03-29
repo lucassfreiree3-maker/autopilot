@@ -1364,7 +1364,7 @@
 
     // PLAN CONFIG — Max 5x, billing cycle starts day 21
     const PLAN={name:'Max 5x',price:'$100/mo',limit:25000000};
-    const BILLING_DAY=21; // renews on the 21st each month
+    const BILLING_DAY=21;
 
     // Calculate billing cycle dates
     const now=new Date();
@@ -1381,9 +1381,9 @@
     const daysLeft=Math.max(0,cycleDays-dayInCycle);
     const cycleEndStr=cycleEnd.toLocaleDateString('en',{month:'short',day:'numeric'});
 
-    // Usage estimates based on cycle position
+    // Usage — use MY_BUDGET (personal half) for all limits
     const dailyAvg=t.dailyAvg;
-    const cycleUsed=dailyAvg*dayInCycle;
+    const myUsed=dailyAvg*dayInCycle;
     const dailyLimit=Math.round(PLAN.limit/cycleDays);
     const weeklyLimit=dailyLimit*7;
     const projectedTotal=dailyAvg*cycleDays;
@@ -1394,16 +1394,16 @@
     const dayRemain=Math.max(0,dailyLimit-todayUsed);
     const dc=dayPct<60?'green':dayPct<85?'yellow':'red';
 
-    // This week (Mon=1 to Sun=7)
+    // This week
     const dow=now.getDay()||7;
     const weekUsed=dailyAvg*dow;
     const weekPct=Math.min(100,Math.round(weekUsed/weeklyLimit*100));
     const weekRemain=Math.max(0,weeklyLimit-weekUsed);
     const wc=weekPct<60?'green':weekPct<85?'yellow':'red';
 
-    // Billing cycle
-    const cyclePct=Math.min(100,Math.round(cycleUsed/PLAN.limit*100));
-    const cycleRemain=Math.max(0,PLAN.limit-cycleUsed);
+    // Billing cycle (personal budget)
+    const cyclePct=Math.min(100,Math.round(myUsed/PLAN.limit*100));
+    const cycleRemain=Math.max(0,PLAN.limit-myUsed);
     const mc=cyclePct<60?'green':cyclePct<85?'yellow':'red';
     const projPct=Math.min(100,Math.round(projectedTotal/PLAN.limit*100));
 
@@ -1421,8 +1421,8 @@
             <span style="font-size:14px;color:var(--muted);margin-left:8px">${PLAN.name} (${PLAN.price})</span>
           </div>
           <div style="text-align:right;font-size:12px;color:var(--muted)">
-            Renews: <strong>${cycleEndStr}</strong> (${daysLeft} days)<br>
-            Cycle day: <strong>${dayInCycle}</strong> of ${cycleDays}
+            ${PLAN.name} · ${PLAN.price} · Renews: <strong>${cycleEndStr}</strong><br>
+            <strong>${daysLeft} days left</strong> · Day ${dayInCycle} of ${cycleDays}
           </div>
         </div>
         <div style="background:var(--surface2);border-radius:8px;height:28px;overflow:hidden;position:relative">
@@ -1430,7 +1430,7 @@
           ${projPct>cyclePct?`<div style="position:absolute;top:0;left:${Math.min(98,projPct)}%;height:100%;width:2px;background:var(--yellow);opacity:.8" title="Projected end of cycle"></div>`:''}
         </div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px">
-          <span>Used: <strong>${fmtTokens(cycleUsed)}</strong></span>
+          <span>Used: <strong>${fmtTokens(myUsed)}</strong></span>
           <span>Remaining: <strong style="color:var(--${mc})">${fmtTokens(cycleRemain)}</strong></span>
           <span>Limit: <strong>${fmtTokens(PLAN.limit)}</strong></span>
         </div>
@@ -1464,7 +1464,7 @@
         <div class="card" style="padding:14px">
           <div class="card-title">Billing Cycle (day ${dayInCycle}/${cycleDays})</div>
           <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <div style="font-size:22px;font-weight:700;color:var(--${mc})">${fmtTokens(cycleUsed)}</div>
+            <div style="font-size:22px;font-weight:700;color:var(--${mc})">${fmtTokens(myUsed)}</div>
             <span style="font-size:12px;color:var(--muted)">/ ${fmtTokens(PLAN.limit)}</span>
           </div>
           <div style="background:var(--surface2);height:6px;border-radius:3px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${cyclePct}%;background:var(--${mc});border-radius:3px"></div></div>

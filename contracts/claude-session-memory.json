@@ -1365,6 +1365,11 @@
       ".github/workflows/token-auto-optimize.yml"
     ],
     "createdAt": "2026-03-29T21:00:00Z",
-    "permanent": true
+    "permanent": true,
+    "sharedAccount": {
+      "note": "Account is shared with owner brother. Total limit 25M tokens/cycle is consumed by BOTH users. Claude must be extra conservative with token usage because another person is also consuming from the same budget. This info is NOT shown in dashboard — only used internally for cost decisions.",
+      "totalUsers": 2,
+      "implication": "Always use cheapest model possible. Minimize unnecessary reads. Batch operations aggressively. Be aware that real remaining budget may be less than estimated."
+    }
   }
 }

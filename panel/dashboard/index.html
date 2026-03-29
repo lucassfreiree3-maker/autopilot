@@ -184,6 +184,7 @@
     <!-- OVERVIEW -->
     <div class="panel active" id="panel-overview">
       <div class="page-header"><h2>Overview</h2><div class="sync-info"><span class="sync-dot" id="syncDot"></span><span id="syncTime">...</span></div></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Real-time system health at a glance. Shows component versions, pipeline status, active agent, session locks, and overall health score. Synced every 1 minute during business hours.</p>
       <div id="smartAlerts"></div>
       <div class="grid-4" id="overviewCards"><div class="card"><div class="loading"><div class="spinner"></div></div></div></div>
       <div class="grid-2" style="margin-top:16px">
@@ -196,12 +197,14 @@
     <!-- ALERTS -->
     <div class="panel" id="panel-alerts">
       <div class="page-header"><h2>Smart Alerts</h2><span class="badge b-yellow" id="alertCount">0</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Automatically computed alerts based on system state. Detects stale syncs, CI failures, version drift, expired locks, and corporate repo activity. No manual configuration needed.</p>
       <div id="alertsList"></div>
     </div>
 
     <!-- PIPELINE -->
     <div class="panel" id="panel-pipeline">
       <div class="page-header"><h2>Pipeline Monitor</h2><span class="badge b-gray" id="pipelineBadge">idle</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Monitors the apply-source-change pipeline that deploys code to corporate repos. Shows 7-stage progress (Setup → Audit), CI gate status, corporate build results, and version tracking.</p>
       <div class="section"><h3>apply-source-change &mdash; 7 Stages</h3>
         <div id="pipelineInfo" style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:16px;font-size:13px"></div>
         <div class="pipeline-stages" id="pipelineStages"><div class="pipeline-line"></div></div>
@@ -213,7 +216,7 @@
     <!-- CORPORATE REALITY -->
     <div class="panel" id="panel-corporate">
       <div class="page-header"><h2>Corporate Reality</h2><span class="badge b-cyan" id="driftBadge">checking</span></div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Versions read directly from corporate repos (bbvinet/*). Other people may deploy independently without autopilot.</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Live view of the actual state of corporate repositories (bbvinet/*). Compares autopilot knowledge vs real versions to detect drift when someone deploys outside the system. Checks source code versions, CAP deploy tags, recent commits, branches, and external activity.</p>
       <div id="driftAlerts"></div>
       <div class="grid-2" id="corporateCards"></div>
       <div class="grid-2" style="margin-top:16px">
@@ -229,6 +232,7 @@
     <!-- AGENTS -->
     <div class="panel" id="panel-agents">
       <div class="page-header"><h2>Claude Agent</h2><span class="badge b-blue" id="agentsBadge">primary</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Claude Code (Opus 4.6) is the primary autonomous agent that handles all engineering tasks: architecture, deployments, CI diagnosis, code reviews, and pipeline operations. This page shows its current status, session history, and activity metrics.</p>
       <div id="agentsGrid"></div>
       <div class="section" style="margin-top:16px"><h3>Session History</h3><div id="sessionTimeline"></div></div>
     </div>
@@ -236,6 +240,7 @@
     <!-- COMPLIANCE -->
     <div class="panel" id="panel-compliance">
       <div class="page-header"><h2>Compliance Pipeline</h2><span class="badge b-cyan" id="complianceBadge">4 stages</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">4-stage deploy compliance pipeline that runs automatically. Pre-deploy: 14 static checks + pull corporate + build + test + lint. During: 7-stage apply-source-change. Post-deploy: version validation + CAP check. After: error pattern learning.</p>
       <div id="compliancePipeline"></div>
       <div class="grid-2" style="margin-top:16px">
         <div class="section"><h3>14 Compliance Rules</h3><div id="complianceRules"></div></div>
@@ -246,6 +251,7 @@
     <!-- WORKSPACES -->
     <div class="panel" id="panel-workspaces">
       <div class="page-header"><h2>Workspaces</h2><span class="badge b-blue" id="wsCount">0</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Each workspace represents a completely isolated company context. Click on a workspace to see its full details: versions, repositories, infrastructure, quick links, corporate reality, and a dedicated Work Center for creating tasks.</p>
       <div id="wsListView"></div>
       <div id="wsDetailView" style="display:none"></div>
     </div>
@@ -253,7 +259,7 @@
     <!-- IMPROVEMENTS (REAL PROOF) -->
     <div class="panel" id="panel-improvements">
       <div class="page-header"><h2>Continuous Improvement</h2><span class="badge b-green" id="improvBadge">verified</span></div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Every improvement below was measured with real data (before/after). No metrics are fabricated — everything is verifiable in the repository.</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Tracks every real improvement made to the system with measured before/after data. Each entry shows what changed, the impact, and exact timestamps. Autonomous mechanisms (token optimizer, watchdog, compliance gate) run without human intervention. No metrics are fabricated — everything is verifiable in the repository.</p>
       <div class="grid-4" id="improvKPIs"></div>
       <div id="improvTimeline" style="margin-top:16px"></div>
       <div class="section" style="margin-top:16px"><h3>Autonomous Mechanisms (Running)</h3><div id="improvMechanisms"></div></div>
@@ -262,24 +268,28 @@
     <!-- WORKFLOWS -->
     <div class="panel" id="panel-workflows">
       <div class="page-header"><h2>Recent Workflows</h2><span class="badge b-blue" id="wfCount">0</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">All GitHub Actions workflow runs from the autopilot repository. Shows status, result, triggering branch, and timing. Workflows are categorized: Corp (deploy), Core (state management), Infra (sync/cleanup), Agent (automation).</p>
       <div class="section"><div id="wfTable"></div></div>
     </div>
 
     <!-- PRs -->
     <div class="panel" id="panel-prs">
       <div class="page-header"><h2>Open Pull Requests</h2><span class="badge b-blue" id="prCount">0</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Open pull requests in the autopilot repository. Claude creates PRs on claude/* branches which are auto-merged after checks pass. If PRs accumulate, it may indicate blocked workflows or merge conflicts.</p>
       <div class="section"><div id="prsList"></div></div>
     </div>
 
     <!-- HISTORY -->
     <div class="panel" id="panel-history">
       <div class="page-header"><h2>Deploy History</h2></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Audit trail of all deployments to corporate repositories. Each entry corresponds to a completed apply-source-change run that pushed code, passed CI, and promoted the CAP deploy manifest.</p>
       <div class="section"><div id="historyTable"></div></div>
     </div>
 
     <!-- LESSONS -->
     <div class="panel" id="panel-lessons">
       <div class="page-header"><h2>Lessons Learned</h2><span class="badge b-purple" id="lessonsTotal">0</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Knowledge accumulated across all sessions. Each lesson documents a mistake or discovery, its fix, and prevention strategy. The system uses these to avoid repeating errors and to auto-diagnose similar failures faster.</p>
       <div class="grid-3" id="lessonsStats"></div>
       <div class="section" style="margin-top:16px"><h3>All Lessons</h3><div id="allLessons"></div></div>
     </div>
@@ -287,13 +297,14 @@
     <!-- ERROR PATTERNS -->
     <div class="panel" id="panel-errors">
       <div class="page-header"><h2>Known Error Patterns</h2></div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Quick reference for diagnosing and fixing common failures across the pipeline.</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Quick reference for diagnosing and fixing common failures across the pipeline. Each pattern was discovered from a real CI failure, documented with its error code, description, and proven fix. Claude uses these patterns for auto-diagnosis.</p>
       <div id="errorPatterns"></div>
     </div>
 
     <!-- TOKEN INTELLIGENCE -->
     <div class="panel" id="panel-tokens">
       <div class="page-header"><h2>Token Intelligence</h2><span class="badge b-cyan" id="tokenBadge">estimating...</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Estimated token consumption analytics based on real operation counts (deploys, sessions, workflows). Shows cost breakdown by model (Opus/Haiku), usage by operation type, daily trends, efficiency score, and smart recommendations for reducing costs. Auto-optimization runs daily.</p>
       <div id="tokenAlerts"></div>
       <div class="grid-4" id="tokenKPIs"></div>
       <div class="grid-2" style="margin-top:16px">
@@ -313,7 +324,7 @@
     <!-- OPERATIONS CENTER -->
     <div class="panel" id="panel-ops">
       <div class="page-header"><h2>Operations Center</h2><span class="badge b-orange">Emergency & Routine</span></div>
-      <div class="alert-bar alert-info" style="margin-bottom:16px">This panel allows operating the system WITHOUT Claude Code. Each button triggers an automatic operation via GitHub Actions. No technical knowledge required.</div>
+      <div class="alert-bar alert-info" style="margin-bottom:16px">Emergency and routine operations panel. Allows operating the entire system WITHOUT Claude Code — any person can trigger operations by clicking buttons that dispatch GitHub Actions workflows. Each button triggers an automatic operation via GitHub Actions. No technical knowledge required.</div>
       <div id="opsStatus"></div>
       <div class="grid-2" style="margin-top:16px" id="opsGrid"></div>
       <div class="section" style="margin-top:16px"><h3>How it Works</h3><div id="opsHowItWorks"></div></div>
@@ -323,13 +334,14 @@
     <!-- AI TAKEOVER KIT -->
     <div class="panel" id="panel-aikit">
       <div class="page-header"><h2>AI Takeover Kit</h2><span class="badge b-purple">Backup AI</span></div>
-      <div class="alert-bar alert-info" style="margin-bottom:16px">If Claude Code is unavailable, ANY other AI can read the kit below and operate the complete system. Copy the prompt and paste into any AI.</div>
+      <div class="alert-bar alert-info" style="margin-bottom:16px">Backup system for when Claude Code is unavailable. ANY other AI (ChatGPT, Gemini, etc.) can read the takeover kit and fully operate the system. Includes ready-to-copy prompts, current system state, deploy guides, and direct links to documentation. Copy the prompt and paste into any AI.</div>
       <div id="aikitContent"></div>
     </div>
 
     <!-- ARCHITECTURE -->
     <div class="panel" id="panel-architecture">
       <div class="page-header"><h2>Architecture</h2></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Technical architecture of the Autopilot control plane. Shows repository structure (main, autopilot-state, autopilot-backups), corporate repo connections (Getronics/bbvinet), the 7-stage deploy pipeline flow, and the autonomous agent system.</p>
       <div class="grid-2">
         <div class="section"><h3>Control Plane</h3><div id="archControlPlane"></div></div>
         <div class="section"><h3>Corporate Repos (Getronics)</h3><div id="archRepos"></div></div>

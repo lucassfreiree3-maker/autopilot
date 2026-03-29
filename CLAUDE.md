@@ -353,7 +353,7 @@ All 4 repos below are on GitHub under `bbvinet` org. Access via `BBVINET_TOKEN`.
 | Repo | Role | Current Version | Stack | CI |
 |------|------|-----------------|-------|----|
 | [`bbvinet/psc-sre-automacao-controller`](https://github.com/bbvinet/psc-sre-automacao-controller) | Controller — orchestrates automations, dispatches to agents, manages execution logs | 3.7.0 | Node 22, TypeScript, Express, Jest | Esteira de Build NPM (corporate runner) |
-| [`bbvinet/psc-sre-automacao-agent`](https://github.com/bbvinet/psc-sre-automacao-agent) | Agent — executes automations on clusters, receives cronjob callbacks, pushes logs to controller | 2.3.1 | Node 22, TypeScript, Express, Jest, K8s client | Esteira de Build NPM (corporate runner) |
+| [`bbvinet/psc-sre-automacao-agent`](https://github.com/bbvinet/psc-sre-automacao-agent) | Agent — executes automations on clusters, receives cronjob callbacks, pushes logs to controller | 2.3.2 | Node 22, TypeScript, Express, Jest, K8s client | Esteira de Build NPM (corporate runner) |
 
 **How to work with source repos:**
 - **Read files**: `fetch-files.yml` workflow (trigger via `trigger/fetch-files.json`)

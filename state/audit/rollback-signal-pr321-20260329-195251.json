@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 321,
+  "branch": "claude/autonomous-engineering-agent-3uMYx",
+  "mergeSha": "3e17d69f8fc0c451aff7f7d8cccd00859c51a7a8",
+  "timestamp": "2026-03-29T19:52:51Z",
+  "runId": "23717651736",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

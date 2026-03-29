@@ -77,7 +77,7 @@ You already know everything below. Apply it immediately.
 - Workspace: ws-default (Getronics)
 
 ### Claude Status
-- Claude: **idle** | Task: none | Phase: none
+- Claude: **active** | Task: Fix dashboard sync + deploy intelligence | Phase: monitoring
 
 ### Lessons Learned (NEVER repeat these errors)
 - **copilot-post-deploy-sync.yml falhava por git push direto no main com branch protection — corrigido** → Fix: Substituir git push por branch copilot/post-deploy-sync-* + gh pr create + gh pr merge --squash --auto
@@ -680,4 +680,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T12:42:59Z | Run: 23709298250*
+*Last synced: 2026-03-29T12:46:43Z | Run: 23709362960*

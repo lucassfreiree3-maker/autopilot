@@ -25,7 +25,9 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: spark-sync
@@ -513,19 +515,35 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           STATE_B64="${{ steps.state.outputs.state_b64 }}"
+          REPO="${{ github.repository }}"
+          FILE_PATH="panel/dashboard/state.json"
 
-          EXISTING_SHA=$(gh api "repos/${{ github.repository }}/contents/panel/dashboard/state.json" --jq '.sha' 2>/dev/null || echo "")
+          # Retry up to 3 times (SHA conflicts from concurrent merges)
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt: Updating $FILE_PATH..."
 
-          PAYLOAD=$(jq -n \
-            --arg content "$STATE_B64" \
-            --arg sha "$EXISTING_SHA" \
-            --arg message "chore: sync dashboard state.json [auto]" \
-            '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
+            # Always get fresh SHA right before PUT
+            EXISTING_SHA=$(gh api "repos/$REPO/contents/$FILE_PATH" --jq '.sha' 2>/dev/null || echo "")
+            echo "  Current SHA: ${EXISTING_SHA:-(new file)}"
 
-          if gh api "repos/${{ github.repository }}/contents/panel/dashboard/state.json" \
-            --method PUT \
-            --input - <<< "$PAYLOAD" > /dev/null 2>&1; then
-            echo "::notice ::State synced to panel/dashboard/state.json"
-          else
-            echo "::warning ::Failed to update panel/dashboard/state.json"
-          fi
+            PAYLOAD=$(jq -n \
+              --arg content "$STATE_B64" \
+              --arg sha "$EXISTING_SHA" \
+              --arg message "chore: sync dashboard state [auto]" \
+              '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
+
+            RESULT=$(gh api "repos/$REPO/contents/$FILE_PATH" \
+              --method PUT \
+              --input - <<< "$PAYLOAD" 2>&1) && {
+              echo "::notice ::State synced to $FILE_PATH (attempt $attempt)"
+              break
+            } || {
+              echo "::warning ::Attempt $attempt failed: $RESULT"
+              if [ "$attempt" -lt 3 ]; then
+                echo "  Retrying in 2s (SHA may have changed from concurrent commit)..."
+                sleep 2
+              else
+                echo "::error ::Failed to update $FILE_PATH after 3 attempts"
+              fi
+            }
+          done

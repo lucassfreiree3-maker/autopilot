@@ -425,7 +425,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
 | ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
-| post-deploy-validation.yml | post-deploy-validation.yml | unknown |
+| post-deploy-validation.yml | [Core] Post-Deploy Validation | manual |
 | post-merge-monitor.yml | [Core] Post-Merge Monitor | unknown |
 | promote-cap.yml | [Release] Promote CAP Tag | trigger file, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
@@ -481,6 +481,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | ops-pipeline-diagnose.yml | platform, target, identifier, run_id, workspace_id |
 | ops-tf-plan.yml | path, action, workspace_id |
 | ops-workflow-observability.yml | workspace_id |
+| post-deploy-validation.yml | component, version, workspace_id |
 | promote-cap.yml | workspace_id, component, version |
 | record-improvement.yml | workspace_id, category, description, source, recorded_by |
 | release-agent.yml | workspace_id, force |
@@ -680,4 +681,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T12:49:24Z | Run: 23709410122*
+*Last synced: 2026-03-29T12:52:10Z | Run: 23709458694*

@@ -157,20 +157,19 @@
   <nav class="sidebar">
     <div class="sidebar-logo"><h1>Autopilot</h1><p>Intelligence Dashboard v2</p></div>
     <div class="sidebar-nav">
-      <div class="nav-item active" onclick="go('overview')">Overview <span class="nav-badge" id="navHealth"></span></div>
-      <div class="nav-item" onclick="go('alerts')">Alerts <span class="nav-badge" id="navAlerts">0</span></div>
+      <div class="nav-item active" onclick="go('workspaces')">Workspaces <span class="nav-badge" id="wsCount2">0</span></div>
       <div class="nav-item" onclick="go('pipeline')">Pipeline</div>
+      <div class="nav-item" onclick="go('alerts')">Alerts <span class="nav-badge" id="navAlerts">0</span></div>
       <div class="nav-item" onclick="go('corporate')">Corporate Real <span class="nav-badge" id="navDrift" style="color:var(--cyan)">—</span></div>
-      <div class="nav-item" onclick="go('agents')">Claude Agent <span class="nav-badge" id="navAgents"></span></div>
-      <div class="nav-item" onclick="go('compliance')">Compliance</div>
-      <div class="nav-item" onclick="go('workspaces')">Workspaces</div>
       <div class="nav-item" onclick="go('improvements')">Improvements <span class="nav-badge" id="navImprov" style="color:var(--green)">0</span></div>
-      <div class="nav-item" onclick="go('workflows')">Workflows</div>
-      <div class="nav-item" onclick="go('prs')">Open PRs <span class="nav-badge" id="navPRs">0</span></div>
       <div class="nav-item" onclick="go('history')">Deploy History</div>
+      <div class="nav-item" onclick="go('workflows')">Workflows</div>
+      <div class="nav-item" onclick="go('agents')">Claude Agent <span class="nav-badge" id="navAgents"></span></div>
+      <div class="nav-item" onclick="go('tokens')">Token Intelligence <span class="nav-badge" id="navTokens" style="color:var(--cyan)">$</span></div>
+      <div class="nav-item" onclick="go('compliance')">Compliance</div>
+      <div class="nav-item" onclick="go('prs')">Open PRs <span class="nav-badge" id="navPRs">0</span></div>
       <div class="nav-item" onclick="go('lessons')">Lessons <span class="nav-badge" id="navLessons">0</span></div>
       <div class="nav-item" onclick="go('errors')">Error Patterns</div>
-      <div class="nav-item" onclick="go('tokens')">Token Intelligence <span class="nav-badge" id="navTokens" style="color:var(--cyan)">$</span></div>
       <div class="nav-item" onclick="go('ops')" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px">Operations Center <span class="nav-badge" id="navOps" style="color:var(--orange)">SOS</span></div>
       <div class="nav-item" onclick="go('aikit')">AI Takeover Kit</div>
       <div class="nav-item" onclick="go('architecture')">Architecture</div>
@@ -180,19 +179,6 @@
   <main class="main">
     <div class="mobile-nav" id="mobileNav"></div>
     <div id="alertsBanner"></div>
-
-    <!-- OVERVIEW -->
-    <div class="panel active" id="panel-overview">
-      <div class="page-header"><h2>Overview</h2><div class="sync-info"><span class="sync-dot" id="syncDot"></span><span id="syncTime">...</span></div></div>
-      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Real-time system health at a glance. Shows component versions, pipeline status, active agent, session locks, and overall health score. Synced every 1 minute during business hours.</p>
-      <div id="smartAlerts"></div>
-      <div class="grid-4" id="overviewCards"><div class="card"><div class="loading"><div class="spinner"></div></div></div></div>
-      <div class="grid-2" style="margin-top:16px">
-        <div class="section" id="activeAgentSection"><h3>Active Agent</h3><div id="activeAgentContent"><div class="loading"><div class="spinner"></div></div></div></div>
-        <div class="section" id="lockSection"><h3>Session Lock</h3><div id="lockContent"></div></div>
-      </div>
-      <div class="section" style="margin-top:0" id="healthSection"><h3>System Health</h3><div id="healthContent"></div></div>
-    </div>
 
     <!-- ALERTS -->
     <div class="panel" id="panel-alerts">
@@ -249,7 +235,7 @@
     </div>
 
     <!-- WORKSPACES -->
-    <div class="panel" id="panel-workspaces">
+    <div class="panel active" id="panel-workspaces">
       <div class="page-header"><h2>Workspaces</h2><span class="badge b-blue" id="wsCount">0</span></div>
       <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Each workspace represents a completely isolated company context. Click on a workspace to see its full details: versions, repositories, infrastructure, quick links, corporate reality, and a dedicated Work Center for creating tasks.</p>
       <div id="wsListView"></div>
@@ -359,7 +345,7 @@
   function getSyncInterval(){return isBusinessHours()?'1 min':'5 min'}
   function getStaleThreshold(){return isBusinessHours()?3:12}
   let REFRESH=getRefreshMs();
-  const PAGES = ['overview','alerts','pipeline','corporate','compliance','agents','workspaces','improvements','workflows','prs','history','lessons','errors','tokens','ops','aikit','architecture'];
+  const PAGES = ['workspaces','pipeline','alerts','corporate','improvements','history','workflows','agents','tokens','compliance','prs','lessons','errors','ops','aikit','architecture'];
   const STAGES = [
     {name:'Setup',desc:'Read workspace config'},
     {name:'Session Guard',desc:'Acquire multi-agent lock'},
@@ -519,9 +505,10 @@
 </script>
 <script>
   function renderAll(){
-    renderSync();renderOverview();renderSmartAlerts();renderAlerts();renderPipeline();
-    renderCorporate();renderCompliance();renderAgents();renderWorkspaces();renderImprovements();renderWorkflows();renderPRs();
-    renderHistory();renderLessons();renderErrors();renderTokens();renderOps();renderAIKit();renderArchitecture();renderNavBadges();
+    renderSync();renderWorkspaces();renderPipeline();renderAlerts();
+    renderCorporate();renderImprovements();renderWorkflows();renderAgents();renderTokens();
+    renderCompliance();renderPRs();renderHistory();renderLessons();renderErrors();
+    renderOps();renderAIKit();renderArchitecture();renderNavBadges();
   }
 
   function renderSync(){
@@ -532,55 +519,11 @@
   }
 
   function renderNavBadges(){
-    const h=computeHealth();
-    document.getElementById('navHealth').textContent=h.score;
-    document.getElementById('navHealth').style.color=`var(--${h.color})`;
     document.getElementById('navAlerts').textContent=computeAlerts().length;
     document.getElementById('navPRs').textContent=(state.openPRs||[]).length;
     document.getElementById('navLessons').textContent=(state.lessonsLearned||{}).total||0;
-  }
-
-  function renderOverview(){
-    const c=state.controller||{};const a=state.agent||{};const p=state.pipeline||{};
-    const h=computeHealth();
-    document.getElementById('overviewCards').innerHTML=`
-      <div class="card"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(c.ciResult)})">${esc(c.version||'?')}</div><div class="card-sub">${badge(c.ciResult||'unknown')} ${c.promoted?badge('promoted','green'):badge('not promoted','gray')}</div></div>
-      <div class="card"><div class="card-title">Agent</div><div class="card-value" style="color:var(--${statusColor(a.ciResult)})">${esc(a.version||'?')}</div><div class="card-sub">${badge(a.ciResult||'unknown')} ${a.promoted?badge('promoted','green'):badge('not promoted','gray')}</div></div>
-      <div class="card"><div class="card-title">Pipeline</div><div class="card-value">#${p.lastRun||0}</div><div class="card-sub">${badge(p.status||'idle')} ${esc(p.component||'')} v${esc(p.version||'?')}</div></div>
-      <div class="card"><div class="card-title">Health</div><div class="card-value" style="color:var(--${h.color})">${h.score}</div><div class="card-sub">${h.reasons.length?h.reasons[0]:'All systems nominal'}</div></div>
-    `;
-
-    // Active agent
-    const claude=state.agents?.claude||{};
-    if(isActive(claude)){
-      document.getElementById('activeAgentContent').innerHTML=`<div class="flex" style="gap:12px">${dot('green',true)}<div><strong>Claude Code</strong> — ${esc(claude.task||'working')}<br><span style="color:var(--muted);font-size:12px">Phase: ${esc(claude.phase||'?')} | Last action: ${esc(claude.lastAction||'?')}</span></div></div>`;
-    }else{
-      document.getElementById('activeAgentContent').innerHTML=`<div class="flex" style="gap:8px">${dot('gray')}<span style="color:var(--muted)">No agent currently active</span></div>`;
-    }
-
-    // Lock
-    const lock=state.sessionLock||{};
-    if(lock.agentId&&lock.agentId!=='none'){
-      const exp=lock.expiresAt?new Date(lock.expiresAt):null;
-      const expired=exp&&exp<=new Date();
-      document.getElementById('lockContent').innerHTML=`<div class="flex" style="gap:8px">${dot(expired?'yellow':'red',!expired)}<div><strong>${esc(lock.agentId)}</strong> holds lock<br><span style="font-size:12px;color:var(--muted)">Op: ${esc(lock.operation||'?')} | Expires: ${fmtDate(lock.expiresAt)}${expired?' <span class="badge b-yellow">EXPIRED</span>':''}</span></div></div>`;
-    }else{
-      document.getElementById('lockContent').innerHTML=`<div class="flex" style="gap:8px">${dot('green')}<span style="color:var(--green)">No active lock — system free</span></div>`;
-    }
-
-    // Health detail
-    const hrs=h.reasons;
-    document.getElementById('healthContent').innerHTML=`
-      <div class="flex" style="gap:24px;flex-wrap:wrap">
-        <div style="text-align:center"><div style="font-size:48px;font-weight:700;color:var(--${h.color})">${h.score}</div><div style="font-size:12px;color:var(--muted)">/ 100</div></div>
-        <div style="flex:1;min-width:200px">${hrs.length?hrs.map(r=>`<div style="font-size:12px;color:var(--muted);padding:2px 0">• ${esc(r)}</div>`).join(''):'<div style="color:var(--green);font-size:13px">All systems operational</div>'}</div>
-      </div>`;
-  }
-
-  function renderSmartAlerts(){
-    const alerts=computeAlerts().slice(0,3);
-    if(!alerts.length){document.getElementById('smartAlerts').innerHTML='';return}
-    document.getElementById('smartAlerts').innerHTML=alerts.map(a=>`<div class="alert-bar alert-${a.type}">${alertIcon(a.type)} ${esc(a.msg)}</div>`).join('');
+    const ws2=document.getElementById('wsCount2');
+    if(ws2)ws2.textContent=(state.workspaces||[]).length;
   }
 
   function renderAlerts(){

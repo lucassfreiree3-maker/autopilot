@@ -116,7 +116,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (379 files)
+  audit/ (380 files)
   improvements/ (1 files)
   metrics/ (7 files)
   handoffs/ (1 files)
@@ -284,7 +284,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-pipeline-diagnose.yml | Ops: Pipeline Diagnostics | manual |
 | ops-tf-plan.yml | Ops: Terraform Plan | manual |
 | ops-workflow-observability.yml | Ops: Workflow Observability Report | scheduled, manual |
-| post-deploy-validation.yml | post-deploy-validation.yml | unknown |
+| post-deploy-validation.yml | [Core] Post-Deploy Validation | manual |
 | post-merge-monitor.yml | [Core] Post-Merge Monitor | unknown |
 | promote-cap.yml | [Release] Promote CAP Tag | trigger file, manual |
 | record-improvement.yml | [Agent] Record Improvement | manual |
@@ -340,6 +340,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | ops-pipeline-diagnose.yml | platform, target, identifier, run_id, workspace_id |
 | ops-tf-plan.yml | path, action, workspace_id |
 | ops-workflow-observability.yml | workspace_id |
+| post-deploy-validation.yml | component, version, workspace_id |
 | promote-cap.yml | workspace_id, component, version |
 | record-improvement.yml | workspace_id, category, description, source, recorded_by |
 | release-agent.yml | workspace_id, force |
@@ -397,4 +398,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-29T12:49:39Z | Run: 23709410130*
+*Last synced: 2026-03-29T12:52:20Z | Run: 23709458701*

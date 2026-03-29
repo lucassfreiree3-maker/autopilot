@@ -125,6 +125,30 @@ jobs:
           # Agent latest commits
           AGENT_LATEST_COMMITS=$(GH_TOKEN="${BBVINET_TOKEN:-$GH_TOKEN}" gh api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=5" --jq '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
 
+          # ══════════════════════════════════════════════════════════
+          # ── BUILD STATUS per commit (correlate builds with SHAs) ──
+          # ══════════════════════════════════════════════════════════
+          CTRL_BUILDS="[]"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            # Get check-runs for last 3 commits on controller
+            for SHA in $(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/commits?per_page=3" --jq '.[].sha' 2>/dev/null); do
+              BUILD=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/commits/$SHA/check-runs" --jq '{sha: "'${SHA:0:8}'", total: .total_count, checks: [.check_runs[:5][] | {name: .name, status: .status, conclusion: .conclusion}]}' 2>/dev/null || echo '{}')
+              if [ -n "$BUILD" ] && [ "$BUILD" != "{}" ]; then
+                CTRL_BUILDS=$(echo "$CTRL_BUILDS" | jq --argjson b "$BUILD" '. + [$b]')
+              fi
+            done
+          fi
+
+          AGENT_BUILDS="[]"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            for SHA in $(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=3" --jq '.[].sha' 2>/dev/null); do
+              BUILD=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/commits/$SHA/check-runs" --jq '{sha: "'${SHA:0:8}'", total: .total_count, checks: [.check_runs[:5][] | {name: .name, status: .status, conclusion: .conclusion}]}' 2>/dev/null || echo '{}')
+              if [ -n "$BUILD" ] && [ "$BUILD" != "{}" ]; then
+                AGENT_BUILDS=$(echo "$AGENT_BUILDS" | jq --argjson b "$BUILD" '. + [$b]')
+              fi
+            done
+          fi
+
           echo "::notice ::Real versions — Controller: $CTRL_REAL_VER (CAP: $CTRL_CAP_TAG), Agent: $AGENT_REAL_VER (CAP: $AGENT_CAP_TAG)"
 
           # ── Build comprehensive state.json with FULL intelligence ──
@@ -148,6 +172,8 @@ jobs:
             --arg agent_cap "$AGENT_CAP_TAG" \
             --argjson ctrl_commits "$CTRL_LATEST_COMMITS" \
             --argjson agent_commits "$AGENT_LATEST_COMMITS" \
+            --argjson ctrl_builds "$CTRL_BUILDS" \
+            --argjson agent_builds "$AGENT_BUILDS" \
             '{
               lastSync: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
               syncSource: "autopilot/spark-sync-state.yml",
@@ -322,6 +348,7 @@ jobs:
                   sourceVersion: $ctrl_real,
                   capTag: $ctrl_cap,
                   recentCommits: $ctrl_commits,
+                  builds: $ctrl_builds,
                   drift: (if $ctrl_real != "?" and ($ctrl.lastTag // "?") != "?" and $ctrl_real != ($ctrl.lastTag // "?") then true else false end),
                   driftDetail: (if $ctrl_real != "?" and ($ctrl.lastTag // "?") != "?" and $ctrl_real != ($ctrl.lastTag // "?") then ("autopilot=" + ($ctrl.lastTag // "?") + " real=" + $ctrl_real) else null end)
                 },
@@ -329,6 +356,7 @@ jobs:
                   sourceVersion: $agent_real,
                   capTag: $agent_cap,
                   recentCommits: $agent_commits,
+                  builds: $agent_builds,
                   drift: (if $agent_real != "?" and ($agent.lastTag // "?") != "?" and $agent_real != ($agent.lastTag // "?") then true else false end),
                   driftDetail: (if $agent_real != "?" and ($agent.lastTag // "?") != "?" and $agent_real != ($agent.lastTag // "?") then ("autopilot=" + ($agent.lastTag // "?") + " real=" + $agent_real) else null end)
                 },

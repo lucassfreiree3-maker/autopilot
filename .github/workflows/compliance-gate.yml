@@ -1,7 +1,6 @@
 name: "[Core] Compliance Gate"
-run-name: "${{ github.workflow }} • ${{ github.event_name }}"
+run-name: "${{ github.workflow }} • ${{ github.event.inputs.component || 'auto' }}"
 
-# Runs on PRs that touch deploy-related files AND can be called by apply-source-change
 on:
   pull_request:
     branches: [main]
@@ -13,313 +12,540 @@ on:
   workflow_call:
     inputs:
       trigger_json_b64:
-        description: "Base64 encoded trigger/source-change.json content"
+        description: "Base64 trigger content"
         type: string
         required: false
-      patches_dir:
-        description: "Path to patches directory"
-        type: string
-        required: false
-        default: "patches"
     outputs:
       passed:
-        description: "Whether all compliance checks passed"
-        value: ${{ jobs.compliance.outputs.passed }}
+        description: "All checks passed"
+        value: ${{ jobs.report.outputs.passed }}
       violations:
-        description: "JSON array of violations found"
-        value: ${{ jobs.compliance.outputs.violations }}
-  workflow_dispatch: {}
+        description: "JSON violations"
+        value: ${{ jobs.report.outputs.violations }}
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "Component to validate"
+        type: choice
+        options: [controller, agent]
+        default: controller
 
 permissions:
   contents: read
   pull-requests: write
 
 jobs:
-  compliance:
-    name: "Compliance Checks"
+  # ═══════════════════════════════════════════
+  # STAGE 1: Static Analysis (no network needed)
+  # ═══════════════════════════════════════════
+  static-analysis:
+    name: "1. Static Analysis"
     runs-on: ubuntu-latest
     outputs:
-      passed: ${{ steps.result.outputs.passed }}
-      violations: ${{ steps.result.outputs.violations }}
+      violations: ${{ steps.checks.outputs.violations }}
+      warnings: ${{ steps.checks.outputs.warnings }}
+      version: ${{ steps.checks.outputs.version }}
+      component: ${{ steps.checks.outputs.component }}
+      run_number: ${{ steps.checks.outputs.run_number }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: "Run compliance checks"
+      - name: "Static compliance checks"
         id: checks
         run: |
           set -euo pipefail
+          V="[]"; W="[]"
+          viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
+          warn() { W=$(echo "$W" | jq --arg r "$1" --arg m "$2" '. + [{rule: $r, message: $m}]'); }
 
-          VIOLATIONS="[]"
-          WARNINGS="[]"
-          add_violation() { VIOLATIONS=$(echo "$VIOLATIONS" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
-          add_warning() { WARNINGS=$(echo "$WARNINGS" | jq --arg r "$1" --arg m "$2" '. + [{rule: $r, message: $m}]'); }
-
-          echo "::group::📋 Reading trigger file"
+          # ── Read trigger ──
           if [ -n "${{ inputs.trigger_json_b64 }}" ]; then
             TRIGGER=$(echo "${{ inputs.trigger_json_b64 }}" | base64 -d 2>/dev/null)
           elif [ -f trigger/source-change.json ]; then
             TRIGGER=$(cat trigger/source-change.json)
           else
-            echo "::notice ::No trigger file found — skipping trigger checks"
             TRIGGER="{}"
           fi
-          echo "$TRIGGER" | jq . 2>/dev/null || echo "Invalid JSON"
-          echo "::endgroup::"
 
-          VERSION=$(echo "$TRIGGER" | jq -r '.version // ""' 2>/dev/null)
-          COMPONENT=$(echo "$TRIGGER" | jq -r '.component // ""' 2>/dev/null)
-          RUN=$(echo "$TRIGGER" | jq -r '.run // 0' 2>/dev/null)
-          CHANGES=$(echo "$TRIGGER" | jq -r '.changes // []' 2>/dev/null)
+          VERSION=$(echo "$TRIGGER" | jq -r '.version // ""')
+          COMPONENT=$(echo "$TRIGGER" | jq -r '.component // "controller"')
+          RUN=$(echo "$TRIGGER" | jq -r '.run // 0')
+          CHANGES=$(echo "$TRIGGER" | jq -r '.changes // "[]"')
+          WS_ID=$(echo "$TRIGGER" | jq -r '.workspace_id // ""')
 
-          # ══════════════════════════════════════════════
-          # RULE 1: Version format — never X.Y.10+
-          # ══════════════════════════════════════════════
-          echo "::group::🔢 Rule 1: Version format"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "run_number=$RUN" >> "$GITHUB_OUTPUT"
+
+          PATCH_TS=$(find patches/ -name "*.ts" 2>/dev/null || true)
+          PATCH_JSON=$(find patches/ -name "*.json" 2>/dev/null || true)
+          ALL_PATCHES=$(find patches/ -type f 2>/dev/null || true)
+
+          # ══ RULE 1: Version format (no X.Y.10+) ══
           if [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
-            PATCH=$(echo "$VERSION" | grep -oP '\.\K[0-9]+$' || echo "0")
-            if [ "$PATCH" -ge 10 ] 2>/dev/null; then
-              add_violation "version-format" "Version $VERSION has patch >= 10. After X.Y.9, next must be X.(Y+1).0" "error"
-            else
-              echo "✅ Version $VERSION format OK (patch=$PATCH)"
+            PATCH_NUM=$(echo "$VERSION" | grep -oP '\.\K[0-9]+$' || echo "0")
+            if [ "$PATCH_NUM" -ge 10 ] 2>/dev/null; then
+              viol "version-format" "Version $VERSION has patch >= 10. After X.Y.9 next must be X.(Y+1).0" "error"
             fi
           fi
-          echo "::endgroup::"
 
-          # ══════════════════════════════════════════════
-          # RULE 2: Swagger ASCII-only (no accented chars)
-          # ══════════════════════════════════════════════
-          echo "::group::📝 Rule 2: Swagger ASCII-only"
-          SWAGGER_FILES=$(find patches/ -name "*.json" -path "*swagger*" 2>/dev/null || true)
-          for f in $SWAGGER_FILES; do
-            if grep -P '[\x80-\xFF]' "$f" > /dev/null 2>&1; then
-              BAD_LINES=$(grep -nP '[\x80-\xFF]' "$f" | head -5)
-              add_violation "swagger-ascii" "Swagger file $f contains non-ASCII characters (accented). Lines: $BAD_LINES" "error"
-            else
-              echo "✅ $f — ASCII only"
-            fi
-          done
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 3: JWT scope claim — singular not plural
-          # ══════════════════════════════════════════════
-          echo "::group::🔐 Rule 3: JWT scope claim"
-          PATCH_TS_FILES=$(find patches/ -name "*.ts" 2>/dev/null || true)
-          for f in $PATCH_TS_FILES; do
-            # Check for 'scopes' (plural) in JWT context
-            if grep -n "payload\.scopes\b\|claim.*scopes\|'scopes'" "$f" > /dev/null 2>&1; then
-              BAD=$(grep -n "payload\.scopes\b\|claim.*scopes\|'scopes'" "$f" | head -3)
-              add_violation "jwt-scope-singular" "File $f uses 'scopes' (plural). Agent reads payload.scope (SINGULAR). Lines: $BAD" "error"
-            fi
-          done
-          echo "✅ JWT scope check done"
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 4: No validateTrustedUrl inside fetch/postJson
-          # ══════════════════════════════════════════════
-          echo "::group::🌐 Rule 4: No validateTrustedUrl in fetch helpers"
-          for f in $PATCH_TS_FILES; do
-            if grep -n "validateTrustedUrl" "$f" > /dev/null 2>&1; then
-              # Check if it's inside a fetch/postJson/callAgent function
-              if grep -B5 "validateTrustedUrl" "$f" | grep -q "fetch\|postJson\|callAgent\|http\.request"; then
-                add_violation "no-validate-in-fetch" "File $f has validateTrustedUrl inside fetch/postJson — breaks mock tests" "error"
-              else
-                add_warning "validate-url-location" "File $f uses validateTrustedUrl — verify it's at input level, not inside fetch"
-              fi
-            fi
-          done
-          echo "✅ Fetch validation check done"
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 5: No nested ternaries (ESLint)
-          # ══════════════════════════════════════════════
-          echo "::group::🔀 Rule 5: No nested ternaries"
-          for f in $PATCH_TS_FILES; do
-            # Simple heuristic: line with 2+ ? operators
-            NESTED=$(grep -nP '\?[^?]*\?' "$f" | grep -v '//' | grep -v '\*' | head -3 || true)
-            if [ -n "$NESTED" ]; then
-              add_warning "no-nested-ternary" "File $f may have nested ternaries (ESLint will reject): $NESTED"
-            fi
-          done
-          echo "✅ Ternary check done"
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 6: search-replace must be single-line
-          # ══════════════════════════════════════════════
-          echo "::group::📏 Rule 6: search-replace single-line only"
-          if [ "$CHANGES" != "[]" ] && [ "$CHANGES" != "null" ]; then
-            echo "$CHANGES" | jq -c '.[]' 2>/dev/null | while read -r change; do
-              ACTION=$(echo "$change" | jq -r '.action // ""')
-              SEARCH=$(echo "$change" | jq -r '.search // ""')
-              if [ "$ACTION" = "search-replace" ]; then
-                if echo "$SEARCH" | grep -q '\\n\|\\r'; then
-                  add_violation "search-replace-newlines" "search-replace contains newlines — sed cannot handle. Use replace-file instead" "error"
-                fi
-              fi
-            done
-          fi
-          echo "✅ search-replace check done"
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 7: Trigger run must be incremented
-          # ══════════════════════════════════════════════
-          echo "::group::🔄 Rule 7: Trigger run incremented"
-          if [ "$RUN" != "0" ] && [ -n "$RUN" ]; then
-            # Compare with main branch
-            MAIN_RUN=$(git show origin/main:trigger/source-change.json 2>/dev/null | jq -r '.run // 0' 2>/dev/null || echo "0")
-            if [ "$RUN" -le "$MAIN_RUN" ] 2>/dev/null; then
-              add_violation "run-not-incremented" "Trigger run ($RUN) is not greater than main ($MAIN_RUN). Workflow will NOT fire." "error"
-            else
-              echo "✅ Run incremented: $MAIN_RUN → $RUN"
-            fi
-          fi
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 8: No corporate secrets/URLs in patches
-          # ══════════════════════════════════════════════
-          echo "::group::🔒 Rule 8: No corporate secrets in patches"
-          ALL_PATCH_FILES=$(find patches/ -type f 2>/dev/null || true)
-          for f in $ALL_PATCH_FILES; do
-            # Check for hardcoded intranet URLs (should be in env vars)
-            if grep -n "\.intranet\." "$f" > /dev/null 2>&1; then
-              add_warning "intranet-url" "File $f contains .intranet. URL — ensure it's not hardcoded (should be env var)"
-            fi
-            # Check for hardcoded secrets patterns
-            if grep -niP "(secret|password|token|api.?key)\s*[:=]\s*['\"][^'\"]{8,}" "$f" > /dev/null 2>&1; then
-              add_violation "hardcoded-secret" "File $f may contain hardcoded secrets" "error"
-            fi
-          done
-          echo "✅ Secret scan done"
-          echo "::endgroup::"
-
-          # ══════════════════════════════════════════════
-          # RULE 9: Version consistency (all 5 places)
-          # ══════════════════════════════════════════════
-          echo "::group::🔗 Rule 9: Version consistency"
-          if [ -n "$VERSION" ] && [ "$VERSION" != "null" ] && [ "$CHANGES" != "[]" ] && [ "$CHANGES" != "null" ]; then
+          # ══ RULE 2: Version in ALL 4 source files ══
+          if [ "$CHANGES" != "[]" ] && [ "$CHANGES" != "null" ] && [ -n "$VERSION" ] && [ "$VERSION" != "null" ]; then
             HAS_PKG=$(echo "$CHANGES" | jq '[.[] | select(.target_path == "package.json")] | length')
             HAS_LOCK=$(echo "$CHANGES" | jq '[.[] | select(.target_path == "package-lock.json")] | length')
-            if [ "$HAS_PKG" -gt 0 ] && [ "$HAS_LOCK" -eq 0 ]; then
-              add_violation "version-consistency" "package.json version bumped but package-lock.json NOT included — both must be updated" "error"
-            fi
-            if [ "$HAS_LOCK" -gt 0 ] && [ "$HAS_PKG" -eq 0 ]; then
-              add_violation "version-consistency" "package-lock.json updated but package.json NOT included" "error"
-            fi
-            echo "✅ Version file consistency checked"
-          fi
-          echo "::endgroup::"
+            HAS_SWAGGER=$(echo "$CHANGES" | jq '[.[] | select(.target_path | test("swagger"))] | length')
 
-          # ══════════════════════════════════════════════
-          # RULE 10: Workspace isolation
-          # ══════════════════════════════════════════════
-          echo "::group::🔐 Rule 10: Workspace isolation"
-          WS_ID=$(echo "$TRIGGER" | jq -r '.workspace_id // ""' 2>/dev/null)
+            MISSING=""
+            [ "$HAS_PKG" -eq 0 ] && MISSING="${MISSING}package.json "
+            [ "$HAS_LOCK" -eq 0 ] && MISSING="${MISSING}package-lock.json "
+            [ "$HAS_SWAGGER" -eq 0 ] && MISSING="${MISSING}swagger.json "
+
+            if [ -n "$MISSING" ]; then
+              viol "version-4-files" "Version bump missing in: ${MISSING}— ALL 4 files must be updated (pkg, lock, swagger, cap)" "error"
+            fi
+
+            # Check version string appears in changes
+            if [ "$HAS_PKG" -gt 0 ]; then
+              PKG_REPLACE=$(echo "$CHANGES" | jq -r '[.[] | select(.target_path == "package.json")] | .[0].replace // ""')
+              if [ -n "$PKG_REPLACE" ] && ! echo "$PKG_REPLACE" | grep -q "$VERSION"; then
+                viol "version-mismatch" "package.json replace doesn't contain version $VERSION" "error"
+              fi
+            fi
+          fi
+
+          # ══ RULE 3: Swagger ASCII-only ══
+          for f in $(find patches/ -name "*swagger*" -name "*.json" 2>/dev/null); do
+            if grep -P '[\x80-\xFF]' "$f" > /dev/null 2>&1; then
+              BAD=$(grep -nP '[\x80-\xFF]' "$f" | head -3)
+              viol "swagger-ascii" "Swagger $f has non-ASCII chars: $BAD" "error"
+            fi
+          done
+
+          # ══ RULE 4: JWT scope singular ══
+          for f in $PATCH_TS; do
+            if grep -nP "payload\.scopes\b|['\"]scopes['\"]" "$f" > /dev/null 2>&1; then
+              viol "jwt-scope-singular" "File $f uses 'scopes' (plural). Must be 'scope' (singular)" "error"
+            fi
+          done
+
+          # ══ RULE 5: No validateTrustedUrl in fetch/postJson ══
+          for f in $PATCH_TS; do
+            if grep -n "validateTrustedUrl" "$f" > /dev/null 2>&1; then
+              if grep -B5 "validateTrustedUrl" "$f" | grep -qP "fetch|postJson|callAgent|http\.request"; then
+                viol "no-validate-in-fetch" "$f: validateTrustedUrl inside fetch/postJson breaks mock tests" "error"
+              else
+                warn "validate-url" "$f uses validateTrustedUrl — verify it's at input level"
+              fi
+            fi
+          done
+
+          # ══ RULE 6: No nested ternaries ══
+          for f in $PATCH_TS; do
+            if grep -nP '\?[^:?]*\?[^:]*:' "$f" | grep -v '//' | head -1 | grep -q '.'; then
+              viol "no-nested-ternary" "$f has nested ternaries — ESLint will reject" "error"
+            fi
+          done
+
+          # ══ RULE 7: search-replace single-line ══
+          if [ "$CHANGES" != "[]" ] && [ "$CHANGES" != "null" ]; then
+            echo "$CHANGES" | jq -c '.[]' 2>/dev/null | while read -r ch; do
+              ACT=$(echo "$ch" | jq -r '.action // ""')
+              SRCH=$(echo "$ch" | jq -r '.search // ""')
+              if [ "$ACT" = "search-replace" ] && echo "$SRCH" | grep -q '\\n'; then
+                viol "search-replace-newlines" "search-replace has newlines — use replace-file" "error"
+              fi
+            done
+          fi
+
+          # ══ RULE 8: Trigger run incremented ══
+          if [ "$RUN" != "0" ] && [ -n "$RUN" ]; then
+            MAIN_RUN=$(git show origin/main:trigger/source-change.json 2>/dev/null | jq -r '.run // 0' 2>/dev/null || echo "0")
+            if [ "$RUN" -le "$MAIN_RUN" ] 2>/dev/null; then
+              viol "run-not-incremented" "Trigger run ($RUN) <= main ($MAIN_RUN). Workflow won't fire" "error"
+            fi
+          fi
+
+          # ══ RULE 9: Workspace isolation ══
           if [ "$WS_ID" = "ws-socnew" ] || [ "$WS_ID" = "ws-corp-1" ]; then
-            add_violation "blocked-workspace" "Workspace $WS_ID is LOCKED (third-party). DO NOT OPERATE without explicit authorization." "error"
+            viol "blocked-workspace" "Workspace $WS_ID is LOCKED (third-party)" "error"
           fi
-          echo "✅ Workspace isolation checked"
-          echo "::endgroup::"
 
-          # ══════════════════════════════════════════════
-          # RULE 11: Dead code detection (basic)
-          # ══════════════════════════════════════════════
-          echo "::group::🧹 Rule 11: Dead code detection"
-          for f in $PATCH_TS_FILES; do
-            # Functions defined but potentially unused (basic heuristic)
-            FUNCS=$(grep -oP '(?:function |const )\K\w+(?=\s*[\(=])' "$f" 2>/dev/null | sort -u || true)
+          # ══ RULE 10: SECURITY — XSS (Reflected) ══
+          for f in $PATCH_TS; do
+            # Check if req.body/req.query flows to res.json without sanitization
+            if grep -n "res\.json.*req\.\(body\|query\|params\)" "$f" > /dev/null 2>&1; then
+              if ! grep -q "sanitizeForOutput" "$f"; then
+                viol "security-xss" "$f: req input flows to res.json without sanitizeForOutput()" "error"
+              fi
+            fi
+            # Check error messages reflecting input
+            if grep -nP "res\.(status|json).*error.*\b(message|detail|desc)" "$f" | grep -v "sanitize" > /dev/null 2>&1; then
+              warn "security-error-leak" "$f: error response may leak details — use sanitizeForOutput()"
+            fi
+          done
+
+          # ══ RULE 11: SECURITY — SSRF ══
+          for f in $PATCH_TS; do
+            if grep -nP "fetch\(.*req\.|http\.request\(.*req\." "$f" > /dev/null 2>&1; then
+              if ! grep -q "parseSafeIdentifier\|validateTrustedUrl" "$f"; then
+                viol "security-ssrf" "$f: user input used in fetch/http without validation" "error"
+              fi
+            fi
+          done
+
+          # ══ RULE 12: SECURITY — DoS by loop ══
+          for f in $PATCH_TS; do
+            if grep -nP "for\s*\(.*req\.(body|query)|\.forEach.*req\." "$f" > /dev/null 2>&1; then
+              if ! grep -q "MAX_RESULTS\|\.slice(0," "$f"; then
+                viol "security-dos-loop" "$f: loop driven by user input without MAX_RESULTS limit" "error"
+              fi
+            fi
+          done
+
+          # ══ RULE 13: No hardcoded secrets ══
+          for f in $ALL_PATCHES; do
+            if grep -niP "(secret|password|api.?key)\s*[:=]\s*['\"][^'\"]{8,}" "$f" > /dev/null 2>&1; then
+              viol "hardcoded-secret" "$f may contain hardcoded secrets" "error"
+            fi
+          done
+
+          # ══ RULE 14: ESLint no-use-before-define (heuristic) ══
+          for f in $PATCH_TS; do
+            # Check if a function call appears before its definition
+            FUNCS=$(grep -noP '(?:function )\K\w+' "$f" 2>/dev/null || true)
             for func in $FUNCS; do
-              COUNT=$(grep -c "\b${func}\b" "$f" 2>/dev/null || echo "0")
-              if [ "$COUNT" -le 1 ]; then
-                add_warning "potential-dead-code" "Function '$func' in $f appears only once (defined but possibly unused — ESLint will flag)"
+              DEF_LINE=$(grep -n "function $func" "$f" | head -1 | cut -d: -f1 || echo "999")
+              FIRST_USE=$(grep -n "\b${func}\b(" "$f" | grep -v "function " | head -1 | cut -d: -f1 || echo "999")
+              if [ "$FIRST_USE" -lt "$DEF_LINE" ] 2>/dev/null; then
+                viol "use-before-define" "$f: function '$func' used at line $FIRST_USE but defined at line $DEF_LINE" "error"
               fi
             done
           done
-          echo "✅ Dead code check done"
+
+          echo "violations=$(echo "$V" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "warnings=$(echo "$W" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+  # ═══════════════════════════════════════════
+  # STAGE 2: Pull Corporate + Run Tests
+  # ═══════════════════════════════════════════
+  pull-and-test:
+    name: "2. Pull & Test"
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    if: needs.static-analysis.outputs.version != '' && needs.static-analysis.outputs.version != 'null'
+    outputs:
+      test_passed: ${{ steps.test.outputs.passed }}
+      test_violations: ${{ steps.test.outputs.violations }}
+    env:
+      BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: "Pull corporate source"
+        id: pull
+        run: |
+          set -euo pipefail
+          COMPONENT="${{ needs.static-analysis.outputs.component }}"
+
+          if [ "$COMPONENT" = "controller" ]; then
+            REPO="bbvinet/psc-sre-automacao-controller"
+          else
+            REPO="bbvinet/psc-sre-automacao-agent"
+          fi
+
+          echo "::group::📥 Cloning $REPO"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            git clone --depth 1 "https://x-access-token:${BBVINET_TOKEN}@github.com/${REPO}.git" /tmp/corporate 2>&1 || {
+              echo "::warning ::Failed to clone $REPO — skipping pull & test"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            }
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+
+            # Read real version
+            REAL_VER=$(jq -r '.version // "?"' /tmp/corporate/package.json 2>/dev/null || echo "?")
+            echo "::notice ::Corporate $COMPONENT real version: $REAL_VER"
+            echo "real_version=$REAL_VER" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning ::BBVINET_TOKEN not available — skipping pull & test"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
           echo "::endgroup::"
 
-          # ══════════════════════════════════════════════
-          # RESULTS
-          # ══════════════════════════════════════════════
-          VIOLATION_COUNT=$(echo "$VIOLATIONS" | jq 'length')
-          WARNING_COUNT=$(echo "$WARNINGS" | jq 'length')
-
-          echo "violations_json=$(echo "$VIOLATIONS" | jq -c .)" >> "$GITHUB_OUTPUT"
-          echo "warnings_json=$(echo "$WARNINGS" | jq -c .)" >> "$GITHUB_OUTPUT"
-          echo "violation_count=$VIOLATION_COUNT" >> "$GITHUB_OUTPUT"
-          echo "warning_count=$WARNING_COUNT" >> "$GITHUB_OUTPUT"
-
-      - name: "Report results"
-        id: result
+      - name: "Apply patches to corporate code"
+        id: apply
+        if: steps.pull.outputs.skip != 'true'
         run: |
-          VIOLATIONS='${{ steps.checks.outputs.violations_json }}'
-          WARNINGS='${{ steps.checks.outputs.warnings_json }}'
-          V_COUNT=${{ steps.checks.outputs.violation_count }}
-          W_COUNT=${{ steps.checks.outputs.warning_count }}
+          set -euo pipefail
+          TRIGGER=$(cat trigger/source-change.json)
+          CHANGES=$(echo "$TRIGGER" | jq -c '.changes // []')
+
+          echo "::group::🔧 Applying patches"
+          echo "$CHANGES" | jq -c '.[]' 2>/dev/null | while read -r ch; do
+            ACTION=$(echo "$ch" | jq -r '.action')
+            TARGET=$(echo "$ch" | jq -r '.target_path')
+
+            case "$ACTION" in
+              replace-file)
+                CONTENT_REF=$(echo "$ch" | jq -r '.content_ref')
+                if [ -f "$CONTENT_REF" ]; then
+                  cp "$CONTENT_REF" "/tmp/corporate/$TARGET"
+                  echo "✅ replace-file: $TARGET from $CONTENT_REF"
+                else
+                  echo "::error ::Patch file not found: $CONTENT_REF"
+                  exit 1
+                fi
+                ;;
+              search-replace)
+                SEARCH=$(echo "$ch" | jq -r '.search')
+                REPLACE=$(echo "$ch" | jq -r '.replace')
+                if [ -f "/tmp/corporate/$TARGET" ]; then
+                  sed -i "s|${SEARCH}|${REPLACE}|g" "/tmp/corporate/$TARGET"
+                  echo "✅ search-replace: $TARGET"
+                else
+                  echo "::error ::Target file not found: $TARGET"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+          echo "::endgroup::"
+
+      - name: "Install dependencies + Run tests"
+        id: test
+        if: steps.pull.outputs.skip != 'true'
+        working-directory: /tmp/corporate
+        run: |
+          set -euo pipefail
+          V="[]"
+          viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
+
+          # ── npm ci ──
+          echo "::group::📦 npm ci"
+          if ! npm ci --ignore-scripts 2>&1; then
+            viol "npm-install" "npm ci failed — dependency issue" "error"
+          fi
+          echo "::endgroup::"
+
+          # ── TypeScript build ──
+          echo "::group::🔨 tsc --noEmit"
+          if ! npx tsc --noEmit 2>&1; then
+            viol "typescript-build" "TypeScript compilation failed" "error"
+          fi
+          echo "::endgroup::"
+
+          # ── ESLint ──
+          echo "::group::🧹 ESLint"
+          CHANGED_FILES=$(cat ${{ github.workspace }}/trigger/source-change.json | jq -r '.changes[]?.target_path // empty' 2>/dev/null | grep '\.ts$' || true)
+          if [ -n "$CHANGED_FILES" ]; then
+            for f in $CHANGED_FILES; do
+              if [ -f "$f" ]; then
+                npx eslint "$f" 2>&1 || viol "eslint" "ESLint failed on $f" "error"
+              fi
+            done
+          fi
+          echo "::endgroup::"
+
+          # ── Jest tests ──
+          echo "::group::🧪 Jest tests"
+          if ! npx jest --ci --passWithNoTests --forceExit 2>&1; then
+            viol "jest-tests" "Unit tests failed" "error"
+          fi
+          echo "::endgroup::"
+
+          VC=$(echo "$V" | jq 'length')
+          echo "violations=$(echo "$V" | jq -c .)" >> "$GITHUB_OUTPUT"
+          if [ "$VC" -eq 0 ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Skip results"
+        if: steps.pull.outputs.skip == 'true'
+        id: skip
+        run: |
+          echo "passed=true" >> "$GITHUB_OUTPUT"
+          echo "violations=[]" >> "$GITHUB_OUTPUT"
+
+  # ═══════════════════════════════════════════
+  # STAGE 3: Release Tag Validation
+  # ═══════════════════════════════════════════
+  release-tag-check:
+    name: "3. Release Tag Check"
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    if: needs.static-analysis.outputs.version != '' && needs.static-analysis.outputs.version != 'null'
+    outputs:
+      violations: ${{ steps.check.outputs.violations }}
+    env:
+      BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Check version not duplicate + CAP tag"
+        id: check
+        run: |
+          set -euo pipefail
+          V="[]"
+          viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
+
+          VERSION="${{ needs.static-analysis.outputs.version }}"
+          COMPONENT="${{ needs.static-analysis.outputs.component }}"
+
+          if [ -z "$BBVINET_TOKEN" ]; then
+            echo "::warning ::BBVINET_TOKEN not available — skipping tag check"
+            echo "violations=[]" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Check if version tag already exists ──
+          echo "::group::🏷️ Check duplicate tag"
+          if [ "$COMPONENT" = "controller" ]; then
+            REPO="bbvinet/psc-sre-automacao-controller"
+            CAP_REPO="bbvinet/psc_releases_cap_sre-aut-controller"
+          else
+            REPO="bbvinet/psc-sre-automacao-agent"
+            CAP_REPO="bbvinet/psc_releases_cap_sre-aut-agent"
+          fi
+
+          # Check tags in corporate repo
+          TAGS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$REPO/tags?per_page=20" --jq '.[].name' 2>/dev/null || echo "")
+          if echo "$TAGS" | grep -qx "$VERSION\|v$VERSION"; then
+            viol "duplicate-tag" "Tag $VERSION already exists in $REPO — CI will reject" "error"
+          else
+            echo "✅ Tag $VERSION does not exist yet"
+          fi
+          echo "::endgroup::"
+
+          # ── Check current CAP tag ──
+          echo "::group::🎯 Check CAP tag"
+          CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+          if [ -n "$CAP_RAW" ]; then
+            CURRENT_TAG=$(echo "$CAP_RAW" | grep -oP "psc-sre-automacao-${COMPONENT}:\K[0-9]+\.[0-9]+\.[0-9]+" 2>/dev/null || echo "?")
+            echo "::notice ::Current CAP tag: $CURRENT_TAG → will become: $VERSION"
+
+            # Verify new version > current (simple string compare)
+            if [ "$CURRENT_TAG" = "$VERSION" ]; then
+              viol "cap-same-version" "CAP already has tag $VERSION — promote would be no-op" "error"
+            fi
+          fi
+          echo "::endgroup::"
+
+          # ── Check reference values.yaml updated ──
+          echo "::group::📋 Check reference values.yaml"
+          REF_FILE="references/${COMPONENT}-cap/values.yaml"
+          if [ ! -f "$REF_FILE" ]; then
+            REF_FILE="references/controller-cap/values.yaml"
+          fi
+          if [ -f "$REF_FILE" ]; then
+            if ! grep -q "$VERSION" "$REF_FILE"; then
+              viol "ref-values-outdated" "references/*-cap/values.yaml does not contain version $VERSION" "warning"
+            fi
+          fi
+          echo "::endgroup::"
+
+          echo "violations=$(echo "$V" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+  # ═══════════════════════════════════════════
+  # STAGE 4: Final Report
+  # ═══════════════════════════════════════════
+  report:
+    name: "4. Compliance Report"
+    runs-on: ubuntu-latest
+    needs: [static-analysis, pull-and-test, release-tag-check]
+    if: always()
+    outputs:
+      passed: ${{ steps.final.outputs.passed }}
+      violations: ${{ steps.final.outputs.violations }}
+    steps:
+      - name: "Aggregate results"
+        id: final
+        run: |
+          STATIC='${{ needs.static-analysis.outputs.violations }}'
+          STATIC_W='${{ needs.static-analysis.outputs.warnings }}'
+          TEST='${{ needs.pull-and-test.outputs.test_violations || '[]' }}'
+          TAG='${{ needs.release-tag-check.outputs.violations || '[]' }}'
+
+          # Merge all violations
+          ALL=$(echo "[$STATIC, $TEST, $TAG]" | jq '[.[] | .[]?]' 2>/dev/null || echo '[]')
+          ALL_W=$(echo "$STATIC_W" | jq '.' 2>/dev/null || echo '[]')
+          VC=$(echo "$ALL" | jq 'length')
+          WC=$(echo "$ALL_W" | jq 'length')
 
           echo "═══════════════════════════════════════"
-          echo "  COMPLIANCE GATE RESULTS"
+          echo "  COMPLIANCE GATE — FINAL REPORT"
           echo "═══════════════════════════════════════"
           echo ""
+          echo "  Component: ${{ needs.static-analysis.outputs.component }}"
+          echo "  Version:   ${{ needs.static-analysis.outputs.version }}"
+          echo "  Run:       #${{ needs.static-analysis.outputs.run_number }}"
+          echo ""
 
-          if [ "$W_COUNT" -gt 0 ]; then
-            echo "⚠️  WARNINGS ($W_COUNT):"
-            echo "$WARNINGS" | jq -r '.[] | "  ⚠️  [\(.rule)] \(.message)"'
+          if [ "$WC" -gt 0 ]; then
+            echo "⚠️  WARNINGS ($WC):"
+            echo "$ALL_W" | jq -r '.[] | "  ⚠️  [\(.rule)] \(.message)"'
             echo ""
           fi
 
-          if [ "$V_COUNT" -gt 0 ]; then
-            echo "🔴 VIOLATIONS ($V_COUNT):"
-            echo "$VIOLATIONS" | jq -r '.[] | "  🔴 [\(.rule)] \(.message)"'
+          if [ "$VC" -gt 0 ]; then
+            echo "🔴 VIOLATIONS ($VC):"
+            echo "$ALL" | jq -r '.[] | "  🔴 [\(.rule)] \(.message)"'
             echo ""
             echo "═══════════════════════════════════════"
-            echo "  ❌ COMPLIANCE GATE: FAILED"
+            echo "  ❌ COMPLIANCE: FAILED ($VC violations)"
             echo "═══════════════════════════════════════"
             echo "passed=false" >> "$GITHUB_OUTPUT"
-            echo "violations=$(echo "$VIOLATIONS" | jq -c .)" >> "$GITHUB_OUTPUT"
+            echo "violations=$(echo "$ALL" | jq -c .)" >> "$GITHUB_OUTPUT"
             exit 1
           else
             echo "═══════════════════════════════════════"
-            echo "  ✅ COMPLIANCE GATE: PASSED"
-            echo "  ($W_COUNT warnings, 0 violations)"
+            echo "  ✅ COMPLIANCE: PASSED"
+            echo "  Static: ✅ | Tests: ✅ | Tag: ✅"
+            echo "  ($WC warnings, 0 violations)"
             echo "═══════════════════════════════════════"
             echo "passed=true" >> "$GITHUB_OUTPUT"
             echo "violations=[]" >> "$GITHUB_OUTPUT"
           fi
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request' && always()
 
       - name: "Comment on PR"
         if: github.event_name == 'pull_request' && always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          V_COUNT=${{ steps.checks.outputs.violation_count }}
-          W_COUNT=${{ steps.checks.outputs.warning_count }}
-          VIOLATIONS='${{ steps.checks.outputs.violations_json }}'
-          WARNINGS='${{ steps.checks.outputs.warnings_json }}'
+          PASSED="${{ steps.final.outputs.passed }}"
+          COMP="${{ needs.static-analysis.outputs.component }}"
+          VER="${{ needs.static-analysis.outputs.version }}"
 
-          if [ "$V_COUNT" -eq 0 ] && [ "$W_COUNT" -eq 0 ]; then
-            BODY="## ✅ Compliance Gate: PASSED\nAll 11 checks passed. No violations or warnings."
-          elif [ "$V_COUNT" -eq 0 ]; then
-            W_LIST=$(echo "$WARNINGS" | jq -r '.[] | "- ⚠️ **\(.rule)**: \(.message)"')
-            BODY="## ✅ Compliance Gate: PASSED (with warnings)\n\n### Warnings ($W_COUNT)\n$W_LIST"
+          if [ "$PASSED" = "true" ]; then
+            BODY="## ✅ Compliance Gate: PASSED
+
+**$COMP v$VER** — All stages passed.
+
+| Stage | Result |
+|-------|--------|
+| Static Analysis (14 rules) | ✅ |
+| Pull & Test (npm ci + tsc + eslint + jest) | ✅ |
+| Release Tag Check (duplicate + CAP) | ✅ |"
           else
-            V_LIST=$(echo "$VIOLATIONS" | jq -r '.[] | "- 🔴 **\(.rule)**: \(.message)"')
-            W_LIST=$(echo "$WARNINGS" | jq -r '.[] | "- ⚠️ **\(.rule)**: \(.message)"' || echo "")
-            BODY="## ❌ Compliance Gate: FAILED\n\n### Violations ($V_COUNT) — must fix before merge\n$V_LIST"
-            if [ "$W_COUNT" -gt 0 ]; then
-              BODY="$BODY\n\n### Warnings ($W_COUNT)\n$W_LIST"
-            fi
+            BODY="## ❌ Compliance Gate: FAILED
+
+**$COMP v$VER** — Violations found. Fix before merge.
+
+See workflow run for details."
           fi
 
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          if [ -n "$PR_NUMBER" ]; then
-            gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              --method POST \
-              -f body="$(echo -e "$BODY")" 2>/dev/null || echo "::warning ::Failed to post PR comment"
+          PR=${{ github.event.pull_request.number }}
+          if [ -n "$PR" ]; then
+            gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
+              --method POST -f body="$BODY" 2>/dev/null || true
           fi

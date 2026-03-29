@@ -1,0 +1,221 @@
+name: "[Core] Post-Deploy Validation"
+run-name: "${{ github.workflow }} • ${{ inputs.component || 'auto' }} v${{ inputs.version || '?' }}"
+
+on:
+  workflow_run:
+    workflows: ["[Corp] Deploy: Apply Source Change"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "Component deployed"
+        type: choice
+        options: [controller, agent]
+        required: true
+      version:
+        description: "Expected version"
+        required: true
+      workspace_id:
+        description: "Workspace"
+        default: "ws-default"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  validate:
+    name: "Post-Deploy Validation"
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Resolve deploy info"
+        id: info
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            COMPONENT="${{ inputs.component }}"
+            VERSION="${{ inputs.version }}"
+            WS_ID="${{ inputs.workspace_id }}"
+          else
+            # Read from trigger file
+            TRIGGER=$(cat trigger/source-change.json 2>/dev/null || echo '{}')
+            COMPONENT=$(echo "$TRIGGER" | jq -r '.component // "controller"')
+            VERSION=$(echo "$TRIGGER" | jq -r '.version // "?"')
+            WS_ID=$(echo "$TRIGGER" | jq -r '.workspace_id // "ws-default"')
+          fi
+
+          echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "ws_id=$WS_ID" >> "$GITHUB_OUTPUT"
+
+          if [ "$COMPONENT" = "controller" ]; then
+            echo "source_repo=bbvinet/psc-sre-automacao-controller" >> "$GITHUB_OUTPUT"
+            echo "cap_repo=bbvinet/psc_releases_cap_sre-aut-controller" >> "$GITHUB_OUTPUT"
+          else
+            echo "source_repo=bbvinet/psc-sre-automacao-agent" >> "$GITHUB_OUTPUT"
+            echo "cap_repo=bbvinet/psc_releases_cap_sre-aut-agent" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "1. Verify source repo version"
+        id: source
+        run: |
+          set -euo pipefail
+          EXPECTED="${{ steps.info.outputs.version }}"
+          REPO="${{ steps.info.outputs.source_repo }}"
+          RESULT="unknown"
+
+          if [ -n "$BBVINET_TOKEN" ]; then
+            REAL=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$REPO/contents/package.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
+            echo "::notice ::Source repo version: $REAL (expected: $EXPECTED)"
+
+            if [ "$REAL" = "$EXPECTED" ]; then
+              RESULT="match"
+              echo "✅ Source version matches: $REAL"
+            else
+              RESULT="mismatch"
+              echo "::warning ::Source version mismatch: expected=$EXPECTED actual=$REAL"
+            fi
+          else
+            echo "::warning ::BBVINET_TOKEN unavailable"
+          fi
+
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "real=$REAL" >> "$GITHUB_OUTPUT"
+
+      - name: "2. Verify CAP tag updated"
+        id: cap
+        run: |
+          set -euo pipefail
+          EXPECTED="${{ steps.info.outputs.version }}"
+          CAP_REPO="${{ steps.info.outputs.cap_repo }}"
+          COMPONENT="${{ steps.info.outputs.component }}"
+          RESULT="unknown"
+
+          if [ -n "$BBVINET_TOKEN" ]; then
+            CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CAP_REPO/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+            TAG=$(echo "$CAP_RAW" | grep -oP "psc-sre-automacao-${COMPONENT}:\K[0-9]+\.[0-9]+\.[0-9]+" 2>/dev/null || echo "?")
+            echo "::notice ::CAP tag: $TAG (expected: $EXPECTED)"
+
+            if [ "$TAG" = "$EXPECTED" ]; then
+              RESULT="promoted"
+              echo "✅ CAP tag matches: $TAG"
+            else
+              RESULT="not-promoted"
+              echo "::warning ::CAP tag mismatch: expected=$EXPECTED actual=$TAG"
+            fi
+          else
+            echo "::warning ::BBVINET_TOKEN unavailable"
+          fi
+
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: "3. Verify autopilot state updated"
+        id: state
+        run: |
+          set -euo pipefail
+          EXPECTED="${{ steps.info.outputs.version }}"
+          COMPONENT="${{ steps.info.outputs.component }}"
+          WS="${{ steps.info.outputs.ws_id }}"
+
+          STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/${WS}/${COMPONENT}-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          STATE_VER=$(echo "$STATE" | jq -r '.lastTag // "?"')
+          STATE_STATUS=$(echo "$STATE" | jq -r '.status // "unknown"')
+          STATE_PROMOTED=$(echo "$STATE" | jq -r '.promoted // false')
+
+          echo "::notice ::State: version=$STATE_VER status=$STATE_STATUS promoted=$STATE_PROMOTED"
+
+          RESULT="ok"
+          if [ "$STATE_VER" != "$EXPECTED" ]; then
+            RESULT="version-mismatch"
+          fi
+          if [ "$STATE_STATUS" = "failure" ] || [ "$STATE_STATUS" = "failed" ]; then
+            RESULT="pipeline-failed"
+          fi
+
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
+          echo "version=$STATE_VER" >> "$GITHUB_OUTPUT"
+          echo "status=$STATE_STATUS" >> "$GITHUB_OUTPUT"
+          echo "promoted=$STATE_PROMOTED" >> "$GITHUB_OUTPUT"
+
+      - name: "4. Check corporate CI result"
+        id: ci
+        run: |
+          set -euo pipefail
+          COMPONENT="${{ steps.info.outputs.component }}"
+          WS="${{ steps.info.outputs.ws_id }}"
+
+          CI_MON=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/${WS}/ci-monitor-${COMPONENT}.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          CI_OUTCOME=$(echo "$CI_MON" | jq -r '.ciOutcome // "unknown"')
+          echo "::notice ::CI Monitor outcome: $CI_OUTCOME"
+          echo "outcome=$CI_OUTCOME" >> "$GITHUB_OUTPUT"
+
+      - name: "5. Final validation report"
+        id: report
+        run: |
+          COMP="${{ steps.info.outputs.component }}"
+          VER="${{ steps.info.outputs.version }}"
+          SRC="${{ steps.source.outputs.result }}"
+          SRC_REAL="${{ steps.source.outputs.real }}"
+          CAP="${{ steps.cap.outputs.result }}"
+          CAP_TAG="${{ steps.cap.outputs.tag }}"
+          STATE="${{ steps.state.outputs.result }}"
+          STATE_VER="${{ steps.state.outputs.version }}"
+          CI="${{ steps.ci.outputs.outcome }}"
+
+          echo "╔══════════════════════════════════════════╗"
+          echo "║  POST-DEPLOY VALIDATION — $COMP v$VER   "
+          echo "╠══════════════════════════════════════════╣"
+          echo "║                                          "
+          printf "║  Source repo:    %-10s (actual: %s)\n" "$SRC" "$SRC_REAL"
+          printf "║  CAP tag:        %-10s (actual: %s)\n" "$CAP" "$CAP_TAG"
+          printf "║  Autopilot state: %-10s (ver: %s)\n" "$STATE" "$STATE_VER"
+          printf "║  Corporate CI:   %-10s\n" "$CI"
+          echo "║                                          "
+
+          FAILED=false
+          if [ "$SRC" = "mismatch" ]; then FAILED=true; fi
+          if [ "$STATE" = "pipeline-failed" ]; then FAILED=true; fi
+
+          if [ "$FAILED" = "true" ]; then
+            echo "║  ❌ VALIDATION: ISSUES FOUND             "
+          elif [ "$CAP" = "not-promoted" ]; then
+            echo "║  ⚠️  VALIDATION: PARTIAL (CAP pending)    "
+          else
+            echo "║  ✅ VALIDATION: ALL CHECKS PASSED        "
+          fi
+          echo "╚══════════════════════════════════════════╝"
+
+          echo "passed=$([[ "$FAILED" = "false" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: "Create issue on failure"
+        if: steps.report.outputs.passed == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          COMP="${{ steps.info.outputs.component }}"
+          VER="${{ steps.info.outputs.version }}"
+
+          BODY="## Post-Deploy Validation Failed
+
+| Check | Result |
+|-------|--------|
+| Source version | ${{ steps.source.outputs.result }} (${{ steps.source.outputs.real }}) |
+| CAP tag | ${{ steps.cap.outputs.result }} (${{ steps.cap.outputs.tag }}) |
+| Autopilot state | ${{ steps.state.outputs.result }} |
+| Corporate CI | ${{ steps.ci.outputs.outcome }} |
+
+Deploy of **$COMP v$VER** has issues. Investigate immediately."
+
+          gh api "repos/${{ github.repository }}/issues" \
+            --method POST \
+            -f title="[Alert] Post-deploy validation failed: $COMP v$VER" \
+            -f body="$BODY" \
+            -f "labels[]=bug" -f "labels[]=deploy" 2>/dev/null || echo "::warning ::Failed to create issue"

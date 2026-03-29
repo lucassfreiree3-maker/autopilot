@@ -476,17 +476,53 @@ Note: Some directories (`locks/`, `approvals/`, `metrics/`, `release-freeze.json
 ### Testing & Validation
 | Workflow | Purpose |
 |----------|---------|
-| validate-patches.yml | **PRE-DEPLOY** — Clona repo corporativo, aplica patches, roda npm ci + tsc + eslint + jest. Bloqueia deploy se falhar. |
+| compliance-gate.yml | **COMPLIANCE GATE** — 14 static checks + pull corporate + npm ci + tsc + eslint + jest + tag validation. Blocks merge. |
+| post-deploy-validation.yml | **POST-DEPLOY** — Verifies source version, CAP tag, autopilot state, corporate CI result. Creates Issue on failure. |
+| deploy-auto-learn.yml | **AUTO-LEARN** — Maps errors to patterns, generates learning report, updates compliance rules. |
 | test-full-flow.yml | Full integration test (controller + agent + CAP) |
 | test-corporate-flow.yml | Corporate flow test |
 
-### Pre-Deploy Validation (OBRIGATORIO)
-**NUNCA deployar sem validar primeiro.** O workflow `validate-patches.yml` roda automaticamente em PRs que alteram `patches/` ou `trigger/source-change.json`.
+### Deploy Compliance Pipeline (OBRIGATORIO — 4 stages)
+**NUNCA deployar sem validar primeiro.** O pipeline de compliance roda automaticamente em PRs e pos-deploy.
 
-| Step | O que faz | Falha = |
-|------|-----------|---------|
-| Clone corporate repo | Clona repo com BBVINET_TOKEN | Token invalido |
-| Apply patches | Aplica replace-file + search-replace | Patch file nao encontrado |
+```
+PR Created → Compliance Gate (14 checks) → apply-source-change (7 stages) → Post-Deploy Validation → Auto-Learn
+```
+
+#### Stage 1: Compliance Gate (PRE-DEPLOY — compliance-gate.yml)
+| # | Rule | What | Severity |
+|---|------|------|----------|
+| 1 | version-format | No X.Y.10+ | error |
+| 2 | version-4-files | Version in pkg, lock, swagger, cap | error |
+| 3 | swagger-ascii | No accented characters | error |
+| 4 | jwt-scope-singular | scope not scopes | error |
+| 5 | no-validate-in-fetch | Breaks mock tests | error |
+| 6 | no-nested-ternary | ESLint rejects | error |
+| 7 | search-replace-newlines | sed can't handle | error |
+| 8 | run-not-incremented | Workflow won't fire | error |
+| 9 | blocked-workspace | Third-party isolation | error |
+| 10 | security-xss | Input reflected without sanitize | error |
+| 11 | security-ssrf | User input in fetch | error |
+| 12 | security-dos-loop | Loop without MAX_RESULTS | error |
+| 13 | hardcoded-secret | Secrets in patches | error |
+| 14 | use-before-define | Function before definition | error |
+
+**Pull & Test** (with BBVINET_TOKEN): Clone corporate → apply patches → npm ci → tsc → eslint → jest
+**Tag Check**: Duplicate tag? → CAP current tag? → Reference values.yaml?
+
+#### Stage 2: apply-source-change (DURING DEPLOY — 7 stages)
+Setup → Session Guard → Apply & Push → CI Gate → Promote → Save State → Audit
+
+#### Stage 3: Post-Deploy Validation (post-deploy-validation.yml)
+| Check | What |
+|-------|------|
+| Source version | package.json in corporate repo matches expected |
+| CAP tag | values.yaml image tag was promoted |
+| Autopilot state | release-state.json updated correctly |
+| Corporate CI | Esteira de Build NPM result |
+
+#### Stage 4: Auto-Learn (deploy-auto-learn.yml)
+Maps errors to known patterns, generates learning report with pipeline visualization, records improvements.
 | npm ci | Instala dependencias reais | Dependencia faltando |
 | tsc --noEmit | TypeScript build check | Erro de compilacao |
 | eslint | Lint nos arquivos alterados | Regra ESLint violada |

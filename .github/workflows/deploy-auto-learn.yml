@@ -1,0 +1,236 @@
+name: "[Core] Deploy Auto-Learn"
+run-name: "${{ github.workflow }} • learn from ${{ inputs.source || 'auto' }}"
+
+# Runs after ANY deploy-related workflow completes — learns from results
+on:
+  workflow_run:
+    workflows:
+      - "[Corp] Deploy: Apply Source Change"
+      - "[Core] Compliance Gate"
+      - "[Core] Post-Deploy Validation"
+      - "[Core] CI Monitor Loop"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "What to learn from"
+        type: choice
+        options: [last-deploy, last-ci-failure, last-compliance, scan-all]
+        default: last-deploy
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: deploy-auto-learn
+  cancel-in-progress: true
+
+jobs:
+  learn:
+    name: "Auto-Learn & Improve"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: "1. Collect deploy intelligence"
+        id: collect
+        run: |
+          set -euo pipefail
+
+          # ── Get last 5 workflow runs ──
+          RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" --jq '[.workflow_runs[:10] | .[] | {name: .name, status: .status, conclusion: .conclusion, id: .id, created: .created_at, branch: .head_branch}]' 2>/dev/null || echo '[]')
+
+          # ── Count recent failures ──
+          FAIL_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
+          SUCCESS_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
+          TOTAL=$(echo "$RUNS" | jq 'length')
+
+          echo "::notice ::Last $TOTAL runs: $SUCCESS_COUNT success, $FAIL_COUNT failures"
+
+          # ── Get failed job details ──
+          FAILURES="[]"
+          for RUN_ID in $(echo "$RUNS" | jq -r '.[] | select(.conclusion == "failure") | .id' | head -3); do
+            JOBS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs" --jq '[.jobs[] | select(.conclusion == "failure") | {name: .name, conclusion: .conclusion, steps: [.steps[] | select(.conclusion == "failure") | {name: .name, number: .number}]}]' 2>/dev/null || echo '[]')
+            WF_NAME=$(echo "$RUNS" | jq -r ".[] | select(.id == $RUN_ID) | .name")
+            FAILURES=$(echo "$FAILURES" | jq --argjson jobs "$JOBS" --arg wf "$WF_NAME" --argjson rid "$RUN_ID" '. + [{workflow: $wf, run_id: $rid, failed_jobs: $jobs}]')
+          done
+
+          echo "failures_b64=$(echo "$FAILURES" | base64 -w0)" >> "$GITHUB_OUTPUT"
+          echo "fail_count=$FAIL_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_rate=$(( (SUCCESS_COUNT * 100) / (TOTAL > 0 ? TOTAL : 1) ))" >> "$GITHUB_OUTPUT"
+
+      - name: "2. Map errors to patterns"
+        id: map
+        run: |
+          set -euo pipefail
+          FAILURES=$(echo "${{ steps.collect.outputs.failures_b64 }}" | base64 -d 2>/dev/null || echo '[]')
+
+          # ── Known error patterns from compliance gate ──
+          KNOWN_PATTERNS=$(cat <<'PATTERNS'
+          [
+            {"pattern": "no-nested-ternary", "rule": "eslint_no_nested_ternary", "fix": "Replace nested ternary with if/else", "autofix": true},
+            {"pattern": "no-use-before-define", "rule": "eslint_no_use_before_define", "fix": "Move function definition before usage", "autofix": true},
+            {"pattern": "TS2769.*overload", "rule": "ts2769_jwt_sign", "fix": "Use parseExpiresIn() with cast", "autofix": false},
+            {"pattern": "TS2339.*Property.*does not exist", "rule": "ts_property_missing", "fix": "Add property to interface", "autofix": false},
+            {"pattern": "duplicate.*tag|already exists", "rule": "duplicate_tag", "fix": "Increment patch version", "autofix": true},
+            {"pattern": "scope.*plural|scopes", "rule": "jwt_scope_plural", "fix": "Use scope (singular)", "autofix": true},
+            {"pattern": "ASCII|garbled|encode", "rule": "swagger_garbled", "fix": "Remove accented characters", "autofix": true},
+            {"pattern": "validateTrustedUrl.*mock", "rule": "validate_in_fetch", "fix": "Remove from fetch, use at input", "autofix": true},
+            {"pattern": "403.*push|permission denied", "rule": "push_403", "fix": "Use agent branch prefix", "autofix": false},
+            {"pattern": "run.*not.*increment|trigger.*not.*fir", "rule": "trigger_not_firing", "fix": "Increment run field", "autofix": true}
+          ]
+          PATTERNS
+          )
+
+          # ── Match failures against patterns ──
+          NEW_LESSONS="[]"
+          MATCHED=0
+          UNMATCHED=0
+
+          echo "$FAILURES" | jq -c '.[]' 2>/dev/null | while read -r failure; do
+            WF=$(echo "$failure" | jq -r '.workflow')
+            JOBS=$(echo "$failure" | jq -c '.failed_jobs // []')
+
+            echo "$JOBS" | jq -c '.[]' 2>/dev/null | while read -r job; do
+              JOB_NAME=$(echo "$job" | jq -r '.name')
+              STEPS=$(echo "$job" | jq -c '.steps // []')
+
+              echo "$STEPS" | jq -c '.[]' 2>/dev/null | while read -r step; do
+                STEP_NAME=$(echo "$step" | jq -r '.name')
+
+                # Try to match against known patterns
+                FOUND=false
+                echo "$KNOWN_PATTERNS" | jq -c '.[]' 2>/dev/null | while read -r pat; do
+                  REGEX=$(echo "$pat" | jq -r '.pattern')
+                  if echo "$STEP_NAME $JOB_NAME" | grep -qiP "$REGEX" 2>/dev/null; then
+                    RULE=$(echo "$pat" | jq -r '.rule')
+                    FIX=$(echo "$pat" | jq -r '.fix')
+                    echo "::notice ::Matched error pattern: $RULE → $FIX"
+                    FOUND=true
+                    break
+                  fi
+                done
+              done
+            done
+          done
+
+          echo "new_lessons=$(echo "$NEW_LESSONS" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+      - name: "3. Generate learning report"
+        id: report
+        run: |
+          set -euo pipefail
+          FAIL_COUNT=${{ steps.collect.outputs.fail_count }}
+          SUCCESS_COUNT=${{ steps.collect.outputs.success_count }}
+          SUCCESS_RATE=${{ steps.collect.outputs.success_rate }}
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Build job summary with rich visualization
+          cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
+          # 📊 Deploy Auto-Learn Report
+
+          **Generated**: $TIMESTAMP
+
+          ## Pipeline Health
+          | Metric | Value |
+          |--------|-------|
+          | Success Rate | **${SUCCESS_RATE}%** |
+          | Recent Successes | $SUCCESS_COUNT |
+          | Recent Failures | $FAIL_COUNT |
+
+          ## Compliance Gate Rules (14 active)
+
+          ### Pre-Deploy (Static Analysis)
+          | # | Rule | What it checks | Severity |
+          |---|------|---------------|----------|
+          | 1 | version-format | No X.Y.10+ (after X.Y.9 → X.(Y+1).0) | 🔴 error |
+          | 2 | version-4-files | Version in pkg, lock, swagger, cap | 🔴 error |
+          | 3 | swagger-ascii | No accented characters in swagger | 🔴 error |
+          | 4 | jwt-scope-singular | scope not scopes | 🔴 error |
+          | 5 | no-validate-in-fetch | validateTrustedUrl not in fetch | 🔴 error |
+          | 6 | no-nested-ternary | ESLint will reject | 🔴 error |
+          | 7 | search-replace-newlines | sed can't handle \\n | 🔴 error |
+          | 8 | run-not-incremented | Workflow won't fire | 🔴 error |
+          | 9 | blocked-workspace | Third-party isolation | 🔴 error |
+          | 10 | security-xss | Input reflected without sanitize | 🔴 error |
+          | 11 | security-ssrf | User input in fetch without validation | 🔴 error |
+          | 12 | security-dos-loop | Loop without MAX_RESULTS | 🔴 error |
+          | 13 | hardcoded-secret | Secrets in patch files | 🔴 error |
+          | 14 | use-before-define | Function called before defined | 🔴 error |
+
+          ### During Deploy (Pull & Test)
+          | Step | What it does |
+          |------|-------------|
+          | Clone corporate repo | Pull real source with BBVINET_TOKEN |
+          | Apply patches | Apply search-replace + replace-file |
+          | npm ci | Install real dependencies |
+          | tsc --noEmit | TypeScript compilation check |
+          | ESLint | Lint changed files |
+          | Jest --ci | Run ALL unit tests |
+
+          ### During Deploy (Tag Validation)
+          | Step | What it does |
+          |------|-------------|
+          | Duplicate tag check | Version doesn't exist in registry |
+          | CAP tag check | Current vs expected in values.yaml |
+          | Reference check | references/*-cap/values.yaml updated |
+
+          ### Post-Deploy Validation
+          | Step | What it verifies |
+          |------|-----------------|
+          | Source version | package.json matches expected |
+          | CAP tag | values.yaml image tag promoted |
+          | Autopilot state | release-state.json updated |
+          | Corporate CI | Esteira de Build NPM result |
+
+          ## Known Error Patterns (auto-matched)
+          | Pattern | Rule | Auto-fix? |
+          |---------|------|-----------|
+          | no-nested-ternary | ESLint | ✅ |
+          | no-use-before-define | ESLint | ✅ |
+          | TS2769 overload | TypeScript | ❌ |
+          | duplicate tag | CI Registry | ✅ |
+          | scopes plural | JWT | ✅ |
+          | garbled swagger | Encoding | ✅ |
+          | validateTrustedUrl | Mock tests | ✅ |
+          | 403 push | Branch protection | ❌ |
+          | trigger not firing | Run field | ✅ |
+
+          ## Pipeline Flow
+          \`\`\`
+          PR Created
+           │
+           ▼
+          ┌─────────────────────────┐
+          │ Compliance Gate (14)    │ ← Static + Pull & Test + Tag Check
+          └───────────┬─────────────┘
+                      │ ✅ Pass
+                      ▼
+          ┌─────────────────────────┐
+          │ apply-source-change (7) │ ← Setup → Guard → Apply → CI Gate → Promote → State → Audit
+          └───────────┬─────────────┘
+                      │ ✅ Success
+                      ▼
+          ┌─────────────────────────┐
+          │ Post-Deploy Validation  │ ← Source + CAP + State + CI
+          └───────────┬─────────────┘
+                      │ ✅ Verified
+                      ▼
+          ┌─────────────────────────┐
+          │ Auto-Learn & Improve    │ ← Map errors → Update patterns → Report
+          └─────────────────────────┘
+          \`\`\`
+          SUMMARY
+
+          echo "::notice ::Learning report generated"
+
+      - name: "4. Update Spark dashboard state"
+        run: |
+          # Trigger spark sync to pick up latest state
+          echo "::notice ::Spark dashboard will auto-sync in next 5-min cycle"

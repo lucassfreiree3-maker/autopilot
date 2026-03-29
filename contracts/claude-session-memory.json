@@ -1353,5 +1353,18 @@
     "_ref": "contracts/archive/static-reference.json#deployCompliancePipeline",
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
-  "lastOptimized": "2026-03-29T19:46:51Z"
+  "lastOptimized": "2026-03-29T19:46:51Z",
+  "costReductionMandate": {
+    "priority": "MAXIMUM",
+    "directive": "Owner mandate: ALWAYS prioritize cost reduction across all resources (tokens, API calls, compute, storage, time) without sacrificing performance. Use cheapest model that achieves the result. Batch operations. Skip unnecessary reads. Compact memory. Prevent waste through quality (fix it right first time). Every optimization must be measurable.",
+    "enforcedBy": [
+      ".claude/rules/cost-reduction-mandate.md",
+      ".claude/rules/token-auto-optimization.md",
+      ".claude/rules/token-efficiency.md",
+      "contracts/token-optimization-rules.json",
+      ".github/workflows/token-auto-optimize.yml"
+    ],
+    "createdAt": "2026-03-29T21:00:00Z",
+    "permanent": true
+  }
 }

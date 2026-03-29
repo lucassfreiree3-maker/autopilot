@@ -514,7 +514,6 @@
   function renderSync(){
     const t=fmtDate(state.lastSync);
     const syncMode=isBusinessHours()?'Business Hours (1min)':'Off-Hours (5min)';
-    document.getElementById('syncTime').textContent=`Synced ${t} · ${syncMode}`;
     document.getElementById('sidebarSync').innerHTML=`Sync: ${t}<br>${syncMode}<br>v${state.metadata?.stateVersion||1}`;
   }
 

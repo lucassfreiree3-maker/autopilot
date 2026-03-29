@@ -19,20 +19,36 @@ jobs:
     name: "Snapshot to autopilot-backups"
     runs-on: ubuntu-latest
     steps:
+      - name: Install dependencies
+        run: |
+          which jq || sudo apt-get update -qq && sudo apt-get install -y -qq jq
+          jq --version
+
       - name: Snapshot state to backups
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
+          set -euo pipefail
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           BACKUP_PATH="snapshots/${SAFE_NOW}"
+          FILE_COUNT=0
+
           echo "Creating backup at $BACKUP_PATH..."
+
           # Recursive copy of all state files
           copy_tree() {
             local SRC_PATH="$1"
             local DST_PREFIX="$2"
-            local FILES=$(gh api "repos/$REPO/contents/${SRC_PATH}?ref=$STATE_BRANCH" \
+            local FILES
+            FILES=$(gh api "repos/$REPO/contents/${SRC_PATH}?ref=$STATE_BRANCH" \
               --jq '.[] | "\(.name)|\(.type)|\(.path)"' 2>/dev/null || echo "")
+
+            if [ -z "$FILES" ]; then
+              echo "::warning ::No files found at $SRC_PATH"
+              return
+            fi
+
             while IFS='|' read -r NAME TYPE PATH; do
               [ -z "$NAME" ] && continue
               if [ "$TYPE" = "dir" ]; then
@@ -41,30 +57,44 @@ jobs:
                 CONTENT=$(gh api "repos/$REPO/contents/${PATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null || echo "")
                 if [ -n "$CONTENT" ]; then
                   DST="${DST_PREFIX}/${PATH}"
-                  gh api "repos/$REPO/contents/${DST}" \
+                  if gh api "repos/$REPO/contents/${DST}" \
                     --method PUT \
                     -f "branch=$BACKUP_BRANCH" \
                     -f "message=backup: $SAFE_NOW ${PATH} [skip ci]" \
-                    -f "content=$CONTENT" 2>/dev/null || true
+                    -f "content=$CONTENT" > /dev/null 2>&1; then
+                    echo "  ✅ $PATH"
+                    FILE_COUNT=$((FILE_COUNT + 1))
+                  else
+                    echo "  ⚠️ Failed: $PATH"
+                  fi
                 fi
               fi
             done <<< "$FILES"
           }
+
           copy_tree "state" "$BACKUP_PATH"
+
           # Write manifest
           MANIFEST=$(jq -n \
             --arg ts "$NOW" \
             --arg path "$BACKUP_PATH" \
             --arg run "${{ github.run_id }}" \
-            '{timestamp: $ts, path: $path, runId: $run, type: "scheduled"}')
+            --arg files "$FILE_COUNT" \
+            '{timestamp: $ts, path: $path, runId: $run, type: "scheduled", fileCount: ($files | tonumber)}')
+
           gh api "repos/$REPO/contents/${BACKUP_PATH}/manifest.json" \
             --method PUT \
             -f "branch=$BACKUP_BRANCH" \
             -f "message=backup: manifest $SAFE_NOW [skip ci]" \
-            -f "content=$(echo "$MANIFEST" | base64 -w0)" 2>/dev/null || true
-          echo "## Backup Complete" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Snapshot:** $BACKUP_PATH" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Timestamp:** $NOW" >> "$GITHUB_STEP_SUMMARY"
+            -f "content=$(echo "$MANIFEST" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write manifest"
+
+          echo "## ✅ Backup Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Snapshot** | \`$BACKUP_PATH\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Timestamp** | $NOW |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Files backed up** | $FILE_COUNT |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
         if: always()

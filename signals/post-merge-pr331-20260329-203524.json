@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 331,
+  "branch": "claude/autonomous-engineering-agent-3uMYx",
+  "timestamp": "2026-03-29T20:35:24Z",
+  "runId": "23718478894",
+  "healthStatus": "degraded"
+}

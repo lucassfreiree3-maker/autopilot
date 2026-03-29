@@ -405,7 +405,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-apply.yml | [Agent] Codex Apply: Task → Code → PR | trigger file, manual |
 | codex-autonomous-pr.yml | Codex autonomous PR | manual |
 | codex-deploy.yml | [Agent] Codex Deploy: Full Pipeline | trigger file, manual |
-| compliance-gate.yml | compliance-gate.yml | unknown |
+| compliance-gate.yml | [Core] Compliance Gate | manual, reusable, PR |
 | continuous-improvement.yml | [Infra] Continuous Improvement | scheduled, trigger file, manual |
 | copilot-post-deploy-sync.yml | [Copilot] Post-Deploy Sync | manual |
 | copilot-setup-steps.yml | Copilot Setup Steps | workflow_call |
@@ -463,6 +463,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | codex-apply.yml | task, target_files, model, auto_merge, workspace_id, run |
 | codex-autonomous-pr.yml | task |
 | codex-deploy.yml | task, component, workspace_id, model, auto_merge, run |
+| compliance-gate.yml | component |
 | continuous-improvement.yml | workspace_id, auto_fix, scope |
 | copilot-post-deploy-sync.yml | version, run_number |
 | copilot-task-dispatch.yml | task, task_type, component, version |
@@ -679,4 +680,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T02:49:25Z | Run: 23699854022*
+*Last synced: 2026-03-29T02:50:44Z | Run: 23699875256*

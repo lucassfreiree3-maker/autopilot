@@ -122,6 +122,7 @@
       <div class="nav-item active" onclick="go('overview')">Overview <span class="nav-badge" id="navHealth"></span></div>
       <div class="nav-item" onclick="go('alerts')">Alerts <span class="nav-badge" id="navAlerts">0</span></div>
       <div class="nav-item" onclick="go('pipeline')">Pipeline</div>
+      <div class="nav-item" onclick="go('corporate')">Corporate Real <span class="nav-badge" id="navDrift" style="color:var(--cyan)">—</span></div>
       <div class="nav-item" onclick="go('agents')">Agents <span class="nav-badge" id="navAgents">3</span></div>
       <div class="nav-item" onclick="go('workspaces')">Workspaces</div>
       <div class="nav-item" onclick="go('workflows')">Workflows</div>
@@ -164,6 +165,18 @@
       </div>
       <div class="section"><h3>CI Monitor</h3><div id="ciMonitorContent"></div></div>
       <div class="section"><h3>Version Rules</h3><div id="versionRules"></div></div>
+    </div>
+
+    <!-- CORPORATE REALITY -->
+    <div class="panel" id="panel-corporate">
+      <div class="page-header"><h2>Corporate Reality</h2><span class="badge b-cyan" id="driftBadge">checking</span></div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Versions read directly from corporate repos (bbvinet/*). Other people may deploy independently without autopilot.</p>
+      <div id="driftAlerts"></div>
+      <div class="grid-2" id="corporateCards"></div>
+      <div class="grid-2" style="margin-top:16px">
+        <div class="section"><h3>Controller Recent Commits</h3><div id="ctrlCommits"></div></div>
+        <div class="section"><h3>Agent Recent Commits</h3><div id="agentCommits"></div></div>
+      </div>
     </div>
 
     <!-- AGENTS -->
@@ -226,7 +239,7 @@
 <script>
   let state = {};
   const REFRESH = 30000;
-  const PAGES = ['overview','alerts','pipeline','agents','workspaces','workflows','prs','history','lessons','errors','architecture'];
+  const PAGES = ['overview','alerts','pipeline','corporate','agents','workspaces','workflows','prs','history','lessons','errors','architecture'];
   const STAGES = [
     {name:'Setup',desc:'Read workspace config'},
     {name:'Session Guard',desc:'Acquire multi-agent lock'},
@@ -319,9 +332,19 @@
     const agentPRs=prs.filter(p=>p.branch&&(p.branch.startsWith('claude/')||p.branch.startsWith('copilot/')||p.branch.startsWith('codex/')));
     if(agentPRs.length>2)alerts.push({type:'warn',msg:`${agentPRs.length} open agent PRs — possible queue buildup`,icon:'pr'});
 
-    // Version mismatch
+    // Version mismatch (memory vs state)
     const vr=state.versionRules||{};
     if(vr.currentController&&c.version&&vr.currentController!==c.version&&c.version!=='?')alerts.push({type:'info',msg:`Version mismatch: memory says ${vr.currentController}, state says ${c.version}`,icon:'diff'});
+
+    // CORPORATE DRIFT — real repos vs autopilot knowledge
+    const corp=state.corporateReal||{};
+    const ctrlReal=corp.controller||{};
+    const agentReal=corp.agent||{};
+    if(ctrlReal.drift)alerts.push({type:'error',msg:`CONTROLLER DRIFT: ${ctrlReal.driftDetail} — someone deployed outside autopilot!`,icon:'alert'});
+    if(agentReal.drift)alerts.push({type:'error',msg:`AGENT DRIFT: ${agentReal.driftDetail} — someone deployed outside autopilot!`,icon:'alert'});
+    // CAP vs source drift
+    if(ctrlReal.sourceVersion&&ctrlReal.capTag&&ctrlReal.sourceVersion!=='?'&&ctrlReal.capTag!=='?'&&ctrlReal.sourceVersion!==ctrlReal.capTag)alerts.push({type:'warn',msg:`Controller source (${ctrlReal.sourceVersion}) != CAP tag (${ctrlReal.capTag}) — promote may be pending`,icon:'arrow'});
+    if(agentReal.sourceVersion&&agentReal.capTag&&agentReal.sourceVersion!=='?'&&agentReal.capTag!=='?'&&agentReal.sourceVersion!==agentReal.capTag)alerts.push({type:'warn',msg:`Agent source (${agentReal.sourceVersion}) != CAP tag (${agentReal.capTag}) — promote may be pending`,icon:'arrow'});
 
     return alerts;
   }
@@ -348,6 +371,11 @@
     const lock=state.sessionLock||{};
     if(lock.agentId&&lock.agentId!=='none'){const exp=lock.expiresAt?new Date(lock.expiresAt):null;if(exp&&exp<=new Date()){score-=5;reasons.push('Expired lock not cleaned (-5)')}}
 
+    // Corporate drift = critical
+    const corp=state.corporateReal||{};
+    if(corp.controller&&corp.controller.drift){score-=25;reasons.push('CONTROLLER VERSION DRIFT (-25)')}
+    if(corp.agent&&corp.agent.drift){score-=25;reasons.push('AGENT VERSION DRIFT (-25)')}
+
     score=Math.max(0,Math.min(100,score));
     return{score,reasons,color:score>=80?'green':score>=50?'yellow':'red'};
   }
@@ -355,8 +383,8 @@
 <script>
   function renderAll(){
     renderSync();renderOverview();renderSmartAlerts();renderAlerts();renderPipeline();
-    renderAgents();renderWorkspaces();renderWorkflows();renderPRs();renderHistory();
-    renderLessons();renderErrors();renderArchitecture();renderNavBadges();
+    renderCorporate();renderAgents();renderWorkspaces();renderWorkflows();renderPRs();
+    renderHistory();renderLessons();renderErrors();renderArchitecture();renderNavBadges();
   }
 
   function renderSync(){
@@ -523,6 +551,58 @@
   }
 </script>
 <script>
+  function renderCorporate(){
+    const corp=state.corporateReal||{};const cc=corp.controller||{};const ca=corp.agent||{};
+    const c=state.controller||{};const a=state.agent||{};
+    const hasDrift=cc.drift||ca.drift;
+    document.getElementById('driftBadge').className=`badge b-${hasDrift?'red':'green'}`;
+    document.getElementById('driftBadge').textContent=hasDrift?'DRIFT DETECTED':'in sync';
+    document.getElementById('navDrift').textContent=hasDrift?'DRIFT':'ok';
+    document.getElementById('navDrift').style.color=hasDrift?'var(--red)':'var(--green)';
+
+    // Drift alerts
+    const dAlerts=[];
+    if(cc.drift)dAlerts.push(`<div class="alert-bar alert-error">CONTROLLER DRIFT: Autopilot knows <strong>${esc(c.version)}</strong> but corporate repo has <strong>${esc(cc.sourceVersion)}</strong>. Someone deployed outside autopilot!</div>`);
+    if(ca.drift)dAlerts.push(`<div class="alert-bar alert-error">AGENT DRIFT: Autopilot knows <strong>${esc(a.version)}</strong> but corporate repo has <strong>${esc(ca.sourceVersion)}</strong>. Someone deployed outside autopilot!</div>`);
+    if(cc.sourceVersion&&cc.capTag&&cc.sourceVersion!=='?'&&cc.capTag!=='?'&&cc.sourceVersion!==cc.capTag)dAlerts.push(`<div class="alert-bar alert-warn">Controller source (${esc(cc.sourceVersion)}) differs from CAP deploy tag (${esc(cc.capTag)}) — promote may be pending or someone changed source without deploy</div>`);
+    if(ca.sourceVersion&&ca.capTag&&ca.sourceVersion!=='?'&&ca.capTag!=='?'&&ca.sourceVersion!==ca.capTag)dAlerts.push(`<div class="alert-bar alert-warn">Agent source (${esc(ca.sourceVersion)}) differs from CAP deploy tag (${esc(ca.capTag)}) — promote may be pending</div>`);
+    if(!hasDrift&&cc.sourceVersion!=='?')dAlerts.push(`<div class="alert-bar alert-ok">All versions in sync. Last checked: ${fmtDate(corp.lastChecked)}</div>`);
+    document.getElementById('driftAlerts').innerHTML=dAlerts.join('');
+
+    // Cards: autopilot vs real
+    document.getElementById('corporateCards').innerHTML=`
+      <div class="section"><h3>Controller</h3>
+        <table>
+          <tr><td style="color:var(--muted);width:180px">Autopilot state version</td><td><strong>${esc(c.version||'?')}</strong></td><td>${badge(c.ciResult||'unknown')}</td></tr>
+          <tr><td style="color:var(--muted)">Real source (package.json)</td><td><strong style="color:var(--${cc.drift?'red':'green'})">${esc(cc.sourceVersion||'?')}</strong></td><td>${cc.drift?badge('DRIFT','red'):badge('match','green')}</td></tr>
+          <tr><td style="color:var(--muted)">Real CAP tag (deployed)</td><td><strong>${esc(cc.capTag||'?')}</strong></td><td>${cc.sourceVersion===cc.capTag?badge('synced','green'):(cc.capTag!=='?'?badge('differs','yellow'):badge('unknown','gray'))}</td></tr>
+          <tr><td style="color:var(--muted)">Memory version</td><td>${esc(state.versionRules?.currentController||'?')}</td><td></td></tr>
+        </table>
+      </div>
+      <div class="section"><h3>Agent</h3>
+        <table>
+          <tr><td style="color:var(--muted);width:180px">Autopilot state version</td><td><strong>${esc(a.version||'?')}</strong></td><td>${badge(a.ciResult||'unknown')}</td></tr>
+          <tr><td style="color:var(--muted)">Real source (package.json)</td><td><strong style="color:var(--${ca.drift?'red':'green'})">${esc(ca.sourceVersion||'?')}</strong></td><td>${ca.drift?badge('DRIFT','red'):badge('match','green')}</td></tr>
+          <tr><td style="color:var(--muted)">Real CAP tag (deployed)</td><td><strong>${esc(ca.capTag||'?')}</strong></td><td>${ca.sourceVersion===ca.capTag?badge('synced','green'):(ca.capTag!=='?'?badge('differs','yellow'):badge('unknown','gray'))}</td></tr>
+          <tr><td style="color:var(--muted)">Memory version</td><td>${esc(state.versionRules?.currentAgent||'?')}</td><td></td></tr>
+        </table>
+      </div>`;
+
+    // Recent commits
+    function renderCommits(commits,elId){
+      const el=document.getElementById(elId);
+      if(!commits||!commits.length){el.innerHTML='<div class="empty">No commit data (BBVINET_TOKEN may not be available)</div>';return}
+      el.innerHTML=commits.map(cm=>`
+        <div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <code style="color:var(--blue);min-width:60px">${esc(cm.sha)}</code>
+          <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(cm.message)}">${esc(cm.message)}</div>
+          <div style="color:var(--muted);white-space:nowrap">${esc(cm.author)} · ${fmtDate(cm.date)}</div>
+        </div>`).join('');
+    }
+    renderCommits(cc.recentCommits||[],'ctrlCommits');
+    renderCommits(ca.recentCommits||[],'agentCommits');
+  }
+
   function renderWorkspaces(){
     const ws=state.workspaces||[];
     document.getElementById('wsCount').textContent=ws.length+' workspaces';

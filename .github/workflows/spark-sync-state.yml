@@ -50,10 +50,11 @@ jobs:
         id: state
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
           set -euo pipefail
 
-          # ── Release states from autopilot-state ──
+          # ── Release states from autopilot-state (what AUTOPILOT thinks) ──
           CTRL_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
           AGENT_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/agent-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
 
@@ -82,6 +83,50 @@ jobs:
           # ── CI Monitor state ──
           CI_MONITOR=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/ci-monitor-controller.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
 
+          # ══════════════════════════════════════════════════════════
+          # ── REAL CORPORATE VERSIONS (source of truth from repos) ──
+          # Other people can deploy independently without autopilot.
+          # We MUST read the real versions from the actual repos.
+          # ══════════════════════════════════════════════════════════
+
+          # Controller package.json → real source version
+          CTRL_REAL_VER="?"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            CTRL_REAL_VER=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/contents/package.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
+          fi
+
+          # Agent package.json → real source version
+          AGENT_REAL_VER="?"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            AGENT_REAL_VER=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/contents/package.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
+          fi
+
+          # Controller CAP values.yaml → real deployed image tag
+          CTRL_CAP_TAG="?"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            CTRL_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc_releases_cap_sre-aut-controller/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+            if [ -n "$CTRL_CAP_RAW" ]; then
+              CTRL_CAP_TAG=$(echo "$CTRL_CAP_RAW" | grep -oP 'psc-sre-automacao-controller:\K[0-9]+\.[0-9]+\.[0-9]+' 2>/dev/null || echo "?")
+            fi
+          fi
+
+          # Agent CAP values.yaml → real deployed image tag
+          AGENT_CAP_TAG="?"
+          if [ -n "$BBVINET_TOKEN" ]; then
+            AGENT_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc_releases_cap_sre-aut-agent/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+            if [ -n "$AGENT_CAP_RAW" ]; then
+              AGENT_CAP_TAG=$(echo "$AGENT_CAP_RAW" | grep -oP 'psc-sre-automacao-agent:\K[0-9]+\.[0-9]+\.[0-9]+' 2>/dev/null || echo "?")
+            fi
+          fi
+
+          # Controller latest commits (detect external changes)
+          CTRL_LATEST_COMMITS=$(GH_TOKEN="${BBVINET_TOKEN:-$GH_TOKEN}" gh api "repos/bbvinet/psc-sre-automacao-controller/commits?per_page=5" --jq '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
+
+          # Agent latest commits
+          AGENT_LATEST_COMMITS=$(GH_TOKEN="${BBVINET_TOKEN:-$GH_TOKEN}" gh api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=5" --jq '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
+
+          echo "::notice ::Real versions — Controller: $CTRL_REAL_VER (CAP: $CTRL_CAP_TAG), Agent: $AGENT_REAL_VER (CAP: $AGENT_CAP_TAG)"
+
           # ── Build comprehensive state.json with FULL intelligence ──
           jq -n \
             --argjson ctrl "$CTRL_STATE" \
@@ -97,6 +142,12 @@ jobs:
             --argjson lock "$SESSION_LOCK" \
             --argjson health "$HEALTH" \
             --argjson ci_monitor "$CI_MONITOR" \
+            --arg ctrl_real "$CTRL_REAL_VER" \
+            --arg agent_real "$AGENT_REAL_VER" \
+            --arg ctrl_cap "$CTRL_CAP_TAG" \
+            --arg agent_cap "$AGENT_CAP_TAG" \
+            --argjson ctrl_commits "$CTRL_LATEST_COMMITS" \
+            --argjson agent_commits "$AGENT_LATEST_COMMITS" \
             '{
               lastSync: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
               syncSource: "autopilot/spark-sync-state.yml",
@@ -265,13 +316,32 @@ jobs:
                 {name: "Audit", desc: "Audit trail + release lock"}
               ],
 
+              corporateReal: {
+                description: "REAL versions from corporate repos — source of truth. Other people may deploy independently.",
+                controller: {
+                  sourceVersion: $ctrl_real,
+                  capTag: $ctrl_cap,
+                  recentCommits: $ctrl_commits,
+                  drift: (if $ctrl_real != "?" and ($ctrl.lastTag // "?") != "?" and $ctrl_real != ($ctrl.lastTag // "?") then true else false end),
+                  driftDetail: (if $ctrl_real != "?" and ($ctrl.lastTag // "?") != "?" and $ctrl_real != ($ctrl.lastTag // "?") then ("autopilot=" + ($ctrl.lastTag // "?") + " real=" + $ctrl_real) else null end)
+                },
+                agent: {
+                  sourceVersion: $agent_real,
+                  capTag: $agent_cap,
+                  recentCommits: $agent_commits,
+                  drift: (if $agent_real != "?" and ($agent.lastTag // "?") != "?" and $agent_real != ($agent.lastTag // "?") then true else false end),
+                  driftDetail: (if $agent_real != "?" and ($agent.lastTag // "?") != "?" and $agent_real != ($agent.lastTag // "?") then ("autopilot=" + ($agent.lastTag // "?") + " real=" + $agent_real) else null end)
+                },
+                lastChecked: now | strftime("%Y-%m-%dT%H:%M:%SZ")
+              },
+
               metadata: {
                 autopilotRepo: "lucassfreiree/autopilot",
                 sparkRepo: "lucassfreiree/spark-dashboard",
                 totalAgents: 3,
                 totalWorkspaces: 4,
                 syncInterval: "5 minutes",
-                stateVersion: 2
+                stateVersion: 3
               }
             }' > /tmp/state.json
 

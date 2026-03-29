@@ -1,5 +1,5 @@
 {
-  "lastSync": "2026-03-29T12:48:08Z",
+  "lastSync": "2026-03-29T12:49:22Z",
   "syncSource": "autopilot/spark-sync-state.yml",
   "controller": {
     "version": "3.6.9",
@@ -76,10 +76,10 @@
       ]
     },
     "codex": {
-      "sessionCount": 0,
+      "sessionCount": 5,
       "lastSession": "none",
-      "lessonsCount": 12,
-      "lastUpdated": "2026-03-28T14:00:00Z",
+      "lessonsCount": 0,
+      "lastUpdated": "2026-03-29T12:50:00Z",
       "sessions": []
     }
   },
@@ -179,12 +179,72 @@
   "recentWorkflows": [
     {
       "conclusion": null,
+      "created": "2026-03-29T12:49:11Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
+      "run_number": 40,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410132"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-03-29T12:49:11Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Sync Codex Prompt • push •  ref=main",
+      "run_number": 133,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410130"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-03-29T12:49:11Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Sync Copilot Prompt • push ref=main",
+      "run_number": 148,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709410122"
+    },
+    {
+      "conclusion": "failure",
+      "created": "2026-03-29T12:49:10Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": ".github/workflows/post-deploy-validation.yml",
+      "run_number": 24,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709409913"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-03-29T12:48:35Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Deploy Panel (GitHub Pages) • push • ws=n/a • ref=main",
+      "run_number": 9,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709399913"
+    },
+    {
+      "conclusion": "failure",
+      "created": "2026-03-29T12:48:35Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": ".github/workflows/post-deploy-validation.yml",
+      "run_number": 23,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709399643"
+    },
+    {
+      "conclusion": "success",
       "created": "2026-03-29T12:47:53Z",
       "event": "schedule",
       "head_branch": "main",
       "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
       "run_number": 39,
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709387040"
     },
     {
@@ -316,66 +376,6 @@
       "run_number": 131,
       "status": "completed",
       "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709298258"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:42:43Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
-      "run_number": 37,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709298254"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:42:43Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Sync Copilot Prompt • push ref=main",
-      "run_number": 146,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709298250"
-    },
-    {
-      "conclusion": "failure",
-      "created": "2026-03-29T12:42:43Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": ".github/workflows/post-deploy-validation.yml",
-      "run_number": 19,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709297994"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:40:41Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Sync Copilot Prompt • push ref=main",
-      "run_number": 145,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709262250"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:40:41Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Deploy Panel (GitHub Pages) • push • ws=n/a • ref=main",
-      "run_number": 7,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709262239"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-03-29T12:40:41Z",
-      "event": "push",
-      "head_branch": "main",
-      "name": "[Infra] Sync Codex Prompt • push •  ref=main",
-      "run_number": 130,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23709262235"
     }
   ],
   "openPRs": [
@@ -412,9 +412,9 @@
     "state/workspaces/ws-default/audit/source-change-2026-03-25T14-17-22Z.json"
   ],
   "lessonsLearned": {
-    "total": 51,
+    "total": 39,
     "copilot": 39,
-    "codex": 12,
+    "codex": 0,
     "copilotLessons": [
       {
         "lesson": "NUNCA usar validateTrustedUrl dentro de fetch/postJson — quebra testes mock",
@@ -567,68 +567,7 @@
         "source": "issue-absorb-auto-monitor-2026-03-28"
       }
     ],
-    "codexLessons": [
-      {
-        "lesson": "Campo run no trigger DEVE ser incrementado — sem incremento workflow NAO dispara",
-        "fix": "Verificar valor atual e somar 1",
-        "source": "multiple sessions"
-      },
-      {
-        "lesson": "Versao apos X.Y.9 e X.(Y+1).0 — NUNCA X.Y.10",
-        "fix": "Sempre verificar padrao antes de bumpar",
-        "source": "versioningRules"
-      },
-      {
-        "lesson": "JWT scope claim e 'scope' (singular) — NUNCA 'scopes' (plural)",
-        "fix": "Agent middleware le payload.scope",
-        "source": "run 35 failure"
-      },
-      {
-        "lesson": "Swagger SOMENTE ASCII — sem acentos",
-        "fix": "Testar com grep -P '[\\x80-\\xFF]' antes de commitar",
-        "source": "multiple sessions"
-      },
-      {
-        "lesson": "search-replace NAO funciona com newlines — usar replace-file para multi-line",
-        "fix": "Sempre replace-file quando envolve adicionar/remover linhas",
-        "source": "sed limitation"
-      },
-      {
-        "lesson": "ESLint no-use-before-define — funcoes devem ser definidas ANTES de serem chamadas",
-        "fix": "Ordenar funcoes auxiliares primeiro no arquivo",
-        "source": "run 37 failure"
-      },
-      {
-        "lesson": "NUNCA usar validateTrustedUrl dentro de fetch/postJson — quebra testes mock",
-        "fix": "Validar URL no input (parseSafeIdentifier), nao no fetch",
-        "source": "runs 3.6.1-3.6.2 failures"
-      },
-      {
-        "lesson": "CI Gate pre-existing detection esta QUEBRADO",
-        "fix": "Para resultado REAL: ler ci-logs-controller-*.txt do autopilot-state",
-        "source": "run 43"
-      },
-      {
-        "lesson": "apply-source-change SUCCESS != deploy completo — esteira corporativa roda depois",
-        "fix": "SEMPRE monitorar esteira corporativa apos workflow do autopilot",
-        "source": "multiple sessions"
-      },
-      {
-        "lesson": "SEMPRE partir da base corporativa ATUAL — nunca de patches antigos",
-        "fix": "Fetch arquivos via fetch-files.yml antes de criar patches",
-        "source": "session security_fixes"
-      },
-      {
-        "lesson": "NUNCA push direto para main — retorna 403",
-        "fix": "Sempre branch codex/* → PR → squash merge",
-        "source": "branch protection"
-      },
-      {
-        "lesson": "Version bump em 5 arquivos: package.json, package-lock.json, swagger, values.yaml, session memory",
-        "fix": "Documentacao completa em ops/docs/deploy-process/",
-        "source": "ops/docs/deploy-process/05-version-bump.md"
-      }
-    ]
+    "codexLessons": []
   },
   "versionRules": {
     "currentController": "3.6.5",
@@ -1034,7 +973,7 @@
       "drift": false,
       "driftDetail": null
     },
-    "lastChecked": "2026-03-29T12:48:08Z"
+    "lastChecked": "2026-03-29T12:49:22Z"
   },
   "corporateActivity": {
     "description": "Real-time activity from corporate repos — branches, PRs, external commits by other devs",

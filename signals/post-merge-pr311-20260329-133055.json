@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 311,
+  "branch": "claude/inject-project-context-GOeq7",
+  "timestamp": "2026-03-29T13:30:55Z",
+  "runId": "23710166679",
+  "healthStatus": "degraded"
+}

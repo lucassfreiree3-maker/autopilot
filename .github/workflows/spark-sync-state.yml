@@ -46,7 +46,6 @@ jobs:
           fi
 
       - name: Collect comprehensive state
-        if: steps.config.outputs.skip != 'true'
         id: state
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -431,7 +430,7 @@ jobs:
           fi
 
       - name: Update panel/dashboard/state.json (GitHub Pages)
-        if: steps.config.outputs.skip != 'true'
+        if: always() && steps.state.outputs.state_b64 != ''
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |

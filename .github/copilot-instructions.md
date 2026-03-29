@@ -443,6 +443,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | sync-codex-prompt.yml | [Infra] Sync Codex Prompt | trigger file, manual |
 | test-corporate-flow.yml | [Corp] Test: Corporate E2E Flow | trigger file, manual |
 | test-full-flow.yml | [Corp] Test: Full Flow (Controller + Agent) | trigger file, manual |
+| token-auto-optimize.yml | [Core] Token Auto-Optimize | scheduled, manual |
 | workspace-lock-gc.yml | [Core] Lock GC | scheduled, manual |
 
 
@@ -495,6 +496,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | seed-workspace.yml | workspace_id, display_name, controller_source_repo, agent_source_repo |
 | test-corporate-flow.yml | workspace_id, dry_run |
 | test-full-flow.yml | workspace_id, test_type, include_lint_error |
+| token-auto-optimize.yml | dry_run |
 
 
 ---
@@ -683,4 +685,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T19:06:05Z | Run: 23716738067*
+*Last synced: 2026-03-29T19:26:49Z | Run: 23717146214*

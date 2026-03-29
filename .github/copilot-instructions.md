@@ -60,7 +60,7 @@ For the absolute latest state (versions, in-progress deploys), read:
 |---|---|
 | Controller version | `3.6.9` |
 | Agent version | `2.3.1` |
-| Last trigger run | `69` |
+| Last trigger run | `70` |
 | Last successful run | `69` |
 
 ---
@@ -682,4 +682,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-29T13:30:52Z | Run: 23710166811*
+*Last synced: 2026-03-29T13:45:01Z | Run: 23710429929*

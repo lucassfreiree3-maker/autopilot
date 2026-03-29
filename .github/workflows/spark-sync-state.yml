@@ -3,7 +3,12 @@ run-name: "${{ github.workflow }} • sync state to Spark dashboard"
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    # Business hours (8h-17h BRT = 11h-20h UTC) Mon-Fri: every 1 minute
+    - cron: '* 11-19 * * 1-5'
+    # Off-hours Mon-Fri: every 5 minutes
+    - cron: '*/5 0-10,20-23 * * 1-5'
+    # Weekends: every 5 minutes
+    - cron: '*/5 * * * 0,6'
   workflow_run:
     workflows:
       - "[Corp] Deploy: Apply Source Change"
@@ -437,8 +442,8 @@ jobs:
                 sparkRepo: "lucassfreiree/spark-dashboard",
                 totalAgents: 3,
                 totalWorkspaces: 4,
-                syncInterval: "5 minutes",
-                stateVersion: 3
+                syncInterval: "1min business hours (8-17 BRT Mon-Fri) / 5min off-hours",
+                stateVersion: 4
               }
             }' > /tmp/state.json
 

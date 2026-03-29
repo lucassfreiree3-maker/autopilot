@@ -1,0 +1,193 @@
+name: "[Core] Dashboard Auto-Improve"
+run-name: "${{ github.workflow }} • validate + improve dashboard"
+
+on:
+  schedule:
+    # Run daily at 12:00 UTC (9:00 BRT) — during business hours
+    - cron: '0 12 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: dashboard-auto-improve
+  cancel-in-progress: true
+
+jobs:
+  validate-and-improve:
+    name: "Validate dashboard data accuracy"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate state.json accuracy
+        id: validate
+        run: |
+          set -euo pipefail
+          ISSUES="[]"
+          FIXES=0
+
+          # Read current state.json
+          if [ ! -f panel/dashboard/state.json ]; then
+            echo "::error::state.json not found"
+            exit 0
+          fi
+          STATE=$(cat panel/dashboard/state.json)
+
+          # 1. Check if lastSync is recent (< 30 min for weekdays)
+          LAST_SYNC=$(echo "$STATE" | jq -r '.lastSync // ""')
+          if [ -n "$LAST_SYNC" ]; then
+            SYNC_AGE=$(( ($(date +%s) - $(date -d "$LAST_SYNC" +%s 2>/dev/null || echo "0")) / 60 ))
+            if [ "$SYNC_AGE" -gt 60 ]; then
+              ISSUES=$(echo "$ISSUES" | jq --arg m "state.json is ${SYNC_AGE}min stale — sync workflow may be failing" '. + [{severity:"high",issue:$m}]')
+            fi
+          fi
+
+          # 2. Validate controller version matches trigger
+          CTRL_VER=$(echo "$STATE" | jq -r '.controller.version // "?"')
+          TRIGGER_VER=$(jq -r '.version // "?"' trigger/source-change.json 2>/dev/null || echo "?")
+          TRIGGER_COMP=$(jq -r '.component // "?"' trigger/source-change.json 2>/dev/null || echo "?")
+
+          # 3. Validate pipeline status is consistent
+          PIPE_STATUS=$(echo "$STATE" | jq -r '.pipeline.status // "unknown"')
+          PIPE_RUN=$(echo "$STATE" | jq -r '.pipeline.lastRun // 0')
+          TRIGGER_RUN=$(jq -r '.run // 0' trigger/source-change.json 2>/dev/null || echo "0")
+
+          if [ "$PIPE_RUN" != "$TRIGGER_RUN" ] && [ "$TRIGGER_RUN" != "0" ]; then
+            ISSUES=$(echo "$ISSUES" | jq --arg m "Pipeline shows run #${PIPE_RUN} but trigger has run #${TRIGGER_RUN}" '. + [{severity:"medium",issue:$m}]')
+          fi
+
+          # 4. Validate corporate versions match (if BBVINET_TOKEN available)
+          if [ -n "$BBVINET_TOKEN" ]; then
+            # Check controller real version
+            REAL_CTRL=$(curl -sf -H "Authorization: token $BBVINET_TOKEN" \
+              "https://api.github.com/repos/bbvinet/psc-sre-automacao-controller/contents/package.json" \
+              | jq -r '.content' | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
+
+            STATE_CTRL_REAL=$(echo "$STATE" | jq -r '.corporateReal.controller.sourceVersion // "?"')
+
+            if [ "$REAL_CTRL" != "?" ] && [ "$STATE_CTRL_REAL" != "?" ] && [ "$REAL_CTRL" != "$STATE_CTRL_REAL" ]; then
+              ISSUES=$(echo "$ISSUES" | jq --arg m "Dashboard shows controller source v${STATE_CTRL_REAL} but real is v${REAL_CTRL}" '. + [{severity:"high",issue:$m}]')
+            fi
+
+            # Check agent real version
+            REAL_AGENT=$(curl -sf -H "Authorization: token $BBVINET_TOKEN" \
+              "https://api.github.com/repos/bbvinet/psc-sre-automacao-agent/contents/package.json" \
+              | jq -r '.content' | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
+
+            STATE_AGENT_REAL=$(echo "$STATE" | jq -r '.corporateReal.agent.sourceVersion // "?"')
+
+            if [ "$REAL_AGENT" != "?" ] && [ "$STATE_AGENT_REAL" != "?" ] && [ "$REAL_AGENT" != "$STATE_AGENT_REAL" ]; then
+              ISSUES=$(echo "$ISSUES" | jq --arg m "Dashboard shows agent source v${STATE_AGENT_REAL} but real is v${REAL_AGENT}" '. + [{severity:"high",issue:$m}]')
+            fi
+          fi
+
+          # 5. Check dashboard HTML exists and is valid
+          if [ ! -f panel/dashboard/index.html ]; then
+            ISSUES=$(echo "$ISSUES" | jq '. + [{severity:"critical",issue:"Dashboard HTML file missing!"}]')
+          else
+            DASH_SIZE=$(wc -c < panel/dashboard/index.html)
+            if [ "$DASH_SIZE" -lt 1000 ]; then
+              ISSUES=$(echo "$ISSUES" | jq '. + [{severity:"critical",issue:"Dashboard HTML is too small — likely corrupted"}]')
+            fi
+          fi
+
+          # 6. Validate sync workflow schedule
+          SYNC_WF=".github/workflows/spark-sync-state.yml"
+          if [ -f "$SYNC_WF" ]; then
+            if ! grep -q "11-19" "$SYNC_WF"; then
+              ISSUES=$(echo "$ISSUES" | jq '. + [{severity:"medium",issue:"Sync workflow missing business hours schedule (11-19 UTC)"}]')
+            fi
+          fi
+
+          # 7. Validate metadata version
+          META_VER=$(echo "$STATE" | jq -r '.metadata.stateVersion // 0')
+          if [ "$META_VER" -lt 3 ]; then
+            ISSUES=$(echo "$ISSUES" | jq --arg v "$META_VER" '. + [{severity:"low",issue:("state.json version " + $v + " is outdated — should be >=3")}]')
+          fi
+
+          ISSUE_COUNT=$(echo "$ISSUES" | jq length)
+          HIGH_COUNT=$(echo "$ISSUES" | jq '[.[] | select(.severity=="high" or .severity=="critical")] | length')
+
+          echo "issue_count=$ISSUE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "high_count=$HIGH_COUNT" >> "$GITHUB_OUTPUT"
+          echo "issues_json=$(echo "$ISSUES" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+          # Summary
+          {
+            echo "## Dashboard Validation Report"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Issues found | $ISSUE_COUNT |"
+            echo "| High/Critical | $HIGH_COUNT |"
+            echo "| State version | v$META_VER |"
+            echo "| Last sync | $LAST_SYNC |"
+            echo "| Sync age | ${SYNC_AGE:-?} min |"
+            echo ""
+            if [ "$ISSUE_COUNT" -gt 0 ]; then
+              echo "### Issues"
+              echo "$ISSUES" | jq -r '.[] | "- **\(.severity)**: \(.issue)"'
+            else
+              echo "All validations passed."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create issue if critical problems found
+        if: steps.validate.outputs.high_count != '0'
+        env:
+          ISSUES_JSON: ${{ steps.validate.outputs.issues_json }}
+          ISSUE_COUNT: ${{ steps.validate.outputs.issue_count }}
+          HIGH_COUNT: ${{ steps.validate.outputs.high_count }}
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          BODY="## Dashboard Auto-Improve — Issues Detected
+
+          **Date**: $NOW
+          **Total issues**: $ISSUE_COUNT
+          **High/Critical**: $HIGH_COUNT
+
+          ### Issues Found
+          $(echo "$ISSUES_JSON" | jq -r '.[] | "- **\(.severity)**: \(.issue)"')
+
+          ### Auto-generated by
+          Workflow: dashboard-auto-improve.yml
+          Run: ${{ github.run_id }}
+
+          _This issue was auto-generated. Fix the issues and the next validation run will confirm._"
+
+          gh issue create \
+            --title "[Dashboard] $HIGH_COUNT data accuracy issue(s) detected" \
+            --body "$BODY" \
+            --label "dashboard,auto-improve" 2>/dev/null || echo "::warning::Could not create issue"
+
+      - name: Write audit to autopilot-state
+        if: always()
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
+
+          AUDIT=$(jq -n \
+            --arg ts "$NOW" \
+            --arg run "${{ github.run_id }}" \
+            --arg issues "${{ steps.validate.outputs.issue_count }}" \
+            --arg high "${{ steps.validate.outputs.high_count }}" \
+            '{event:"dashboard-auto-improve",timestamp:$ts,runId:$run,issuesFound:($issues|tonumber),highCritical:($high|tonumber)}')
+
+          AUDIT_PATH="state/audit/dashboard-improve-${SAFE_NOW}.json"
+          gh api "repos/lucassfreiree/autopilot/contents/${AUDIT_PATH}" \
+            --method PUT \
+            -f "branch=autopilot-state" \
+            -f "message=audit: dashboard auto-improve [skip ci]" \
+            -f "content=$(echo "$AUDIT" | base64 -w0)" > /dev/null 2>&1 || echo "::warning::Could not write audit"

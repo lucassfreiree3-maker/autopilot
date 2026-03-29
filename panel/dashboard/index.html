@@ -253,7 +253,12 @@
 </div>
 <script>
   let state = {};
-  const REFRESH = 30000;
+  // Smart refresh: 30s during business hours (8h-17h BRT Mon-Fri), 60s off-hours
+  function isBusinessHours(){const now=new Date();const utcH=now.getUTCHours();const brtH=(utcH-3+24)%24;const dow=now.getUTCDay();return dow>=1&&dow<=5&&brtH>=8&&brtH<17}
+  function getRefreshMs(){return isBusinessHours()?30000:60000}
+  function getSyncInterval(){return isBusinessHours()?'1 min':'5 min'}
+  function getStaleThreshold(){return isBusinessHours()?3:12}
+  let REFRESH=getRefreshMs();
   const PAGES = ['overview','alerts','pipeline','corporate','compliance','agents','workspaces','workflows','prs','history','lessons','errors','architecture'];
   const STAGES = [
     {name:'Setup',desc:'Read workspace config'},
@@ -303,7 +308,11 @@
     }
   }
 
-  function scheduleRefresh(){setInterval(fetchState,REFRESH)}
+  function scheduleRefresh(){
+    // Adaptive refresh: re-evaluate interval every cycle
+    function tick(){fetchState();REFRESH=getRefreshMs();setTimeout(tick,REFRESH)}
+    setTimeout(tick,REFRESH);
+  }
 
   // Smart alerts engine
   function computeAlerts(){
@@ -314,8 +323,8 @@
     const lock=state.sessionLock||{};
     const sync=state.lastSync;
 
-    // Stale sync
-    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;if(age>15)alerts.push({type:'warn',msg:`State sync is ${Math.floor(age)} minutes old — may be stale`,icon:'clock'})}
+    // Stale sync (adaptive: 3min business hours, 12min off-hours)
+    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;const thresh=getStaleThreshold();if(age>thresh)alerts.push({type:'warn',msg:`Sync is ${Math.floor(age)}min old (threshold: ${thresh}min${isBusinessHours()?' — business hours':''})`,icon:'clock'})}
 
     // Pipeline running
     if(p.status==='running'||p.status==='in_progress')alerts.push({type:'info',msg:`Pipeline running: ${p.component} v${p.version} (run #${p.lastRun})`,icon:'play'});
@@ -394,7 +403,7 @@
     if(a.promoted===false&&a.status==='success'){score-=10;reasons.push('Agent not promoted (-10)')}
 
     const sync=state.lastSync;
-    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;if(age>30){score-=10;reasons.push('Sync stale >30min (-10)')}}
+    if(sync){const age=(Date.now()-new Date(sync).getTime())/60000;const thresh=getStaleThreshold()*3;if(age>thresh){score-=10;reasons.push(`Sync stale >${Math.floor(thresh)}min (-10)`)}}
 
     const lock=state.sessionLock||{};
     if(lock.agentId&&lock.agentId!=='none'){const exp=lock.expiresAt?new Date(lock.expiresAt):null;if(exp&&exp<=new Date()){score-=5;reasons.push('Expired lock not cleaned (-5)')}}
@@ -417,8 +426,9 @@
 
   function renderSync(){
     const t=fmtDate(state.lastSync);
-    document.getElementById('syncTime').textContent=`Synced ${t}`;
-    document.getElementById('sidebarSync').innerHTML=`Last sync: ${t}<br>v${state.metadata?.stateVersion||1}`;
+    const syncMode=isBusinessHours()?'Business Hours (1min)':'Off-Hours (5min)';
+    document.getElementById('syncTime').textContent=`Synced ${t} · ${syncMode}`;
+    document.getElementById('sidebarSync').innerHTML=`Sync: ${t}<br>${syncMode}<br>v${state.metadata?.stateVersion||1}`;
   }
 
   function renderNavBadges(){

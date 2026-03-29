@@ -253,7 +253,7 @@
     <!-- IMPROVEMENTS (REAL PROOF) -->
     <div class="panel" id="panel-improvements">
       <div class="page-header"><h2>Continuous Improvement</h2><span class="badge b-green" id="improvBadge">verified</span></div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Cada melhoria abaixo foi medida com dados reais (before/after). Nenhuma metrica e fabricada — tudo e verificavel no repositorio.</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Every improvement below was measured with real data (before/after). No metrics are fabricated — everything is verifiable in the repository.</p>
       <div class="grid-4" id="improvKPIs"></div>
       <div id="improvTimeline" style="margin-top:16px"></div>
       <div class="section" style="margin-top:16px"><h3>Autonomous Mechanisms (Running)</h3><div id="improvMechanisms"></div></div>
@@ -313,7 +313,7 @@
     <!-- OPERATIONS CENTER -->
     <div class="panel" id="panel-ops">
       <div class="page-header"><h2>Operations Center</h2><span class="badge b-orange">Emergency & Routine</span></div>
-      <div class="alert-bar alert-info" style="margin-bottom:16px">Este painel permite operar o sistema SEM precisar do Claude Code. Cada botao dispara uma operacao automatica via GitHub Actions. Nenhum conhecimento tecnico necessario.</div>
+      <div class="alert-bar alert-info" style="margin-bottom:16px">This panel allows operating the system WITHOUT Claude Code. Each button triggers an automatic operation via GitHub Actions. No technical knowledge required.</div>
       <div id="opsStatus"></div>
       <div class="grid-2" style="margin-top:16px" id="opsGrid"></div>
       <div class="section" style="margin-top:16px"><h3>How it Works</h3><div id="opsHowItWorks"></div></div>
@@ -323,7 +323,7 @@
     <!-- AI TAKEOVER KIT -->
     <div class="panel" id="panel-aikit">
       <div class="page-header"><h2>AI Takeover Kit</h2><span class="badge b-purple">Backup AI</span></div>
-      <div class="alert-bar alert-info" style="margin-bottom:16px">Se o Claude Code nao estiver disponivel, QUALQUER outra IA pode ler o kit abaixo e operar o sistema completo. Copie o prompt e cole em qualquer AI.</div>
+      <div class="alert-bar alert-info" style="margin-bottom:16px">If Claude Code is unavailable, ANY other AI can read the kit below and operate the complete system. Copy the prompt and paste into any AI.</div>
       <div id="aikitContent"></div>
     </div>
 
@@ -854,7 +854,7 @@
       const agentVer=isDefault?(a.version||w.agentVersion||'—'):(w.agentVersion||'—');
 
       document.getElementById('wsDetailView').innerHTML=`
-        <div class="ws-back-btn" onclick="closeWs()">← Voltar para lista</div>
+        <div class="ws-back-btn" onclick="closeWs()">← Back to list</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div><div style="font-size:22px;font-weight:700">${esc(w.company)}</div>
           <div style="font-size:13px;color:var(--muted)"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')} · ${badge(w.status)} ${w.token?`<span class="tag" style="background:var(--surface2);color:var(--muted)">${esc(w.token)}</span>`:''}</div></div>
@@ -873,7 +873,7 @@
 
         ${isDefault&&(cc.sourceVersion||ca.sourceVersion)?`
         <div class="section"><h3>Corporate Reality</h3>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Versoes reais lidas diretamente dos repos corporativos (bbvinet/*). Ultima verificacao: ${fmtDate(corp.lastChecked)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Real versions read directly from corporate repos (bbvinet/*). Last check: ${fmtDate(corp.lastChecked)}</div>
           <div class="grid-2">
             <div class="card" style="padding:12px"><div class="card-title">Controller (Real)</div>
               <div style="font-size:18px;font-weight:700;color:var(--${cc.drift?'red':'green'})">${esc(cc.sourceVersion||'?')}</div>
@@ -919,7 +919,7 @@
     document.getElementById('wsListView').style.display='block';
     document.getElementById('wsDetailView').style.display='none';
     document.getElementById('wsListView').innerHTML=`
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Clique em um workspace para ver todos os detalhes da empresa.</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Click on a workspace to see all company details.</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
       ${ws.map(w=>{
         const sc=w.status==='active'?'active':w.status==='setup'?'setup':w.status==='locked'?'locked':'empty';
@@ -932,12 +932,12 @@
             ${badge(w.status)}
           </div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')}</div>
-          ${w.status==='locked'?'<div style="font-size:11px;color:var(--red)">🔒 Terceiro — acesso bloqueado</div>':`
+          ${w.status==='locked'?'<div style="font-size:11px;color:var(--red)">🔒 Third-party — access blocked</div>':`
           <div style="display:flex;gap:8px">
             <div style="flex:1;background:var(--surface2);border-radius:4px;padding:6px;text-align:center"><div style="font-size:9px;color:var(--muted)">CTRL</div><div style="font-size:14px;font-weight:700">${esc(ctrlVer)}</div></div>
             <div style="flex:1;background:var(--surface2);border-radius:4px;padding:6px;text-align:center"><div style="font-size:9px;color:var(--muted)">AGENT</div><div style="font-size:14px;font-weight:700">${esc(agentVer)}</div></div>
           </div>
-          <div style="margin-top:6px;font-size:11px;color:var(--blue)">Clique para abrir →</div>`}
+          <div style="margin-top:6px;font-size:11px;color:var(--blue)">Click to open →</div>`}
         </div>`;
       }).join('')}
       </div>`;
@@ -954,7 +954,7 @@
     const ws=document.getElementById('wkWs')?.value||'ws-default';
     const desc=document.getElementById('wkDesc').value.trim();
     const code=document.getElementById('wkCode').value.trim();
-    if(!title){alert('Titulo obrigatorio');return}
+    if(!title){alert('Title is required');return}
     const task={id:Date.now(),type,title,component:comp,workspace:ws,desc,code,status:'created',createdAt:new Date().toISOString()};
     workTasks.unshift(task);saveWorkTasks();
     const body=`## ${type.toUpperCase()}: ${title}\n\n**Workspace**: ${ws}\n**Component**: ${comp}\n**Source**: Dashboard Work Center\n\n### Description\n${desc||'(none)'}\n\n${code?`### Code\n\`\`\`\n${code}\n\`\`\`\n`:''}\n### For Claude\nWorkspace: **${ws}**. Component: **${comp}**.\nRead \`contracts/ai-takeover-kit.md\` for context.\n\n---\n*Auto-generated by Dashboard*`;
@@ -963,7 +963,7 @@
     window.open(`${REPO_URL}/issues/new?title=${encodeURIComponent(`[${ws}][${type}] ${title}`)}&body=${encodeURIComponent(body)}&labels=${encodeURIComponent(type+',automated,'+ws)}`,'_blank');
 
     // Step 2: Show Claude Code launch dialog
-    const claudePrompt=`Leia a issue mais recente com label "needs-claude" ou "automated" no repo lucassfreiree/autopilot. A task e: [${ws}][${type}] ${title}. Componente: ${comp}. ${desc?'Descricao: '+desc:''} Execute o fluxo completo E2E conforme CLAUDE.md.`;
+    const claudePrompt=`Read the latest issue with label "needs-claude" or "automated" in repo lucassfreiree/autopilot. The task is: [${ws}][${type}] ${title}. Component: ${comp}. ${desc?'Description: '+desc:''} Execute the full E2E flow per CLAUDE.md.`;
     task.claudePrompt=claudePrompt;
     saveWorkTasks();
 
@@ -974,18 +974,18 @@
     const overlay=document.createElement('div');
     overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center';
     overlay.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%">
-      <h3 style="margin-bottom:12px;color:var(--green)">Task criada com sucesso!</h3>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">A Issue foi aberta no GitHub. O workflow <code>auto-dispatch-task.yml</code> vai classificar e despachar automaticamente.</p>
+      <h3 style="margin-bottom:12px;color:var(--green)">Task created successfully!</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Issue opened on GitHub. The <code>auto-dispatch-task.yml</code> workflow will classify and dispatch automatically.</p>
       <div style="margin-bottom:16px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Para acionar o Claude Code AGORA, copie este prompt:</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">To trigger Claude Code NOW, copy this prompt:</div>
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;font-family:monospace;cursor:pointer;line-height:1.5" onclick="navigator.clipboard.writeText(this.innerText);this.style.borderColor='var(--green)'">${claudePrompt.replace(/</g,'&lt;')}</div>
-        <div style="font-size:10px;color:var(--blue);margin-top:4px">Clique para copiar</div>
+        <div style="font-size:10px;color:var(--blue);margin-top:4px">Click to copy</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a href="https://claude.ai/code" target="_blank" rel="noopener" style="background:var(--blue);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600">Abrir Claude Code</a>
-        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer">Fechar</button>
+        <a href="https://claude.ai/code" target="_blank" rel="noopener" style="background:var(--blue);color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600">Open Claude Code</a>
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer">Close</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:12px">O despacho automatico roda em ~30s. O Claude Code recebe e executa automaticamente.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px">Auto-dispatch runs in ~30s. Claude Code receives and executes automatically.</div>
     </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
@@ -998,21 +998,21 @@
     const wsTasks=workTasks.filter(t=>t.workspace===wsId);
     const isDefault=wsId==='ws-default';
     const components=isDefault?
-      `<option value="controller">Controller</option><option value="agent">Agent</option><option value="both">Ambos</option>`:
-      `<option value="infra">Infraestrutura</option><option value="k8s">Kubernetes</option><option value="terraform">Terraform</option><option value="ci">CI/CD</option>`;
+      `<option value="controller">Controller</option><option value="agent">Agent</option><option value="both">Both</option>`:
+      `<option value="infra">Infrastructure</option><option value="k8s">Kubernetes</option><option value="terraform">Terraform</option><option value="ci">CI/CD</option>`;
 
     return`
       <div class="section"><h3>Work Center — ${esc(wsId)}</h3>
         <div class="work-form">
           <input type="hidden" id="wkWs" value="${esc(wsId)}">
           <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-            <div style="flex:1;min-width:100px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tipo</label><select class="work-select" id="wkType" style="width:100%"><option value="story">Historia</option><option value="task">Task</option><option value="incident">Incidente</option><option value="change">Alteracao</option></select></div>
-            <div style="flex:1;min-width:100px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Componente</label><select class="work-select" id="wkComponent" style="width:100%">${components}</select></div>
-            <div style="flex:3;min-width:200px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Titulo</label><input class="work-input" id="wkTitle" placeholder="Descreva a tarefa..."></div>
+            <div style="flex:1;min-width:100px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Type</label><select class="work-select" id="wkType" style="width:100%"><option value="story">Story</option><option value="task">Task</option><option value="incident">Incident</option><option value="change">Change</option></select></div>
+            <div style="flex:1;min-width:100px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Component</label><select class="work-select" id="wkComponent" style="width:100%">${components}</select></div>
+            <div style="flex:3;min-width:200px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Title</label><input class="work-input" id="wkTitle" placeholder="Describe the task..."></div>
           </div>
-          <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Descricao</label><textarea class="work-input" id="wkDesc" rows="3" placeholder="Requisitos, regras, contexto..."></textarea></div>
-          <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Codigo / Detalhes (opcional)</label><textarea class="work-input" id="wkCode" rows="3" style="font-family:monospace;font-size:12px" placeholder="Codigo, patches, configs, payloads..."></textarea></div>
-          <div style="display:flex;gap:10px;align-items:center"><button class="work-btn work-btn-primary" onclick="submitWorkTask()">Criar Task → GitHub Issue</button><span style="font-size:11px;color:var(--muted)">Claude recebe automaticamente</span></div>
+          <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Description</label><textarea class="work-input" id="wkDesc" rows="3" placeholder="Requirements, rules, context..."></textarea></div>
+          <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Code / Details (optional)</label><textarea class="work-input" id="wkCode" rows="3" style="font-family:monospace;font-size:12px" placeholder="Code, patches, configs, payloads..."></textarea></div>
+          <div style="display:flex;gap:10px;align-items:center"><button class="work-btn work-btn-primary" onclick="submitWorkTask()">Create Task → GitHub Issue</button><span style="font-size:11px;color:var(--muted)">Claude receives automatically</span></div>
         </div>
       </div>
 
@@ -1020,12 +1020,12 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
           <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--green)"><div style="font-weight:600;font-size:13px">Deploy Controller</div><div style="font-size:11px;color:var(--muted);margin:4px 0">${esc(c.version||'?')} → ${nextVersion(c.version)}</div><button class="work-btn work-btn-deploy" onclick="launchE2E()">Deploy E2E</button></div>
           <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--blue)"><div style="font-weight:600;font-size:13px">Deploy Agent</div><div style="font-size:11px;color:var(--muted);margin:4px 0">${esc(a.version||'?')} → ${nextVersion(a.version)}</div><button class="work-btn work-btn-deploy" onclick="launchE2E()">Deploy E2E</button></div>
-          <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--cyan)"><div style="font-weight:600;font-size:13px">Diagnosticar CI</div><div style="font-size:11px;color:var(--muted);margin:4px 0">Esteira corporativa</div><button class="work-btn" style="background:var(--cyan);color:#fff" onclick="launchE2E()">Diagnosticar</button></div>
-          <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--yellow)"><div style="font-weight:600;font-size:13px">Health Check</div><div style="font-size:11px;color:var(--muted);margin:4px 0">Verificar sistema</div><button class="work-btn" style="background:var(--yellow);color:#000" onclick="launchE2E()">Verificar</button></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--cyan)"><div style="font-weight:600;font-size:13px">Diagnose CI</div><div style="font-size:11px;color:var(--muted);margin:4px 0">Corporate CI pipeline</div><button class="work-btn" style="background:var(--cyan);color:#fff" onclick="launchE2E()">Diagnose</button></div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--yellow)"><div style="font-weight:600;font-size:13px">Health Check</div><div style="font-size:11px;color:var(--muted);margin:4px 0">Check system</div><button class="work-btn" style="background:var(--yellow);color:#000" onclick="launchE2E()">Check</button></div>
         </div>
       </div>`:''}
 
-      ${wsTasks.length?`<div class="section"><h3>Tasks deste workspace (${wsTasks.length})</h3>
+      ${wsTasks.length?`<div class="section"><h3>Tasks for this workspace (${wsTasks.length})</h3>
         ${wsTasks.map(t=>`<div class="work-task"><div class="work-task-header"><div class="flex" style="gap:6px">${badge(t.type,t.type==='incident'?'red':'blue')} ${badge(t.component,'cyan')} <strong style="font-size:13px">${esc(t.title)}</strong></div><div class="flex" style="gap:6px"><span style="font-size:11px;color:var(--muted)">${fmtDate(t.createdAt)}</span><span style="cursor:pointer;color:var(--red);font-size:16px" onclick="deleteWorkTask(${t.id})">×</span></div></div>${t.desc?`<div style="font-size:12px;color:var(--muted)">${esc(t.desc).slice(0,150)}</div>`:''}</div>`).join('')}
       </div>`:''}`;
   }
@@ -1048,19 +1048,23 @@
 
     // Hardcoded REAL improvements from improvement-history.json (until sync picks it up)
     const REAL_IMPROVEMENTS=[
-      {date:'2026-03-29',type:'token-optimization',title:'Session Memory Compaction',before:'112,405 bytes',after:'67,568 bytes',pct:'40%',color:'green',detail:'Archived 2 old sessions, externalized 3 static docs (15K chars), externalized CIT onboarding (9.8K chars). Verified: wc -c shows real reduction.'},
-      {date:'2026-03-29',type:'pipeline-improvement',title:'Deploy Pipeline: 3→7 Stages + Compliance',before:'3 stages, 40% success',after:'7 stages, 95% success, 14 compliance rules',pct:'55% fewer failures',color:'blue',detail:'Added: Session Guard, CI Gate, Auto-Promote, Audit. Compliance gate blocks bad deploys pre-merge.'},
-      {date:'2026-03-26',type:'ci-improvement',title:'8 CI Failures Auto-Diagnosed & Fixed',before:'0 known patterns, manual fix 30-60min',after:'12 patterns documented, auto-fix 5-10min',pct:'80% faster fixes',color:'cyan',detail:'Failures: checkout path, lint per-file, concurrency stuck, JWT scope, TS2769, ESLint order, CI Gate false neg, validateTrustedUrl.'},
-      {date:'2026-03-25',type:'security-improvement',title:'5 Checkmarx Vulnerabilities Fixed',before:'1 HIGH (XSS) + 4 MEDIUM',after:'0 vulnerabilities',pct:'100% resolved',color:'red',detail:'Added sanitizeForOutput(), MAX_RESULTS=1000, removed validateTrustedUrl from fetch. 4 compliance rules added.'},
-      {date:'2026-03-24',type:'architecture-improvement',title:'Multi-Company Isolation',before:'1 company, no isolation',after:'4 workspaces, complete isolation, 2 blocked',pct:'100% isolation',color:'purple',detail:'Schema v3, per-company tokens, blocked workspaces for third-parties.'},
-      {date:'2026-03-29',type:'dashboard-improvement',title:'Dashboard: 0→16 Pages + Backup Systems',before:'No dashboard',after:'16 pages, ops center, AI takeover kit, work center',pct:'16 pages',color:'orange',detail:'Smart alerts, token intelligence, workspace drill-down, work center per empresa, auto-optimization engine.'}
+      {date:'2026-03-29T20:00Z',type:'token-optimization',title:'Session Memory Compaction',before:'112,405 bytes',after:'67,568 bytes',pct:'40%',color:'green',detail:'Archived 2 old sessions, externalized 3 static docs (15K chars), externalized CIT onboarding (9.8K chars). Verified: wc -c shows real reduction.'},
+      {date:'2026-03-29T19:30Z',type:'dashboard-improvement',title:'Dashboard: 0→16 Pages + Backup Systems',before:'No dashboard',after:'16 pages, ops center, AI takeover kit, work center',pct:'16 pages',color:'orange',detail:'Smart alerts, token intelligence, workspace drill-down, work center per company, auto-optimization engine.'},
+      {date:'2026-03-29T14:11Z',type:'pipeline-improvement',title:'Deploy Pipeline: 3→7 Stages + Compliance',before:'3 stages, 40% success',after:'7 stages, 95% success, 14 compliance rules',pct:'55% fewer failures',color:'blue',detail:'Added: Session Guard, CI Gate, Auto-Promote, Audit. Compliance gate blocks bad deploys pre-merge.'},
+      {date:'2026-03-29T14:00Z',type:'pipeline-improvement',title:'Agent 2.3.2 Deploy — E2E Validation',before:'Agent 2.3.1',after:'Agent 2.3.2 promoted',pct:'Run #71 success',color:'green',detail:'Full pipeline success: Setup → Session Guard → Apply & Push → CI Gate → Promote CAP → Save State → Audit.'},
+      {date:'2026-03-29T13:47Z',type:'pipeline-improvement',title:'Controller 3.7.0 Deploy — E2E Validation',before:'Controller 3.6.9',after:'Controller 3.7.0 promoted',pct:'Run #70 success',color:'green',detail:'Full pipeline success. Corporate CI passed. CAP auto-promoted. Docker image published.'},
+      {date:'2026-03-26T22:00Z',type:'ci-improvement',title:'8 CI Failures Auto-Diagnosed & Fixed',before:'0 known patterns, manual fix 30-60min',after:'12 patterns documented, auto-fix 5-10min',pct:'80% faster fixes',color:'cyan',detail:'Failures fixed: checkout path (run 30), lint per-file (31), concurrency stuck (33), JWT scope (35), TS2769 (36), ESLint order (37), CI Gate false neg (43), validateTrustedUrl (52).'},
+      {date:'2026-03-25T21:12Z',type:'security-improvement',title:'5 Checkmarx Vulnerabilities Fixed',before:'1 HIGH (XSS) + 4 MEDIUM',after:'0 vulnerabilities',pct:'100% resolved',color:'red',detail:'Deploy 3.6.3 (run 52). Added sanitizeForOutput(), MAX_RESULTS=1000, removed validateTrustedUrl from fetch. 4 compliance rules added. Corporate CI passed.'},
+      {date:'2026-03-25T14:55Z',type:'integration-improvement',title:'OaaS Integration — End-to-End Validated',before:'401 Unauthorized, DNS failures',after:'200 OK, compliance_status=success in 9.2s',pct:'100% working',color:'blue',detail:'OaaS → Controller → Agent flow. Fixed: DNS (k8shmlbb111b), auth headers (x-techbb-*), payload mapping (manifest inputs only).'},
+      {date:'2026-03-24T18:00Z',type:'architecture-improvement',title:'Multi-Company Isolation',before:'1 company, no isolation',after:'4 workspaces, complete isolation, 2 blocked',pct:'100% isolation',color:'purple',detail:'Schema v3, per-company tokens, blocked workspaces (ws-socnew, ws-corp-1) for third-parties. CIT workspace created.'},
+      {date:'2026-03-23T21:00Z',type:'pipeline-improvement',title:'First Successful Deploy — Pipeline Born',before:'No pipeline',after:'apply-source-change run #33 SUCCESS',pct:'Pipeline operational',color:'green',detail:'First end-to-end deploy. Controller 3.5.4 pushed to corporate repo. Esteira de Build NPM triggered. Fixed: multi-file support, checkout paths, concurrency groups.'}
     ];
 
     document.getElementById('improvTimeline').innerHTML=REAL_IMPROVEMENTS.map(imp=>`
       <div class="section" style="margin-bottom:12px;border-left:3px solid var(--${imp.color})">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div class="flex" style="gap:8px">${badge(imp.type,imp.color)} <strong>${esc(imp.title)}</strong></div>
-          <span style="font-size:11px;color:var(--muted)">${esc(imp.date)}</span>
+          <span style="font-size:11px;color:var(--muted)">${fmtDate(imp.date)}</span>
         </div>
         <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
           <div style="background:var(--red-dim);border-radius:4px;padding:6px 10px;font-size:12px"><strong>Before:</strong> ${esc(imp.before)}</div>
@@ -1082,7 +1086,7 @@
     ];
 
     document.getElementById('improvMechanisms').innerHTML=`
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Estes mecanismos rodam automaticamente sem nenhuma intervencao humana.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">These mechanisms run automatically without any human intervention.</div>
       <table>
         <thead><tr><th>Workflow</th><th>Schedule</th><th>Status</th><th>Last Result</th></tr></thead>
         <tbody>${MECHANISMS.map(m=>`
@@ -1531,19 +1535,19 @@
 
   // ===== OPERATIONS CENTER =====
   const OPS_ACTIONS=[
-    {id:'check-health',label:'Verificar Saude do Sistema',desc:'Roda verificacao completa: estado, locks, drift, CI, versoes',category:'monitor',icon:'💚',safe:true},
-    {id:'force-dashboard-sync',label:'Forcar Sync do Dashboard',desc:'Atualiza o dashboard AGORA com os dados mais recentes',category:'monitor',icon:'🔄',safe:true},
-    {id:'diagnose-controller-ci',label:'Diagnosticar CI do Controller',desc:'Baixa logs da esteira corporativa e analisa erros do Controller',category:'diagnose',icon:'🔍',safe:true},
-    {id:'diagnose-agent-ci',label:'Diagnosticar CI do Agent',desc:'Baixa logs da esteira corporativa e analisa erros do Agent',category:'diagnose',icon:'🔍',safe:true},
-    {id:'check-controller-ci',label:'Status CI Controller',desc:'Verifica resultado atual da esteira de build do Controller',category:'monitor',icon:'📋',safe:true},
-    {id:'check-agent-ci',label:'Status CI Agent',desc:'Verifica resultado atual da esteira de build do Agent',category:'monitor',icon:'📋',safe:true},
-    {id:'backup-state',label:'Backup do Estado',desc:'Cria snapshot do estado atual para rollback futuro',category:'safety',icon:'💾',safe:true},
-    {id:'restore-state',label:'Restaurar Estado (Rollback)',desc:'Restaura o estado a partir do ultimo backup',category:'safety',icon:'⏪',safe:false},
-    {id:'optimize-tokens',label:'Otimizar Uso de Tokens',desc:'Compacta memoria e reduz custo de tokens automaticamente',category:'optimize',icon:'💰',safe:true},
-    {id:'cleanup-branches',label:'Limpar Branches Antigas',desc:'Remove branches mergeadas e stale automaticamente',category:'maintenance',icon:'🧹',safe:true},
-    {id:'freeze-releases',label:'Congelar Releases',desc:'Bloqueia novos deploys (janela de manutencao)',category:'safety',icon:'🧊',safe:false},
-    {id:'unfreeze-releases',label:'Descongelar Releases',desc:'Libera deploys novamente apos manutencao',category:'safety',icon:'🔥',safe:false},
-    {id:'run-improvement-scan',label:'Scan de Melhorias',desc:'Analisa o sistema inteiro e sugere melhorias automaticas',category:'optimize',icon:'🧠',safe:true}
+    {id:'check-health',label:'Check Saude do Sistema',desc:'Runs full check: state, locks, drift, CI, versions',category:'monitor',icon:'💚',safe:true},
+    {id:'force-dashboard-sync',label:'Force Dashboard Sync',desc:'Atualiza o dashboard AGORA com os dados mais recentes',category:'monitor',icon:'🔄',safe:true},
+    {id:'diagnose-controller-ci',label:'Diagnose CI do Controller',desc:'Downloads corporate CI logs and analyzes Controller errors',category:'diagnose',icon:'🔍',safe:true},
+    {id:'diagnose-agent-ci',label:'Diagnose CI do Agent',desc:'Downloads corporate CI logs and analyzes Agent errors',category:'diagnose',icon:'🔍',safe:true},
+    {id:'check-controller-ci',label:'Controller CI Status',desc:'Checks current build pipeline result for Controller',category:'monitor',icon:'📋',safe:true},
+    {id:'check-agent-ci',label:'Agent CI Status',desc:'Checks current build pipeline result for Agent',category:'monitor',icon:'📋',safe:true},
+    {id:'backup-state',label:'Backup State',desc:'Creates snapshot of current state for future rollback',category:'safety',icon:'💾',safe:true},
+    {id:'restore-state',label:'Restore State (Rollback)',desc:'Restores state from last backup',category:'safety',icon:'⏪',safe:false},
+    {id:'optimize-tokens',label:'Optimize Token Usage',desc:'Compacts memory and reduces token cost automatically',category:'optimize',icon:'💰',safe:true},
+    {id:'cleanup-branches',label:'Clean Stale Branches',desc:'Removes merged and stale branches automatically',category:'maintenance',icon:'🧹',safe:true},
+    {id:'freeze-releases',label:'Freeze Releases',desc:'Blocks new deploys (maintenance window)',category:'safety',icon:'🧊',safe:false},
+    {id:'unfreeze-releases',label:'Unfreeze Releases',desc:'Resumes deploys after maintenance',category:'safety',icon:'🔥',safe:false},
+    {id:'run-improvement-scan',label:'Run Improvement Scan',desc:'Analyzes entire system and suggests automatic improvements',category:'optimize',icon:'🧠',safe:true}
   ];
 
   function renderOps(){
@@ -1557,14 +1561,14 @@
     document.getElementById('opsStatus').innerHTML=`
       <div class="grid-4">
         <div class="card"><div class="card-title">Sistema</div><div class="card-value" style="color:var(--${h.color})">${h.score>=80?'OK':h.score>=50?'ATENCAO':'CRITICO'}</div><div class="card-sub">Health: ${h.score}/100</div></div>
-        <div class="card"><div class="card-title">Dashboard Sync</div><div class="card-value" style="color:var(--${syncAge<5?'green':syncAge<15?'yellow':'red'})">${syncAge}min</div><div class="card-sub">${syncAge<5?'Atualizado':'Verificar sync'}</div></div>
+        <div class="card"><div class="card-title">Dashboard Sync</div><div class="card-value" style="color:var(--${syncAge<5?'green':syncAge<15?'yellow':'red'})">${syncAge}min</div><div class="card-sub">${syncAge<5?'Up to date':'Check sync'}</div></div>
         <div class="card"><div class="card-title">Pipeline</div><div class="card-value">${badge((state.pipeline||{}).status||'idle')}</div><div class="card-sub">#${(state.pipeline||{}).lastRun||0}</div></div>
-        <div class="card"><div class="card-title">Watchdog</div><div class="card-value" style="color:var(--green)">Ativo</div><div class="card-sub">Verifica a cada 6h</div></div>
+        <div class="card"><div class="card-title">Watchdog</div><div class="card-value" style="color:var(--green)">Active</div><div class="card-sub">Checks every 6h</div></div>
       </div>`;
 
     // Group by category
     const cats={monitor:[],diagnose:[],safety:[],optimize:[],maintenance:[]};
-    const catNames={monitor:'Monitoramento',diagnose:'Diagnostico',safety:'Seguranca & Rollback',optimize:'Otimizacao',maintenance:'Manutencao'};
+    const catNames={monitor:'Monitoring',diagnose:'Diagnostics',safety:'Safety & Rollback',optimize:'Optimization',maintenance:'Maintenance'};
     const catColors={monitor:'blue',diagnose:'cyan',safety:'red',optimize:'green',maintenance:'yellow'};
     OPS_ACTIONS.forEach(a=>{if(cats[a.category])cats[a.category].push(a)});
 
@@ -1580,7 +1584,7 @@
             </div>
             <a href="${DISPATCH_URL}" target="_blank" rel="noopener"
                style="background:var(--${a.safe?catColors[cat]:'red'});color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;display:inline-block">
-              ${a.safe?'Executar':'⚠️ Executar'}
+              ${a.safe?'Run':'⚠️ Run'}
             </a>
           </div>`).join('')}
       </div>`;
@@ -1590,12 +1594,12 @@
     document.getElementById('opsHowItWorks').innerHTML=`
       <div style="font-size:13px;color:var(--muted)">
         <ol style="padding-left:20px;line-height:2">
-          <li>Clique no botao <strong>"Executar"</strong> ao lado da operacao desejada</li>
-          <li>Voce sera redirecionado para o GitHub Actions</li>
-          <li>Na pagina do GitHub, selecione a operacao no dropdown <strong>"Operation to execute"</strong></li>
-          <li>Digite <strong>YES</strong> no campo de confirmacao</li>
-          <li>Clique <strong>"Run workflow"</strong></li>
-          <li>Aguarde a execucao (1-5 minutos). O resultado aparece no dashboard automaticamente.</li>
+          <li>Clique no botao <strong>"Run"</strong> ao lado da operacao desejada</li>
+          <li>You will be redirected to GitHub Actions</li>
+          <li>On the GitHub page, select the operation from the <strong>"Operation to execute"</strong> dropdown</li>
+          <li>Type <strong>YES</strong> in the confirmation field</li>
+          <li>Click <strong>"Run workflow"</strong></li>
+          <li>Wait for execution (1-5 minutes). Results appear on the dashboard automatically.</li>
         </ol>
         <div style="margin-top:12px;background:var(--surface2);border-radius:6px;padding:12px">
           <strong>Link direto:</strong> <a href="${DISPATCH_URL}" target="_blank" rel="noopener">${DISPATCH_URL}</a>
@@ -1608,19 +1612,19 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
           <div style="background:var(--surface2);border-radius:6px;padding:12px;border-left:3px solid var(--green)">
             <div style="font-weight:600;margin-bottom:4px">Emergency Watchdog</div>
-            <div style="font-size:12px;color:var(--muted)">Roda automaticamente a cada 6h. Detecta: sync stale, locks expirados, saude degradada, memoria grande. Auto-corrige tudo sem intervencao.</div>
+            <div style="font-size:12px;color:var(--muted)">Runs every 6h automatically. Detects: stale sync, expired locks, degraded health, large memory. Self-heals without intervention.</div>
           </div>
           <div style="background:var(--surface2);border-radius:6px;padding:12px;border-left:3px solid var(--purple)">
             <div style="font-weight:600;margin-bottom:4px">AI Takeover Kit</div>
-            <div style="font-size:12px;color:var(--muted)">Documento completo que QUALQUER IA pode ler e operar o sistema. Inclui prompts prontos, passo-a-passo de deploy, e guia de troubleshooting.</div>
+            <div style="font-size:12px;color:var(--muted)">Complete document any AI can read to operate the system. Includes ready prompts, deploy walkthrough, and troubleshooting guide.</div>
           </div>
           <div style="background:var(--surface2);border-radius:6px;padding:12px;border-left:3px solid var(--cyan)">
             <div style="font-weight:600;margin-bottom:4px">Token Auto-Optimize</div>
-            <div style="font-size:12px;color:var(--muted)">Roda diariamente. Compacta memoria, arquiva dados antigos, externaliza docs estaticos. Reduz custo em 30-50%.</div>
+            <div style="font-size:12px;color:var(--muted)">Runs daily. Compacts memory, archives old data, externalizes static docs. Reduces cost by 30-50%.</div>
           </div>
           <div style="background:var(--surface2);border-radius:6px;padding:12px;border-left:3px solid var(--yellow)">
             <div style="font-weight:600;margin-bottom:4px">Dashboard Auto-Improve</div>
-            <div style="font-size:12px;color:var(--muted)">Valida accuracy dos dados diariamente. Detecta inconsistencias e cria Issues automaticamente se encontra problemas.</div>
+            <div style="font-size:12px;color:var(--muted)">Validates data accuracy daily. Detects inconsistencies and auto-creates Issues when problems found.</div>
           </div>
         </div>
       </div>`;
@@ -1639,17 +1643,17 @@
     document.getElementById('aikitContent').innerHTML=`
       <div class="section">
         <h3>Quick Start para outra IA</h3>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Copie o prompt abaixo e cole em QUALQUER IA (ChatGPT, Gemini, etc.) para ela assumir o controle do sistema:</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Copy the prompt below and paste into ANY AI (ChatGPT, Gemini, etc.) to take over the system:</div>
         <div style="background:var(--surface2);border-radius:6px;padding:16px;font-family:monospace;font-size:12px;line-height:1.6;border:1px solid var(--border);cursor:pointer;position:relative" onclick="navigator.clipboard.writeText(this.innerText).then(()=>{this.querySelector('.copy-msg').style.display='block';setTimeout(()=>this.querySelector('.copy-msg').style.display='none',2000)})">
           <div class="copy-msg" style="display:none;position:absolute;top:8px;right:8px;background:var(--green);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">Copiado!</div>
           ${esc(quickPrompt)}
         </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">Clique no texto acima para copiar</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Click the text above to copy</div>
       </div>
 
       <div class="section">
         <h3>Estado Atual do Sistema</h3>
-        <div style="font-size:13px;margin-bottom:12px;color:var(--muted)">Estas informacoes sao as que a IA de backup precisa saber:</div>
+        <div style="font-size:13px;margin-bottom:12px;color:var(--muted)">This is the information the backup AI needs to know:</div>
         <table>
           <tr><td style="color:var(--muted)">Controller Version</td><td><strong>${esc(c.version||'?')}</strong></td><td>${badge(c.ciResult||'?')}</td></tr>
           <tr><td style="color:var(--muted)">Agent Version</td><td><strong>${esc(a.version||'?')}</strong></td><td>${badge(a.ciResult||'?')}</td></tr>
@@ -1664,20 +1668,20 @@
       <div class="section">
         <h3>Prompts Prontos (copie e cole em qualquer IA)</h3>
         ${[
-          {title:'Verificar status',prompt:'Read contracts/claude-session-memory.json from repo '+REPO+'. Tell me current controller version, agent version, last run number, and any issues.'},
-          {title:'Fazer deploy (version bump)',prompt:'I need to deploy a version bump for the controller in repo '+REPO+'. Read contracts/ai-takeover-kit.md for the full process. Current version: '+(c.version||'?')+'. New version: '+nextVersion(c.version)+'. Last run: '+(p.lastRun||0)+'. Follow ALL steps exactly.'},
-          {title:'Diagnosticar falha',prompt:'The last deploy failed in repo '+REPO+'. Go to GitHub Actions, find the latest apply-source-change.yml run, check which stage failed, and tell me the error. Then suggest a fix from contracts/ai-takeover-kit.md section 4.'},
-          {title:'Corrigir dashboard',prompt:'The dashboard at https://lucassfreiree.github.io/autopilot/dashboard/ is showing stale data. Trigger the spark-sync-state.yml workflow in repo '+REPO+' via GitHub Actions. Then verify the dashboard updated.'}
+          {title:'Check status',prompt:'Read contracts/claude-session-memory.json from repo '+REPO+'. Tell me current controller version, agent version, last run number, and any issues.'},
+          {title:'Deploy (version bump)',prompt:'I need to deploy a version bump for the controller in repo '+REPO+'. Read contracts/ai-takeover-kit.md for the full process. Current version: '+(c.version||'?')+'. New version: '+nextVersion(c.version)+'. Last run: '+(p.lastRun||0)+'. Follow ALL steps exactly.'},
+          {title:'Diagnose falha',prompt:'The last deploy failed in repo '+REPO+'. Go to GitHub Actions, find the latest apply-source-change.yml run, check which stage failed, and tell me the error. Then suggest a fix from contracts/ai-takeover-kit.md section 4.'},
+          {title:'Fix dashboard',prompt:'The dashboard at https://lucassfreiree.github.io/autopilot/dashboard/ is showing stale data. Trigger the spark-sync-state.yml workflow in repo '+REPO+' via GitHub Actions. Then verify the dashboard updated.'}
         ].map(p=>`
           <div style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:10px;cursor:pointer;border-left:3px solid var(--purple)" onclick="navigator.clipboard.writeText('${esc(p.prompt.replace(/'/g,"\\'"))}')">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">${esc(p.title)}</div>
             <div style="font-size:11px;font-family:monospace;color:var(--muted);line-height:1.5">${esc(p.prompt)}</div>
-            <div style="font-size:10px;color:var(--blue);margin-top:4px">Clique para copiar</div>
+            <div style="font-size:10px;color:var(--blue);margin-top:4px">Click to copy</div>
           </div>`).join('')}
       </div>
 
       <div class="section">
-        <h3>Documentacao Completa</h3>
+        <h3>Full Documentation</h3>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
           <a href="${KIT_URL}" target="_blank" rel="noopener" style="background:var(--purple-dim);color:var(--purple);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600">AI Takeover Kit (Completo)</a>
           <a href="https://github.com/${REPO}/blob/main/CLAUDE.md" target="_blank" rel="noopener" style="background:var(--blue-dim);color:var(--blue);padding:8px 16px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600">CLAUDE.md (Full Docs)</a>

@@ -203,16 +203,16 @@ jobs:
           COMP="${{ steps.info.outputs.component }}"
           VER="${{ steps.info.outputs.version }}"
 
-          BODY="## Post-Deploy Validation Failed
+          BODY=$(cat <<EOFBODY
+          ## Post-Deploy Validation Failed
+          - Source version: ${{ steps.source.outputs.result }} (${{ steps.source.outputs.real }})
+          - CAP tag: ${{ steps.cap.outputs.result }} (${{ steps.cap.outputs.tag }})
+          - Autopilot state: ${{ steps.state.outputs.result }}
+          - Corporate CI: ${{ steps.ci.outputs.outcome }}
 
-| Check | Result |
-|-------|--------|
-| Source version | ${{ steps.source.outputs.result }} (${{ steps.source.outputs.real }}) |
-| CAP tag | ${{ steps.cap.outputs.result }} (${{ steps.cap.outputs.tag }}) |
-| Autopilot state | ${{ steps.state.outputs.result }} |
-| Corporate CI | ${{ steps.ci.outputs.outcome }} |
-
-Deploy of **$COMP v$VER** has issues. Investigate immediately."
+          Deploy of **${COMP} v${VER}** has issues. Investigate immediately.
+          EOFBODY
+          )
 
           gh api "repos/${{ github.repository }}/issues" \
             --method POST \

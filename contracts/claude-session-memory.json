@@ -1328,7 +1328,9 @@
       "dashboard_data_flow": "Dashboard le state.json de 2 fontes: (1) panel/dashboard/state.json no autopilot repo (GitHub Pages), (2) public/state.json no spark-dashboard repo. Ambos sao atualizados pelo spark-sync-state.yml. Quando usuario reporta dado errado no dashboard, corrigir AMBOS: o state.json local E o workflow que gera o state.json. Spark-dashboard repo: lucassfreiree/spark-dashboard (NAO esta no MCP allowed list — pedir acesso se precisar).",
       "version_source_of_truth": "Versao REAL de controller/agent vem do CAP tag (values.yaml no repo CAP). O autopilot-state release-state.json pode estar desatualizado. spark-sync-state.yml agora prioriza CAP tag.",
       "always_map_new_artifacts": "CRITICO: Ao criar QUALQUER artefato novo (workflow, trigger, schema, contract, integration), MAPEAR em CLAUDE.md e session-memory NO MESMO COMMIT. NUNCA deixar para depois. O usuario ja reclamou disso.",
-      "workspace_removal_socnew_corp1": "ws-socnew e ws-corp-1 foram REMOVIDOS do dashboard (state.json + spark-sync-state.yml) por decisao do usuario. NAO re-adicionar."
+      "workspace_removal_socnew_corp1": "ws-socnew e ws-corp-1 foram REMOVIDOS do dashboard (state.json + spark-sync-state.yml) por decisao do usuario. NAO re-adicionar.",
+      "spark_sync_cancel_cascade": "CRITICO: spark-sync-state.yml com cancel-in-progress:true MATA todos os runs quando multiplos pushes acontecem em sequencia (sync-codex-prompt + sync-copilot-prompt geram 2 pushes rapidos em main). Solucao: cancel-in-progress:false — runs ficam na fila e executam um por vez. NUNCA voltar para true neste workflow.",
+      "dashboard_repos_two_targets": "spark-sync-state.yml envia state.json para 2 destinos: (1) lucassfreiree/spark-dashboard:public/state.json (via RELEASE_TOKEN API), (2) lucassfreiree/autopilot:panel/dashboard/state.json (via GitHub API). O dashboard Pages le do #2. O spark-dashboard le do #1. Ambos devem estar consistentes."
     }
   },
   "deployFlowGuide": {

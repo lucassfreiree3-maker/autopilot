@@ -556,7 +556,7 @@ jobs:
           | Critical | ${CRIT} |
           | High | ${HIGH} |
 
-          **Run:** ${RUN_URL}
+          Run: ${RUN_URL}
 
           ### Action Required
           - Review the workflow run for detailed issue list

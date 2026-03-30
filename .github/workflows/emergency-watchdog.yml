@@ -157,26 +157,19 @@ jobs:
           ISSUE_TITLE="[Watchdog] System needs attention — ${{ steps.vitals.outputs.issues }} issues detected"
           EXISTING=$(gh issue list --repo "${{ github.repository }}" --search "$ISSUE_TITLE" --state open --json number --jq 'length' 2>/dev/null || echo 0)
           if [ "$EXISTING" -eq 0 ]; then
+            BODY=$(cat <<'HEREDOC'
+## Watchdog Report
+
+Issues detected and self-healing attempted.
+Check the dashboard or AI Takeover Kit for details.
+
+[Dashboard](https://lucassfreiree.github.io/autopilot/dashboard/) | [AI Takeover Kit](https://github.com/lucassfreiree/autopilot/blob/main/contracts/ai-takeover-kit.md)
+HEREDOC
+)
             gh issue create \
               --repo "${{ github.repository }}" \
               --title "$ISSUE_TITLE" \
-              --body "## Watchdog Report
-
-**Issues found**: ${{ steps.vitals.outputs.issues }}
-**Actions taken**: ${{ steps.vitals.outputs.actions }}
-**Time**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-### What happened
-The emergency watchdog detected multiple system issues and triggered self-healing.
-If issues persist after self-healing, manual intervention may be needed.
-
-### How to fix manually
-1. Go to [Dashboard](https://lucassfreiree.github.io/autopilot/dashboard/) → Operations Center
-2. Or trigger [Dispatch Proxy](https://github.com/lucassfreiree/autopilot/actions/workflows/dispatch-proxy.yml)
-3. Or read [AI Takeover Kit](https://github.com/lucassfreiree/autopilot/blob/main/contracts/ai-takeover-kit.md)
-
-### For any AI reading this
-Read \`contracts/ai-takeover-kit.md\` for complete instructions on how to operate this system." \
+              --body "$BODY" \
               --label "watchdog,automated" 2>/dev/null || echo "Issue creation failed"
           fi
 

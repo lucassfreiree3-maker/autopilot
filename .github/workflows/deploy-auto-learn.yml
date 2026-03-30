@@ -135,7 +135,7 @@ jobs:
           cat >> "$GITHUB_STEP_SUMMARY" <<SUMMARY
           # 📊 Deploy Auto-Learn Report
 
-          **Generated**: $TIMESTAMP
+          Generated: $TIMESTAMP
 
           ## Pipeline Health
           | Metric | Value |

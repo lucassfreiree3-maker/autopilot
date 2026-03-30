@@ -96,21 +96,22 @@ jobs:
           COMP="${{ needs.classify-and-dispatch.outputs.component }}"
 
           # Post instructions for Copilot
-          gh issue comment "$ISSUE" --body "## Auto-Dispatch: Assigned to Copilot Coding Agent
+          BODY=$(cat <<HEREDOC
+## Auto-Dispatch: Assigned to Copilot Coding Agent
 
-**Workspace**: \`$WS\`
-**Component**: \`$COMP\`
-**Complexity**: Simple — Copilot can handle this.
+Workspace: $WS | Component: $COMP | Complexity: Simple
 
 ### Instructions
-1. Read \`contracts/ai-takeover-kit.md\` for system context
-2. Read \`contracts/claude-session-memory.json\` for current state
+1. Read contracts/ai-takeover-kit.md for system context
+2. Read contracts/claude-session-memory.json for current state
 3. Implement the requested changes
-4. Create PR with branch \`copilot/task-${ISSUE}\`
+4. Create PR with branch copilot/task-${ISSUE}
 5. PR will be auto-merged after checks pass
 
----
-*Auto-dispatched by auto-dispatch-task.yml*"
+Auto-dispatched by auto-dispatch-task.yml
+HEREDOC
+)
+          gh issue comment "$ISSUE" --body "$BODY"
 
           # Assign Copilot
           gh api "repos/${{ github.repository }}/issues/$ISSUE/assignees" \
@@ -146,9 +147,9 @@ jobs:
           # Post context for Claude
           gh issue comment "$ISSUE" --body "## Auto-Dispatch: Flagged for Claude Code
 
-**Workspace**: \`$WS\`
-**Component**: \`$COMP\`
-**Complexity**: Complex — requires Claude Code (deploy, CI, multi-file changes).
+Workspace: \`$WS\`
+Component: \`$COMP\`
+Complexity: Complex — requires Claude Code (deploy, CI, multi-file changes).
 
 ### Current System State
 - Controller: **$CTRL_VER**
@@ -156,8 +157,8 @@ jobs:
 - Last run: **#$LAST_RUN**
 
 ### How Claude picks this up
-1. **Automatic**: Claude reads open Issues with \`needs-claude\` label at session start
-2. **Manual**: User says \`executa a issue #$ISSUE\` in Claude Code session
+1. Automatic: Claude reads open Issues with \`needs-claude\` label at session start
+2. Manual: User says \`executa a issue #$ISSUE\` in Claude Code session
 
 ### For Claude
 When executing this issue:

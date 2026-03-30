@@ -152,9 +152,9 @@ jobs:
 
           BODY="## Dashboard Auto-Improve — Issues Detected
 
-          **Date**: $NOW
-          **Total issues**: $ISSUE_COUNT
-          **High/Critical**: $HIGH_COUNT
+          Date: $NOW
+          Total issues: $ISSUE_COUNT
+          High/Critical: $HIGH_COUNT
 
           ### Issues Found
           $(echo "$ISSUES_JSON" | jq -r '.[] | "- **\(.severity)**: \(.issue)"')

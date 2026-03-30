@@ -85,14 +85,14 @@ function sanitizeForOutput(value: unknown): string {
 }
 
 function sanitizeEnvValues(envs: JsonRecord): JsonRecord {
-  const result: JsonRecord = {};
-  for (const [key, value] of Object.entries(envs)) {
-    result[key] =
+  return Object.fromEntries(
+    Object.entries(envs).map(([key, value]) => [
+      key,
       typeof value === "string"
         ? value.replace(/[<>"'&]/g, "").replace(/[\r\n\t]+/g, " ").trim()
-        : value;
-  }
-  return result;
+        : value,
+    ]),
+  ) as JsonRecord;
 }
 
 function safeLogValue(value: unknown): string {

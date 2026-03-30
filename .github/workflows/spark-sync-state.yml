@@ -23,6 +23,7 @@ on:
       - 'trigger/source-change.json'
       - 'references/spark-dashboard/**'
   workflow_dispatch: {}
+  # v2: script extracted to scripts/dashboard/collect-state.sh (fix 21000 char limit)
 
 permissions:
   contents: write

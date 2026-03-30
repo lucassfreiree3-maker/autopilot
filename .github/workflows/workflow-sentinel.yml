@@ -1,0 +1,219 @@
+name: "[Core] Workflow Sentinel"
+run-name: "${{ github.workflow }} • meta-monitor — watches the watchers"
+
+# SENTINEL: The ultimate self-healing loop.
+# Monitors the monitors. If health-monitor, auto-repair, watchdog, or
+# spark-sync-state are failing, sentinel detects and fixes them.
+# This is the LAST LINE OF DEFENSE — designed to NEVER fail.
+#
+# Architecture:
+#   sentinel → watches → health-monitor, auto-repair, watchdog, spark-sync, dashboard-auto-improve
+#   sentinel → triggers → auto-repair or re-enables disabled monitors
+#   sentinel → alerts → creates issues only when self-healing fails
+#
+# CRITICAL: This workflow is deliberately minimal and ultra-defensive.
+# Every line has a fallback. No set -e. No pipefail. No complex jq.
+
+on:
+  schedule:
+    # Every 4 hours — lightweight, just enough to catch problems
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      force_repair:
+        description: 'Force repair even if everything looks healthy'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: workflow-sentinel
+  cancel-in-progress: true
+
+jobs:
+  sentinel:
+    name: "Sentinel — watch the watchers"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      REPO: lucassfreiree/autopilot
+    steps:
+      - name: Check critical monitors
+        id: check
+        run: |
+          # List of workflows that MUST be healthy (the monitoring stack)
+          CRITICAL_MONITORS=(
+            "[Infra] Spark Dashboard Sync"
+            "[Core] Workflow Health Monitor"
+            "[Core] Workflow Auto-Repair"
+            "[Core] Emergency Watchdog"
+            "[Core] Builds Validation Gate"
+          )
+
+          SICK_COUNT=0
+          DISABLED_COUNT=0
+          ACTIONS=""
+          REPORT="## Sentinel Report\n\n| Monitor | Status | Last Run | Action |\n|---------|--------|----------|--------|\n"
+
+          for MONITOR in "${CRITICAL_MONITORS[@]}"; do
+            echo "Checking: $MONITOR"
+
+            # Find workflow ID by name
+            WF_INFO=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
+              --jq ".workflows[] | select(.name == \"$MONITOR\") | {id: .id, state: .state}" 2>/dev/null || echo '{}')
+
+            WF_ID=$(echo "$WF_INFO" | jq -r '.id // ""' 2>/dev/null || echo "")
+            WF_STATE=$(echo "$WF_INFO" | jq -r '.state // "not_found"' 2>/dev/null || echo "not_found")
+
+            if [ -z "$WF_ID" ] || [ "$WF_ID" = "" ] || [ "$WF_ID" = "null" ]; then
+              REPORT="${REPORT}| $MONITOR | not found | - | skip |\n"
+              continue
+            fi
+
+            # Check if disabled
+            if [ "$WF_STATE" = "disabled_manually" ] || [ "$WF_STATE" = "disabled_inactivity" ]; then
+              DISABLED_COUNT=$((DISABLED_COUNT + 1))
+              REPORT="${REPORT}| $MONITOR | DISABLED ($WF_STATE) | - | re-enable |\n"
+              ACTIONS="${ACTIONS}enable:$WF_ID\n"
+              continue
+            fi
+
+            # Get last 5 runs
+            LAST_RUNS=$(gh api "repos/$REPO/actions/workflows/$WF_ID/runs?per_page=5" \
+              --jq '[.workflow_runs[:5] | .[] | {conclusion: .conclusion, created: .created_at, status: .status}]' 2>/dev/null || echo '[]')
+
+            LAST_CONCLUSION=$(echo "$LAST_RUNS" | jq -r '.[0].conclusion // "none"' 2>/dev/null || echo "none")
+            LAST_CREATED=$(echo "$LAST_RUNS" | jq -r '.[0].created // "never"' 2>/dev/null || echo "never")
+
+            # Count consecutive failures
+            CONSEC_FAILS=$(echo "$LAST_RUNS" | jq '[.[] | select(.conclusion == "failure")] | length' 2>/dev/null || echo 0)
+
+            # Check staleness (no run in 24h = stale for scheduled workflows)
+            STALE="false"
+            if [ "$LAST_CREATED" != "never" ] && [ "$LAST_CREATED" != "null" ]; then
+              LAST_TS=$(date -d "$LAST_CREATED" +%s 2>/dev/null || echo 0)
+              NOW_TS=$(date +%s)
+              AGE_HOURS=$(( (NOW_TS - LAST_TS) / 3600 ))
+              if [ "$AGE_HOURS" -gt 24 ]; then
+                STALE="true"
+              fi
+            fi
+
+            STATUS="healthy"
+            ACTION="none"
+
+            if [ "$CONSEC_FAILS" -ge 3 ]; then
+              STATUS="SICK"
+              SICK_COUNT=$((SICK_COUNT + 1))
+              ACTION="re-run"
+              ACTIONS="${ACTIONS}rerun:$WF_ID\n"
+            elif [ "$STALE" = "true" ]; then
+              STATUS="STALE"
+              SICK_COUNT=$((SICK_COUNT + 1))
+              ACTION="re-run"
+              ACTIONS="${ACTIONS}rerun:$WF_ID\n"
+            elif [ "$LAST_CONCLUSION" = "failure" ]; then
+              STATUS="degraded"
+              ACTION="watch"
+            fi
+
+            REPORT="${REPORT}| $MONITOR | $STATUS | $LAST_CREATED | $ACTION |\n"
+          done
+
+          echo "sick=$SICK_COUNT" >> "$GITHUB_OUTPUT"
+          echo "disabled=$DISABLED_COUNT" >> "$GITHUB_OUTPUT"
+          printf "actions=%s\n" "$(echo -e "$ACTIONS" | tr '\n' '|')" >> "$GITHUB_OUTPUT"
+
+          echo -e "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Sick monitors:** $SICK_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Disabled monitors:** $DISABLED_COUNT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Self-heal monitors
+        if: steps.check.outputs.sick != '0' || steps.check.outputs.disabled != '0' || github.event.inputs.force_repair == 'true'
+        run: |
+          ACTIONS="${{ steps.check.outputs.actions }}"
+          HEALED=0
+
+          # Process each action
+          echo "$ACTIONS" | tr '|' '\n' | while read -r ACTION; do
+            [ -z "$ACTION" ] && continue
+
+            TYPE=$(echo "$ACTION" | cut -d: -f1)
+            WF_ID=$(echo "$ACTION" | cut -d: -f2)
+
+            case "$TYPE" in
+              "enable")
+                echo "Re-enabling workflow $WF_ID..."
+                gh api "repos/$REPO/actions/workflows/$WF_ID/enable" --method PUT 2>/dev/null && \
+                  echo "::notice ::Re-enabled workflow $WF_ID" || \
+                  echo "::warning ::Failed to re-enable $WF_ID"
+                ;;
+              "rerun")
+                echo "Dispatching re-run for workflow $WF_ID..."
+                gh api "repos/$REPO/actions/workflows/$WF_ID/dispatches" \
+                  --method POST --field "ref=main" 2>/dev/null && \
+                  echo "::notice ::Dispatched re-run for $WF_ID" || \
+                  echo "::warning ::Failed to dispatch $WF_ID"
+                ;;
+            esac
+          done
+
+          echo "Self-healing complete." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Escalate if self-heal insufficient
+        if: steps.check.outputs.sick != '0'
+        run: |
+          SICK="${{ steps.check.outputs.sick }}"
+
+          # Check if there's already an open sentinel alert
+          EXISTING=$(gh api "repos/$REPO/issues?labels=sentinel,auto-generated&state=open&per_page=1" \
+            --jq '.[0].number // ""' 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING" ]; then
+            gh api "repos/$REPO/issues" \
+              --method POST \
+              --field "title=[Sentinel] $SICK monitor(s) unhealthy — self-healing attempted" \
+              --field "body=The Workflow Sentinel detected **$SICK** monitoring workflow(s) in unhealthy state.
+
+          Self-healing has been attempted (re-enable disabled, re-run failed).
+          If this issue persists, manual intervention may be needed.
+
+          **Check:** https://github.com/$REPO/actions/workflows/workflow-sentinel.yml
+
+          Auto-generated by Workflow Sentinel." \
+              --field "labels=[\"sentinel\",\"auto-generated\",\"critical\"]" \
+              > /dev/null 2>&1 || echo "::warning ::Failed to create sentinel issue"
+          else
+            echo "::notice ::Sentinel alert already open (#$EXISTING)"
+          fi
+
+      - name: Save sentinel state
+        if: always()
+        run: |
+          STATE=$(jq -n \
+            --arg timestamp "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --argjson sick "${{ steps.check.outputs.sick || '0' }}" \
+            --argjson disabled "${{ steps.check.outputs.disabled || '0' }}" \
+            '{lastCheck: $timestamp, sickMonitors: $sick, disabledMonitors: $disabled, status: (if $sick == 0 and $disabled == 0 then "all-healthy" else "action-taken" end)}')
+
+          STATE_B64=$(echo "$STATE" | base64 -w0)
+          EXISTING_SHA=$(gh api "repos/$REPO/contents/state/sentinel-state.json?ref=autopilot-state" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          PAYLOAD=$(jq -n \
+            --arg content "$STATE_B64" \
+            --arg sha "$EXISTING_SHA" \
+            --arg message "chore: sentinel state update [auto]" \
+            --arg branch "autopilot-state" \
+            '{message: $message, content: $content, branch: $branch} + (if $sha != "" then {sha: $sha} else {} end)')
+
+          gh api "repos/$REPO/contents/state/sentinel-state.json" \
+            --method PUT --input - <<< "$PAYLOAD" > /dev/null 2>&1 || \
+            echo "::warning ::Failed to save sentinel state"

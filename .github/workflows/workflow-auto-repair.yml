@@ -1,0 +1,327 @@
+name: "[Core] Workflow Auto-Repair"
+run-name: "${{ github.workflow }} • auto-fix failing workflows"
+
+# Automatically diagnoses and repairs common workflow failures.
+# Triggered by: health monitor, emergency watchdog, or manual dispatch.
+# Known repair patterns: stale locks, SHA conflicts, missing state files,
+# disabled workflows, stuck runs, and YAML syntax issues.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'What triggered this repair'
+        required: false
+        default: 'manual'
+        type: string
+      target_workflow:
+        description: 'Specific workflow to repair (blank = auto-detect)'
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: 'Only diagnose, do not apply fixes'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: workflow-auto-repair
+  cancel-in-progress: false
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  diagnose:
+    name: "Diagnose failures"
+    runs-on: ubuntu-latest
+    outputs:
+      repairs: ${{ steps.analyze.outputs.repairs }}
+      repair_count: ${{ steps.analyze.outputs.repair_count }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load health report
+        id: report
+        run: |
+          # Try to get latest health report from state branch
+          REPORT=$(gh api "repos/$REPO/contents/state/workflow-health-report.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+          if ! echo "$REPORT" | jq empty 2>/dev/null; then
+            REPORT='{}'
+          fi
+
+          echo "$REPORT" > /tmp/health-report.json
+          echo "has_report=$(echo "$REPORT" | jq 'has("criticalWorkflows")' 2>/dev/null || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Analyze and plan repairs
+        id: analyze
+        run: |
+          TARGET="${{ github.event.inputs.target_workflow || '' }}"
+          REPAIRS="[]"
+
+          # ── Pattern 1: Detect disabled workflows ──
+          echo "::group::Checking for disabled workflows"
+          DISABLED=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
+            --jq '[.workflows[] | select(.state == "disabled_manually" or .state == "disabled_inactivity") | {id: .id, name: .name, path: .path, state: .state}]' 2>/dev/null || echo '[]')
+
+          for WF in $(echo "$DISABLED" | jq -c '.[]' 2>/dev/null); do
+            WF_NAME=$(echo "$WF" | jq -r '.name')
+            WF_ID=$(echo "$WF" | jq -r '.id')
+            WF_STATE=$(echo "$WF" | jq -r '.state')
+            REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+              \"type\": \"re-enable\",
+              \"workflow_id\": $WF_ID,
+              \"workflow_name\": \"$WF_NAME\",
+              \"reason\": \"Workflow is $WF_STATE\",
+              \"action\": \"Enable workflow via API\"
+            }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+          done
+          echo "::endgroup::"
+
+          # ── Pattern 2: Stuck runs (in_progress > 60 min) ──
+          echo "::group::Checking for stuck runs"
+          SIXTY_MIN_AGO=$(date -u -d '60 minutes ago' '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
+          STUCK=$(gh api "repos/$REPO/actions/runs?status=in_progress&per_page=50" \
+            --jq "[.workflow_runs[] | select(.created_at < \"$SIXTY_MIN_AGO\") | {id: .id, name: .name, created: .created_at, url: .html_url}]" 2>/dev/null || echo '[]')
+
+          for RUN in $(echo "$STUCK" | jq -c '.[]' 2>/dev/null); do
+            RUN_ID=$(echo "$RUN" | jq -r '.id')
+            RUN_NAME=$(echo "$RUN" | jq -r '.name')
+            REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+              \"type\": \"cancel-stuck\",
+              \"run_id\": $RUN_ID,
+              \"workflow_name\": \"$RUN_NAME\",
+              \"reason\": \"Run stuck for >60 minutes\",
+              \"action\": \"Cancel stuck run\"
+            }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+          done
+          echo "::endgroup::"
+
+          # ── Pattern 3: Expired locks on state branch ──
+          echo "::group::Checking for expired locks"
+          NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          LOCK_RAW=$(gh api "repos/$REPO/contents/state/workspaces/ws-default/locks/session-lock.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+
+          if echo "$LOCK_RAW" | jq empty 2>/dev/null; then
+            LOCK_EXPIRES=$(echo "$LOCK_RAW" | jq -r '.expiresAt // ""' 2>/dev/null || echo "")
+            if [ -n "$LOCK_EXPIRES" ] && [ "$LOCK_EXPIRES" != "null" ]; then
+              LOCK_TS=$(date -d "$LOCK_EXPIRES" +%s 2>/dev/null || echo 0)
+              NOW_TS=$(date +%s)
+              if [ "$LOCK_TS" -lt "$NOW_TS" ] && [ "$LOCK_TS" -gt 0 ]; then
+                LOCK_AGENT=$(echo "$LOCK_RAW" | jq -r '.agentId // "unknown"')
+                REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+                  \"type\": \"clear-lock\",
+                  \"lock_path\": \"state/workspaces/ws-default/locks/session-lock.json\",
+                  \"workflow_name\": \"session-lock\",
+                  \"reason\": \"Lock expired at $LOCK_EXPIRES (held by $LOCK_AGENT)\",
+                  \"action\": \"Delete expired lock\"
+                }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+              fi
+            fi
+          fi
+          echo "::endgroup::"
+
+          # ── Pattern 4: Critical workflows from health report ──
+          echo "::group::Checking critical workflows from health report"
+          if [ -f /tmp/health-report.json ]; then
+            CRITICAL_WFS=$(jq -c '.criticalWorkflows // []' /tmp/health-report.json 2>/dev/null || echo '[]')
+            for WF in $(echo "$CRITICAL_WFS" | jq -c '.[]' 2>/dev/null); do
+              WF_NAME=$(echo "$WF" | jq -r '.name')
+              WF_ID=$(echo "$WF" | jq -r '.workflow_id')
+              CONSEC=$(echo "$WF" | jq -r '.consecutiveFailures')
+              LAST_URL=$(echo "$WF" | jq -r '.lastUrl // ""')
+
+              # Check if it's spark-sync-state (most common)
+              if echo "$WF_NAME" | grep -qi "spark"; then
+                REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+                  \"type\": \"re-run\",
+                  \"workflow_id\": $WF_ID,
+                  \"workflow_name\": \"$WF_NAME\",
+                  \"reason\": \"$CONSEC consecutive failures — dashboard sync critical\",
+                  \"action\": \"Force re-run with latest main\"
+                }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+              else
+                REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+                  \"type\": \"alert-only\",
+                  \"workflow_id\": $WF_ID,
+                  \"workflow_name\": \"$WF_NAME\",
+                  \"reason\": \"$CONSEC consecutive failures\",
+                  \"action\": \"Needs manual investigation\",
+                  \"lastUrl\": \"$LAST_URL\"
+                }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+              fi
+            done
+          fi
+          echo "::endgroup::"
+
+          # ── Pattern 5: Queued runs pile-up (>10 queued for same workflow) ──
+          echo "::group::Checking for queued run pile-ups"
+          QUEUED_PILE=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=100" \
+            --jq '[.workflow_runs | group_by(.workflow_id)[] | select(length > 10) | {workflow_id: .[0].workflow_id, name: .[0].name, count: length, oldest: (sort_by(.created_at) | .[0].id)}]' 2>/dev/null || echo '[]')
+
+          for PILE in $(echo "$QUEUED_PILE" | jq -c '.[]' 2>/dev/null); do
+            PILE_NAME=$(echo "$PILE" | jq -r '.name')
+            PILE_COUNT=$(echo "$PILE" | jq -r '.count')
+            REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
+              \"type\": \"cancel-queued\",
+              \"workflow_name\": \"$PILE_NAME\",
+              \"reason\": \"$PILE_COUNT queued runs piled up\",
+              \"action\": \"Cancel oldest queued runs\"
+            }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
+          done
+          echo "::endgroup::"
+
+          REPAIR_COUNT=$(echo "$REPAIRS" | jq 'length' 2>/dev/null || echo 0)
+          echo "repairs=$(echo "$REPAIRS" | jq -c '.')" >> "$GITHUB_OUTPUT"
+          echo "repair_count=$REPAIR_COUNT" >> "$GITHUB_OUTPUT"
+
+          echo "::notice ::Found $REPAIR_COUNT repair actions"
+
+          # Summary
+          echo "## Auto-Repair Diagnosis" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Source:** ${{ github.event.inputs.source || 'scheduled' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Repairs found:** $REPAIR_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$REPAIR_COUNT" -gt 0 ]; then
+            echo "| Type | Workflow | Reason | Action |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|------|----------|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "$REPAIRS" | jq -r '.[] | "| \(.type) | \(.workflow_name) | \(.reason) | \(.action) |"' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  repair:
+    name: "Apply repairs"
+    needs: diagnose
+    if: |
+      needs.diagnose.outputs.repair_count != '0' &&
+      github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Execute repairs
+        run: |
+          REPAIRS='${{ needs.diagnose.outputs.repairs }}'
+          APPLIED=0
+          FAILED=0
+
+          for REPAIR in $(echo "$REPAIRS" | jq -c '.[]' 2>/dev/null); do
+            TYPE=$(echo "$REPAIR" | jq -r '.type')
+            WF_NAME=$(echo "$REPAIR" | jq -r '.workflow_name')
+            echo "::group::Repairing: $WF_NAME ($TYPE)"
+
+            case "$TYPE" in
+              "re-enable")
+                WF_ID=$(echo "$REPAIR" | jq -r '.workflow_id')
+                echo "Re-enabling workflow $WF_NAME (id: $WF_ID)..."
+                if gh api "repos/$REPO/actions/workflows/$WF_ID/enable" --method PUT 2>/dev/null; then
+                  echo "::notice ::Re-enabled $WF_NAME"
+                  APPLIED=$((APPLIED + 1))
+                else
+                  echo "::warning ::Failed to re-enable $WF_NAME"
+                  FAILED=$((FAILED + 1))
+                fi
+                ;;
+
+              "cancel-stuck")
+                RUN_ID=$(echo "$REPAIR" | jq -r '.run_id')
+                echo "Cancelling stuck run $RUN_ID for $WF_NAME..."
+                if gh api "repos/$REPO/actions/runs/$RUN_ID/cancel" --method POST 2>/dev/null; then
+                  echo "::notice ::Cancelled stuck run $RUN_ID"
+                  APPLIED=$((APPLIED + 1))
+                else
+                  echo "::warning ::Failed to cancel run $RUN_ID"
+                  FAILED=$((FAILED + 1))
+                fi
+                ;;
+
+              "clear-lock")
+                LOCK_PATH=$(echo "$REPAIR" | jq -r '.lock_path')
+                echo "Clearing expired lock at $LOCK_PATH..."
+                LOCK_SHA=$(gh api "repos/$REPO/contents/$LOCK_PATH?ref=$STATE_BRANCH" --jq '.sha' 2>/dev/null || echo "")
+                if [ -n "$LOCK_SHA" ]; then
+                  PAYLOAD=$(jq -n --arg sha "$LOCK_SHA" --arg msg "chore: auto-clear expired lock [auto-repair]" --arg branch "$STATE_BRANCH" \
+                    '{message: $msg, sha: $sha, branch: $branch}')
+                  if gh api "repos/$REPO/contents/$LOCK_PATH" --method DELETE --input - <<< "$PAYLOAD" 2>/dev/null; then
+                    echo "::notice ::Cleared expired lock"
+                    APPLIED=$((APPLIED + 1))
+                  else
+                    echo "::warning ::Failed to clear lock"
+                    FAILED=$((FAILED + 1))
+                  fi
+                fi
+                ;;
+
+              "re-run")
+                WF_ID=$(echo "$REPAIR" | jq -r '.workflow_id')
+                echo "Re-running $WF_NAME..."
+                if gh api "repos/$REPO/actions/workflows/$WF_ID/dispatches" \
+                  --method POST --field "ref=main" 2>/dev/null; then
+                  echo "::notice ::Dispatched re-run for $WF_NAME"
+                  APPLIED=$((APPLIED + 1))
+                else
+                  echo "::warning ::Failed to dispatch $WF_NAME"
+                  FAILED=$((FAILED + 1))
+                fi
+                ;;
+
+              "cancel-queued")
+                echo "Cancelling queued pile-up for $WF_NAME..."
+                # Cancel all but the latest queued run
+                QUEUED_IDS=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=100" \
+                  --jq "[.workflow_runs[] | select(.name == \"$WF_NAME\")] | sort_by(.created_at) | .[:-1] | .[].id" 2>/dev/null || echo "")
+                CANCELLED=0
+                for RID in $QUEUED_IDS; do
+                  gh api "repos/$REPO/actions/runs/$RID/cancel" --method POST 2>/dev/null && CANCELLED=$((CANCELLED + 1)) || true
+                done
+                echo "::notice ::Cancelled $CANCELLED queued runs for $WF_NAME"
+                APPLIED=$((APPLIED + 1))
+                ;;
+
+              "alert-only")
+                echo "::notice ::$WF_NAME needs manual investigation"
+                ;;
+            esac
+
+            echo "::endgroup::"
+          done
+
+          echo "## Repair Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Applied: $APPLIED" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Failed: $FAILED" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Skipped (alert-only): $(echo "$REPAIRS" | jq '[.[] | select(.type == "alert-only")] | length')" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save repair audit
+        run: |
+          AUDIT=$(jq -n \
+            --arg timestamp "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --arg source "${{ github.event.inputs.source || 'scheduled' }}" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --argjson repairs '${{ needs.diagnose.outputs.repairs }}' \
+            '{timestamp: $timestamp, source: $source, runUrl: $run_url, repairs: $repairs}')
+
+          AUDIT_B64=$(echo "$AUDIT" | base64 -w0)
+          TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
+
+          gh api "repos/$REPO/contents/state/audit/auto-repair-${TIMESTAMP}.json" \
+            --method PUT \
+            --field "message=chore: auto-repair audit [auto]" \
+            --field "content=$AUDIT_B64" \
+            --field "branch=$STATE_BRANCH" \
+            > /dev/null 2>&1 || echo "::warning ::Failed to save repair audit"

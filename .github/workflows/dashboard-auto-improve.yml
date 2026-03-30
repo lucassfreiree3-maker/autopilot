@@ -31,16 +31,16 @@ jobs:
       - name: Validate state.json accuracy
         id: validate
         run: |
-          set -euo pipefail
+          # No set -e or pipefail — this validation must not crash on API failures
           ISSUES="[]"
           FIXES=0
 
           # Read current state.json
           if [ ! -f panel/dashboard/state.json ]; then
-            echo "::error::state.json not found"
+            echo "::warning ::state.json not found — sync may be failing"
             exit 0
           fi
-          STATE=$(cat panel/dashboard/state.json)
+          STATE=$(cat panel/dashboard/state.json 2>/dev/null || echo '{}')
 
           # 1. Check if lastSync is recent (< 30 min for weekdays)
           LAST_SYNC=$(echo "$STATE" | jq -r '.lastSync // ""')
@@ -148,7 +148,6 @@ jobs:
           ISSUE_COUNT: ${{ steps.validate.outputs.issue_count }}
           HIGH_COUNT: ${{ steps.validate.outputs.high_count }}
         run: |
-          set -euo pipefail
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           BODY="## Dashboard Auto-Improve — Issues Detected
@@ -174,7 +173,6 @@ jobs:
       - name: Write audit to autopilot-state
         if: always()
         run: |
-          set -euo pipefail
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
 

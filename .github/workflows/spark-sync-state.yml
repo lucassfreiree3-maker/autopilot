@@ -3,12 +3,12 @@ run-name: "${{ github.workflow }} • sync state to Spark dashboard"
 
 on:
   schedule:
-    # Business hours (8h-17h BRT = 11h-20h UTC) Mon-Fri: every 1 minute
-    - cron: '* 11-19 * * 1-5'
-    # Off-hours Mon-Fri: every 5 minutes
-    - cron: '*/5 0-10,20-23 * * 1-5'
-    # Weekends: every 5 minutes
-    - cron: '*/5 * * * 0,6'
+    # Business hours (8h-17h BRT = 11h-20h UTC) Mon-Fri: every 5 minutes
+    - cron: '*/5 11-19 * * 1-5'
+    # Off-hours Mon-Fri: every 15 minutes
+    - cron: '*/15 0-10,20-23 * * 1-5'
+    # Weekends: every 15 minutes
+    - cron: '*/15 * * * 0,6'
   workflow_run:
     workflows:
       - "[Corp] Deploy: Apply Source Change"
@@ -58,130 +58,177 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          # No set -e: each command handles its own errors with || fallbacks
-          # This prevents cascading failures from API calls that return non-zero
+          # ROBUSTNESS: No set -e, no pipefail. Every command has explicit fallback.
+          # This script MUST NOT fail — dashboard sync is critical infrastructure.
 
-          # ── Release states from autopilot-state (what AUTOPILOT thinks) ──
-          CTRL_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
-          AGENT_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/agent-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          # ── Helper: safe API fetch with JSON validation ──
+          safe_api() {
+            local result
+            result=$(gh api "$1" --jq "$2" 2>/dev/null) || true
+            if [ -z "$result" ] || ! echo "$result" | jq empty 2>/dev/null; then
+              echo "$3"
+            else
+              echo "$result"
+            fi
+          }
 
-          # ── Local files (full content for deep intelligence) ──
+          # ── Helper: safe base64 decode from API content field ──
+          safe_content() {
+            local raw
+            raw=$(gh api "$1" --jq '.content' 2>/dev/null) || true
+            if [ -n "$raw" ]; then
+              local decoded
+              decoded=$(echo "$raw" | base64 -d 2>/dev/null) || true
+              if [ -n "$decoded" ] && echo "$decoded" | jq empty 2>/dev/null; then
+                echo "$decoded"
+                return
+              fi
+            fi
+            echo "$2"
+          }
+
+          # ── Helper: safe base64 decode (non-JSON, e.g. YAML) ──
+          safe_content_raw() {
+            local raw
+            raw=$(gh api "$1" --jq '.content' 2>/dev/null) || true
+            if [ -n "$raw" ]; then
+              echo "$raw" | base64 -d 2>/dev/null || echo ""
+            else
+              echo ""
+            fi
+          }
+
+          REPO="${{ github.repository }}"
+
+          # ── Release states from autopilot-state ──
+          CTRL_STATE=$(safe_content "repos/$REPO/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" '{}')
+          AGENT_STATE=$(safe_content "repos/$REPO/contents/state/workspaces/ws-default/agent-release-state.json?ref=autopilot-state" '{}')
+
+          # ── Local files ──
           TRIGGER=$(cat trigger/source-change.json 2>/dev/null || echo '{}')
+          echo "$TRIGGER" | jq empty 2>/dev/null || TRIGGER='{}'
           COPILOT_MEM=$(cat contracts/copilot-session-memory.json 2>/dev/null || echo '{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}')
+          echo "$COPILOT_MEM" | jq empty 2>/dev/null || COPILOT_MEM='{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}'
           CODEX_MEM=$(cat contracts/codex-session-memory.json 2>/dev/null || echo '{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}')
+          echo "$CODEX_MEM" | jq empty 2>/dev/null || CODEX_MEM='{"sessionCount":0,"lessonsLearned":[],"sessionsLog":[]}'
           CLAUDE_STATUS=$(cat contracts/claude-live-status.json 2>/dev/null || echo '{"currentSession":{"status":"idle","task":null},"operationalState":{},"lastUpdatedBy":"unknown"}')
+          echo "$CLAUDE_STATUS" | jq empty 2>/dev/null || CLAUDE_STATUS='{"currentSession":{"status":"idle","task":null}}'
           CLAUDE_MEM=$(cat contracts/claude-session-memory.json 2>/dev/null || echo '{}')
+          echo "$CLAUDE_MEM" | jq empty 2>/dev/null || CLAUDE_MEM='{}'
 
-          # ── Recent workflow runs (last 20 for better history) ──
-          RECENT_RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=20" --jq '[.workflow_runs[:20] | .[] | {name: .name, status: .status, conclusion: .conclusion, created: .created_at, url: .html_url, run_number: .run_number, head_branch: .head_branch, event: .event}]' 2>/dev/null || echo '[]')
+          # ── Recent workflow runs ──
+          RECENT_RUNS=$(safe_api "repos/$REPO/actions/runs?per_page=20" '[.workflow_runs[:20] | .[] | {name: .name, status: .status, conclusion: .conclusion, created: .created_at, url: .html_url, run_number: .run_number, head_branch: .head_branch, event: .event}]' '[]')
 
           # ── Open PRs ──
-          OPEN_PRS=$(gh api "repos/${{ github.repository }}/pulls?state=open&per_page=10" --jq '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, draft: .draft, created: .created_at, labels: [.labels[].name]}]' 2>/dev/null || echo '[]')
+          OPEN_PRS=$(safe_api "repos/$REPO/pulls?state=open&per_page=10" '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, draft: .draft, created: .created_at}]' '[]')
 
           # ── Recent deploys from audit ──
-          DEPLOY_HISTORY=$(gh api "repos/${{ github.repository }}/git/trees/autopilot-state?recursive=1" --jq '[.tree[] | select(.path | test("audit/source-change")) | .path] | sort | reverse | .[:20]' 2>/dev/null || echo '[]')
+          DEPLOY_HISTORY=$(safe_api "repos/$REPO/git/trees/autopilot-state?recursive=1" '[.tree[] | select(.path | test("audit/source-change")) | .path] | sort | reverse | .[:20]' '[]')
 
           # ── Session lock status ──
-          SESSION_LOCK=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/locks/session-lock.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"agentId":"none"}')
+          SESSION_LOCK=$(safe_content "repos/$REPO/contents/state/workspaces/ws-default/locks/session-lock.json?ref=autopilot-state" '{"agentId":"none"}')
 
           # ── Health state ──
-          HEALTH=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/health.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          HEALTH=$(safe_content "repos/$REPO/contents/state/workspaces/ws-default/health.json?ref=autopilot-state" '{}')
 
           # ── CI Monitor state ──
-          CI_MONITOR=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/ci-monitor-controller.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          CI_MONITOR=$(safe_content "repos/$REPO/contents/state/workspaces/ws-default/ci-monitor-controller.json?ref=autopilot-state" '{}')
 
           # ══════════════════════════════════════════════════════════
           # ── REAL CORPORATE VERSIONS (source of truth from repos) ──
-          # Other people can deploy independently without autopilot.
-          # We MUST read the real versions from the actual repos.
           # ══════════════════════════════════════════════════════════
 
-          # Controller package.json → real source version
           CTRL_REAL_VER="?"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            CTRL_REAL_VER=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/contents/package.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
-          fi
-
-          # Agent package.json → real source version
           AGENT_REAL_VER="?"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            AGENT_REAL_VER=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/contents/package.json" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.version // "?"' 2>/dev/null || echo "?")
-          fi
-
-          # Controller CAP values.yaml → real deployed image tag
           CTRL_CAP_TAG="?"
+          AGENT_CAP_TAG="?"
+          CTRL_LATEST_COMMITS="[]"
+          AGENT_LATEST_COMMITS="[]"
+
           if [ -n "$BBVINET_TOKEN" ]; then
-            CTRL_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc_releases_cap_sre-aut-controller/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+            # Controller source version
+            CTRL_PKG_RAW=$(GH_TOKEN="$BBVINET_TOKEN" safe_content_raw "repos/bbvinet/psc-sre-automacao-controller/contents/package.json")
+            if [ -n "$CTRL_PKG_RAW" ]; then
+              CTRL_REAL_VER=$(echo "$CTRL_PKG_RAW" | jq -r '.version // "?"' 2>/dev/null || echo "?")
+            fi
+
+            # Agent source version
+            AGENT_PKG_RAW=$(GH_TOKEN="$BBVINET_TOKEN" safe_content_raw "repos/bbvinet/psc-sre-automacao-agent/contents/package.json")
+            if [ -n "$AGENT_PKG_RAW" ]; then
+              AGENT_REAL_VER=$(echo "$AGENT_PKG_RAW" | jq -r '.version // "?"' 2>/dev/null || echo "?")
+            fi
+
+            # Controller CAP tag
+            CTRL_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" safe_content_raw "repos/bbvinet/psc_releases_cap_sre-aut-controller/contents/releases/openshift/hml/deploy/values.yaml")
             if [ -n "$CTRL_CAP_RAW" ]; then
               CTRL_CAP_TAG=$(echo "$CTRL_CAP_RAW" | grep -oP 'psc-sre-automacao-controller:\K[0-9]+\.[0-9]+\.[0-9]+' 2>/dev/null || echo "?")
             fi
-          fi
 
-          # Agent CAP values.yaml → real deployed image tag
-          AGENT_CAP_TAG="?"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            AGENT_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc_releases_cap_sre-aut-agent/contents/releases/openshift/hml/deploy/values.yaml" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo "")
+            # Agent CAP tag
+            AGENT_CAP_RAW=$(GH_TOKEN="$BBVINET_TOKEN" safe_content_raw "repos/bbvinet/psc_releases_cap_sre-aut-agent/contents/releases/openshift/hml/deploy/values.yaml")
             if [ -n "$AGENT_CAP_RAW" ]; then
               AGENT_CAP_TAG=$(echo "$AGENT_CAP_RAW" | grep -oP 'psc-sre-automacao-agent:\K[0-9]+\.[0-9]+\.[0-9]+' 2>/dev/null || echo "?")
             fi
+
+            # Recent commits
+            CTRL_LATEST_COMMITS=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-controller/commits?per_page=5" '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' '[]')
+            AGENT_LATEST_COMMITS=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=5" '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' '[]')
           fi
-
-          # Controller latest commits (detect external changes)
-          CTRL_LATEST_COMMITS=$(GH_TOKEN="${BBVINET_TOKEN:-$GH_TOKEN}" gh api "repos/bbvinet/psc-sre-automacao-controller/commits?per_page=5" --jq '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
-
-          # Agent latest commits
-          AGENT_LATEST_COMMITS=$(GH_TOKEN="${BBVINET_TOKEN:-$GH_TOKEN}" gh api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=5" --jq '[.[:5] | .[] | {sha: .sha[:8], message: .commit.message[:80], author: .commit.author.name, date: .commit.author.date}]' 2>/dev/null || echo '[]')
-
-          # Build status — simplified to avoid fragile for-loops
-          CTRL_BUILDS="[]"
-          AGENT_BUILDS="[]"
 
           echo "::notice ::Real versions — Controller: $CTRL_REAL_VER (CAP: $CTRL_CAP_TAG), Agent: $AGENT_REAL_VER (CAP: $AGENT_CAP_TAG)"
 
           # ══════════════════════════════════════════════════════════
-          # ── BRANCH & ACTIVITY INTELLIGENCE                       ──
-          # Detect: feature branches, external devs, manual deploys ──
+          # ── BUILD STATUS per commit ──
           # ══════════════════════════════════════════════════════════
+          CTRL_BUILDS="[]"
+          AGENT_BUILDS="[]"
 
-          # Controller branches (detect test/feature branches)
+          if [ -n "$BBVINET_TOKEN" ]; then
+            # Controller builds — safe iteration
+            CTRL_SHAS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/commits?per_page=3" --jq '.[].sha' 2>/dev/null || echo "")
+            for SHA in $CTRL_SHAS; do
+              BUILD=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/commits/$SHA/check-runs" --jq '{sha: "'${SHA:0:8}'", total: .total_count, checks: [.check_runs[:5][] | {name: .name, status: .status, conclusion: .conclusion}]}' 2>/dev/null || echo '{}')
+              if echo "$BUILD" | jq empty 2>/dev/null && [ "$BUILD" != "{}" ]; then
+                CTRL_BUILDS=$(echo "$CTRL_BUILDS" | jq --argjson b "$BUILD" '. + [$b]' 2>/dev/null || echo "$CTRL_BUILDS")
+              fi
+            done
+
+            # Agent builds — safe iteration
+            AGENT_SHAS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/commits?per_page=3" --jq '.[].sha' 2>/dev/null || echo "")
+            for SHA in $AGENT_SHAS; do
+              BUILD=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/commits/$SHA/check-runs" --jq '{sha: "'${SHA:0:8}'", total: .total_count, checks: [.check_runs[:5][] | {name: .name, status: .status, conclusion: .conclusion}]}' 2>/dev/null || echo '{}')
+              if echo "$BUILD" | jq empty 2>/dev/null && [ "$BUILD" != "{}" ]; then
+                AGENT_BUILDS=$(echo "$AGENT_BUILDS" | jq --argjson b "$BUILD" '. + [$b]' 2>/dev/null || echo "$AGENT_BUILDS")
+              fi
+            done
+          fi
+
+          # ══════════════════════════════════════════════════════════
+          # ── BRANCH & ACTIVITY INTELLIGENCE                       ──
+          # ══════════════════════════════════════════════════════════
           CTRL_BRANCHES="[]"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            CTRL_BRANCHES=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/branches?per_page=20" \
-              --jq '[.[] | {name: .name, sha: .commit.sha[:8], protected: .protected}]' 2>/dev/null || echo '[]')
-          fi
-
-          # Agent branches
           AGENT_BRANCHES="[]"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            AGENT_BRANCHES=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/branches?per_page=20" \
-              --jq '[.[] | {name: .name, sha: .commit.sha[:8], protected: .protected}]' 2>/dev/null || echo '[]')
-          fi
-
-          # Controller open PRs (detect active development by others)
           CTRL_PRS="[]"
-          if [ -n "$BBVINET_TOKEN" ]; then
-            CTRL_PRS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-controller/pulls?state=open&per_page=10" \
-              --jq '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, created: .created_at, draft: .draft}]' 2>/dev/null || echo '[]')
-          fi
-
-          # Agent open PRs
           AGENT_PRS="[]"
+
           if [ -n "$BBVINET_TOKEN" ]; then
-            AGENT_PRS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/bbvinet/psc-sre-automacao-agent/pulls?state=open&per_page=10" \
-              --jq '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, created: .created_at, draft: .draft}]' 2>/dev/null || echo '[]')
+            CTRL_BRANCHES=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-controller/branches?per_page=20" '[.[] | {name: .name, sha: .commit.sha[:8], protected: .protected}]' '[]')
+            AGENT_BRANCHES=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-agent/branches?per_page=20" '[.[] | {name: .name, sha: .commit.sha[:8], protected: .protected}]' '[]')
+            CTRL_PRS=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-controller/pulls?state=open&per_page=10" '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, created: .created_at, draft: .draft}]' '[]')
+            AGENT_PRS=$(GH_TOKEN="$BBVINET_TOKEN" safe_api "repos/bbvinet/psc-sre-automacao-agent/pulls?state=open&per_page=10" '[.[] | {number: .number, title: .title, author: .user.login, branch: .head.ref, created: .created_at, draft: .draft}]' '[]')
           fi
 
-          # Detect external activity
-          CTRL_EXTERNAL_COMMITS=$(echo "$CTRL_LATEST_COMMITS" | jq -c '[.[]? | select(.author != "github-actions[bot]" and .author != "github-actions")]' 2>/dev/null || echo '[]')
-          AGENT_EXTERNAL_COMMITS=$(echo "$AGENT_LATEST_COMMITS" | jq -c '[.[]? | select(.author != "github-actions[bot]" and .author != "github-actions")]' 2>/dev/null || echo '[]')
+          CTRL_EXTERNAL_COMMITS=$(echo "$CTRL_LATEST_COMMITS" | jq '[.[] | select(.author != "github-actions[bot]" and .author != "github-actions")]' 2>/dev/null || echo '[]')
+          AGENT_EXTERNAL_COMMITS=$(echo "$AGENT_LATEST_COMMITS" | jq '[.[] | select(.author != "github-actions[bot]" and .author != "github-actions")]' 2>/dev/null || echo '[]')
 
-          echo "::notice ::Data collection complete"
+          echo "::notice ::Versions — Ctrl: $CTRL_REAL_VER (CAP: $CTRL_CAP_TAG), Agent: $AGENT_REAL_VER (CAP: $AGENT_CAP_TAG)"
 
-          # Pre-compute improvements to avoid nested pipe in argjson
-          IMPROVEMENTS=$(cat contracts/improvement-history.json 2>/dev/null | jq -c '{summary:.summary,count:(.improvements|length),latest:(.improvements[:3]|map({id,date,type,title}))}' 2>/dev/null || echo 'null')
-          [ -z "$IMPROVEMENTS" ] && IMPROVEMENTS='null'
+          # ── Pre-validate improvements (inline command substitution is fragile) ──
+          IMPROVEMENTS=$(cat contracts/improvement-history.json 2>/dev/null | jq -c '{summary:.summary,count:(.improvements|length),latest:(.improvements[:3]|map({id,date,type,title,"impact":.impact}))}' 2>/dev/null || echo 'null')
+          echo "$IMPROVEMENTS" | jq empty 2>/dev/null || IMPROVEMENTS='null'
 
           # ── Build comprehensive state.json ──
+          # All --argjson vars have been pre-validated as valid JSON above.
           jq -n \
             --argjson ctrl "$CTRL_STATE" \
             --argjson agent "$AGENT_STATE" \
@@ -431,22 +478,26 @@ jobs:
                 sparkRepo: "lucassfreiree/spark-dashboard",
                 totalAgents: 1,
                 totalWorkspaces: 4,
-                syncInterval: "1min business hours (8-17 BRT Mon-Fri) / 5min off-hours",
+                syncInterval: "5min business hours (8-17 BRT Mon-Fri) / 15min off-hours",
                 stateVersion: 5
               }
+            }' > /tmp/state.json 2>/dev/null
+
+          # Validate the generated JSON — if jq assembly failed, create minimal state
+          if ! jq empty /tmp/state.json 2>/dev/null; then
+            echo "::warning ::Full state assembly failed — producing minimal state"
+            jq -n '{
+              lastSync: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
+              syncSource: "autopilot/spark-sync-state.yml",
+              error: "State assembly failed — data collection issue",
+              controller: {version: "?", status: "unknown"},
+              agent: {version: "?", status: "unknown"},
+              metadata: {stateVersion: 5, degraded: true}
             }' > /tmp/state.json
+          fi
 
-          STATE_SIZE=$(wc -c < /tmp/state.json)
-          echo "::notice ::state.json size: ${STATE_SIZE} bytes"
-          cat /tmp/state.json | jq -r '.lastSync' || echo "?"
-
-          # Write base64 to file instead of GITHUB_OUTPUT (avoids 1MB limit)
-          base64 -w0 /tmp/state.json > /tmp/state_b64.txt
-          B64_SIZE=$(wc -c < /tmp/state_b64.txt)
-          echo "::notice ::base64 size: ${B64_SIZE} bytes"
-
-          # Use GITHUB_OUTPUT only for small flag
-          echo "has_state=true" >> "$GITHUB_OUTPUT"
+          jq -r '.lastSync' /tmp/state.json 2>/dev/null || echo "unknown"
+          echo "state_b64=$(base64 -w0 /tmp/state.json)" >> "$GITHUB_OUTPUT"
 
       - name: Push state to Spark repo
         if: steps.config.outputs.skip != 'true'
@@ -454,8 +505,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           SPARK_REPO="${{ steps.config.outputs.repo }}"
-          STATE_B64=$(cat /tmp/state_b64.txt 2>/dev/null || echo "")
-          if [ -z "$STATE_B64" ]; then echo "::warning ::No state to push"; exit 0; fi
+          STATE_B64="${{ steps.state.outputs.state_b64 }}"
 
           EXISTING_SHA=$(gh api "repos/$SPARK_REPO/contents/public/state.json" --jq '.sha' 2>/dev/null || echo "")
 
@@ -504,12 +554,11 @@ jobs:
           fi
 
       - name: Update panel/dashboard/state.json (GitHub Pages)
-        if: always()
+        if: always() && steps.state.outputs.state_b64 != ''
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          STATE_B64=$(cat /tmp/state_b64.txt 2>/dev/null || echo "")
-          if [ -z "$STATE_B64" ]; then echo "::warning ::No state to push"; exit 0; fi
+          STATE_B64="${{ steps.state.outputs.state_b64 }}"
           REPO="${{ github.repository }}"
           FILE_PATH="panel/dashboard/state.json"
 
@@ -538,7 +587,9 @@ jobs:
                 echo "  Retrying in 2s (SHA may have changed from concurrent commit)..."
                 sleep 2
               else
-                echo "::error ::Failed to update $FILE_PATH after 3 attempts"
+                echo "::warning ::Failed to update $FILE_PATH after 3 attempts (will retry next cycle)"
               fi
             }
           done
+          # Always exit 0 — dashboard sync failure should not block the workflow
+          exit 0

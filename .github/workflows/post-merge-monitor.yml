@@ -68,7 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e  # no pipefail — API fallback patterns need pipe flexibility
           STATUS="healthy"
           DETAILS=""
 
@@ -114,7 +114,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e  # no pipefail — API fallback patterns need pipe flexibility
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           PR_NUMBER="${{ needs.check-merged.outputs.pr_number }}"
@@ -148,7 +148,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e  # no pipefail — API fallback patterns need pipe flexibility
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           PR_NUMBER="${{ needs.check-merged.outputs.pr_number }}"
@@ -177,7 +177,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e  # no pipefail — API fallback patterns need pipe flexibility
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           PR_NUMBER="${{ needs.check-merged.outputs.pr_number }}"

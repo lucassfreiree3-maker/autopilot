@@ -1,0 +1,199 @@
+name: "[Core] Builds Validation Gate"
+run-name: "${{ github.workflow }} • validate all workflows"
+
+# Validates ALL workflow YAML files on every PR and push.
+# Catches: syntax errors, invalid references, missing secrets, bad cron expressions,
+# deprecated actions, and structural issues BEFORE they reach main.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch: {}
+  schedule:
+    # Weekly full validation (catches drift and disabled workflows)
+    - cron: '0 8 * * 1'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: builds-validation-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: "Validate workflow definitions"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          pip install pyyaml --quiet 2>/dev/null || true
+
+      - name: Validate all workflow YAML files
+        id: validate
+        run: |
+          ERRORS=0
+          WARNINGS=0
+          TOTAL=0
+          REPORT=""
+
+          for WF_FILE in .github/workflows/*.yml; do
+            TOTAL=$((TOTAL + 1))
+            WF_NAME=$(basename "$WF_FILE")
+            FILE_ERRORS=""
+
+            # ── Check 1: Valid YAML syntax ──
+            if ! python3 -c "import yaml; yaml.safe_load(open('$WF_FILE'))" 2>/dev/null; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - YAML syntax error"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # ── Check 2: Has required top-level keys ──
+            HAS_NAME=$(python3 -c "
+          import yaml
+          with open('$WF_FILE') as f:
+            d = yaml.safe_load(f)
+            print('yes' if d and 'name' in d else 'no')
+          " 2>/dev/null || echo "no")
+            if [ "$HAS_NAME" = "no" ]; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Missing 'name' field"
+              WARNINGS=$((WARNINGS + 1))
+            fi
+
+            HAS_ON=$(python3 -c "
+          import yaml
+          with open('$WF_FILE') as f:
+            d = yaml.safe_load(f)
+            print('yes' if d and ('on' in d or True in d) else 'no')
+          " 2>/dev/null || echo "no")
+            if [ "$HAS_ON" = "no" ]; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Missing 'on' trigger"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            HAS_JOBS=$(python3 -c "
+          import yaml
+          with open('$WF_FILE') as f:
+            d = yaml.safe_load(f)
+            print('yes' if d and 'jobs' in d and d['jobs'] else 'no')
+          " 2>/dev/null || echo "no")
+            if [ "$HAS_JOBS" = "no" ]; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Missing or empty 'jobs'"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # ── Check 3: Deprecated actions (v3 → should be v4) ──
+            if grep -qE 'actions/checkout@v[12]' "$WF_FILE" 2>/dev/null; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Uses deprecated actions/checkout version (should be v4)"
+              WARNINGS=$((WARNINGS + 1))
+            fi
+
+            # ── Check 4: Concurrency group for scheduled workflows ──
+            HAS_SCHEDULE=$(grep -c 'schedule:' "$WF_FILE" 2>/dev/null || echo 0)
+            HAS_CONCURRENCY=$(grep -c 'concurrency:' "$WF_FILE" 2>/dev/null || echo 0)
+            if [ "$HAS_SCHEDULE" -gt 0 ] && [ "$HAS_CONCURRENCY" -eq 0 ]; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Scheduled workflow without concurrency group (risk of pile-up)"
+              WARNINGS=$((WARNINGS + 1))
+            fi
+
+            # ── Check 5: set -e or pipefail in long scripts ──
+            # (informational — not all scripts need it)
+
+            # ── Check 6: Missing error handling in API calls ──
+            if grep -qE 'gh api.*[^|]$' "$WF_FILE" 2>/dev/null; then
+              # gh api calls without pipe or fallback on same line
+              API_CALLS_NO_FALLBACK=$(grep -c 'gh api.*[^|\\]$' "$WF_FILE" 2>/dev/null || echo 0)
+              if [ "$API_CALLS_NO_FALLBACK" -gt 3 ]; then
+                FILE_ERRORS="${FILE_ERRORS}\n  - Multiple gh api calls without error fallback"
+                WARNINGS=$((WARNINGS + 1))
+              fi
+            fi
+
+            # ── Check 7: Hardcoded secrets or tokens ──
+            if grep -qiE '(ghp_|github_pat_|sk-|AIza|AKIA)' "$WF_FILE" 2>/dev/null; then
+              FILE_ERRORS="${FILE_ERRORS}\n  - Possible hardcoded secret/token detected"
+              ERRORS=$((ERRORS + 1))
+            fi
+
+            # ── Check 8: cancel-in-progress for concurrency groups ──
+            if [ "$HAS_CONCURRENCY" -gt 0 ]; then
+              HAS_CANCEL=$(grep -c 'cancel-in-progress' "$WF_FILE" 2>/dev/null || echo 0)
+              if [ "$HAS_CANCEL" -eq 0 ]; then
+                FILE_ERRORS="${FILE_ERRORS}\n  - Concurrency group without cancel-in-progress"
+                WARNINGS=$((WARNINGS + 1))
+              fi
+            fi
+
+            if [ -n "$FILE_ERRORS" ]; then
+              REPORT="${REPORT}\n**$WF_NAME**:$FILE_ERRORS\n"
+            fi
+          done
+
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "errors=$ERRORS" >> "$GITHUB_OUTPUT"
+          echo "warnings=$WARNINGS" >> "$GITHUB_OUTPUT"
+
+          # Summary
+          echo "## Workflow Validation Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Workflows scanned | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Errors | $ERRORS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Warnings | $WARNINGS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$REPORT" ]; then
+            echo "### Issues Found" >> "$GITHUB_STEP_SUMMARY"
+            echo -e "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "All workflows passed validation." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Fail on errors (not warnings)
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error ::$ERRORS error(s) found in workflow definitions"
+            exit 1
+          fi
+
+      - name: Check workflow ecosystem consistency
+        run: |
+          echo "::group::Cross-workflow consistency checks"
+
+          # Check all referenced workflows exist
+          ISSUES=""
+          for WF_FILE in .github/workflows/*.yml; do
+            # Find workflow_run references
+            REFS=$(grep -oP 'workflows:\s*\n\s*-\s*"[^"]*"' "$WF_FILE" 2>/dev/null | grep -oP '"[^"]*"' | tr -d '"' || true)
+            for REF in $REFS; do
+              # Check if referenced workflow exists by name
+              FOUND=$(grep -rl "name: \"$REF\"" .github/workflows/ 2>/dev/null | head -1 || echo "")
+              if [ -z "$FOUND" ]; then
+                FOUND=$(grep -rl "name: '$REF'" .github/workflows/ 2>/dev/null | head -1 || echo "")
+              fi
+              if [ -z "$FOUND" ]; then
+                ISSUES="${ISSUES}\n- $(basename $WF_FILE): references workflow '$REF' which was not found"
+              fi
+            done
+          done
+
+          if [ -n "$ISSUES" ]; then
+            echo "### Cross-Reference Issues" >> "$GITHUB_STEP_SUMMARY"
+            echo -e "$ISSUES" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning ::Some workflow cross-references may be broken"
+          else
+            echo "All cross-references valid." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "::endgroup::"

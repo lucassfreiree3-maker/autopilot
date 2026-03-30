@@ -1,0 +1,311 @@
+name: "[Core] Workflow Health Monitor"
+run-name: "${{ github.workflow }} • monitor all workflows"
+
+# Unified monitor for ALL autopilot workflows.
+# Detects failures, tracks patterns, creates alerts, triggers auto-repair.
+
+on:
+  schedule:
+    # Every 30 minutes during business hours (8-17 BRT = 11-20 UTC, Mon-Fri)
+    - cron: '*/30 11-20 * * 1-5'
+    # Every 2 hours off-hours
+    - cron: '0 0-10,21-23 * * 1-5'
+    # Every 2 hours weekends
+    - cron: '0 */2 * * 0,6'
+  workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: 'How many hours back to scan for failures'
+        required: false
+        default: '6'
+        type: string
+      auto_repair:
+        description: 'Trigger auto-repair for fixable issues'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
+
+permissions:
+  contents: write
+  actions: read
+  issues: write
+
+concurrency:
+  group: workflow-health-monitor
+  cancel-in-progress: true
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  monitor:
+    name: "Scan all workflows"
+    runs-on: ubuntu-latest
+    outputs:
+      total_workflows: ${{ steps.scan.outputs.total_workflows }}
+      failed_count: ${{ steps.scan.outputs.failed_count }}
+      critical_failures: ${{ steps.scan.outputs.critical_failures }}
+      report_json: ${{ steps.scan.outputs.report_json }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan all workflow health
+        id: scan
+        run: |
+          LOOKBACK="${{ github.event.inputs.lookback_hours || '6' }}"
+          SINCE=$(date -u -d "${LOOKBACK} hours ago" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          echo "::group::Scanning workflows since $SINCE"
+
+          # Get ALL workflow definitions
+          WORKFLOWS=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
+            --jq '[.workflows[] | {id: .id, name: .name, path: .path, state: .state}]' 2>/dev/null || echo '[]')
+
+          TOTAL=$(echo "$WORKFLOWS" | jq 'length' 2>/dev/null || echo 0)
+          echo "Found $TOTAL workflows"
+
+          # Get recent runs (last 100 = good coverage)
+          RECENT_RUNS=$(gh api "repos/$REPO/actions/runs?per_page=100&created=>=$SINCE" \
+            --jq '[.workflow_runs[] | {
+              id: .id,
+              name: .name,
+              workflow_id: .workflow_id,
+              status: .status,
+              conclusion: .conclusion,
+              created: .created_at,
+              updated: .updated_at,
+              branch: .head_branch,
+              event: .event,
+              url: .html_url,
+              run_number: .run_number
+            }]' 2>/dev/null || echo '[]')
+
+          TOTAL_RUNS=$(echo "$RECENT_RUNS" | jq 'length' 2>/dev/null || echo 0)
+          echo "Found $TOTAL_RUNS recent runs"
+
+          # Analyze per-workflow health
+          FAILED_COUNT=0
+          CRITICAL=""
+          WORKFLOW_HEALTH="[]"
+
+          for WF_ID in $(echo "$WORKFLOWS" | jq -r '.[].id' 2>/dev/null); do
+            WF_NAME=$(echo "$WORKFLOWS" | jq -r --argjson id "$WF_ID" '.[] | select(.id == $id) | .name' 2>/dev/null || echo "unknown")
+            WF_PATH=$(echo "$WORKFLOWS" | jq -r --argjson id "$WF_ID" '.[] | select(.id == $id) | .path' 2>/dev/null || echo "unknown")
+
+            # Filter runs for this workflow
+            WF_RUNS=$(echo "$RECENT_RUNS" | jq --argjson id "$WF_ID" '[.[] | select(.workflow_id == $id)]' 2>/dev/null || echo '[]')
+            WF_RUN_COUNT=$(echo "$WF_RUNS" | jq 'length' 2>/dev/null || echo 0)
+
+            if [ "$WF_RUN_COUNT" -eq 0 ]; then
+              continue
+            fi
+
+            # Count successes and failures
+            SUCCESS_COUNT=$(echo "$WF_RUNS" | jq '[.[] | select(.conclusion == "success")] | length' 2>/dev/null || echo 0)
+            FAILURE_COUNT=$(echo "$WF_RUNS" | jq '[.[] | select(.conclusion == "failure")] | length' 2>/dev/null || echo 0)
+            CANCELLED_COUNT=$(echo "$WF_RUNS" | jq '[.[] | select(.conclusion == "cancelled")] | length' 2>/dev/null || echo 0)
+            IN_PROGRESS=$(echo "$WF_RUNS" | jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length' 2>/dev/null || echo 0)
+
+            # Calculate failure rate
+            COMPLETED=$((SUCCESS_COUNT + FAILURE_COUNT))
+            if [ "$COMPLETED" -gt 0 ]; then
+              FAIL_RATE=$(( (FAILURE_COUNT * 100) / COMPLETED ))
+            else
+              FAIL_RATE=0
+            fi
+
+            # Detect consecutive failures (last N runs all failed)
+            CONSEC_FAILS=$(echo "$WF_RUNS" | jq '[limit(10; .[] | select(.status == "completed")) | .conclusion] | if length == 0 then 0 else [., [range(length) | "failure"]] | transpose | map(select(.[0] == .[1])) | length end' 2>/dev/null || echo 0)
+
+            # Last run info
+            LAST_RUN=$(echo "$WF_RUNS" | jq '.[0]' 2>/dev/null || echo '{}')
+            LAST_CONCLUSION=$(echo "$LAST_RUN" | jq -r '.conclusion // "unknown"' 2>/dev/null || echo "unknown")
+            LAST_URL=$(echo "$LAST_RUN" | jq -r '.url // ""' 2>/dev/null || echo "")
+
+            # Determine health status
+            STATUS="healthy"
+            if [ "$CONSEC_FAILS" -ge 5 ]; then
+              STATUS="critical"
+              CRITICAL="${CRITICAL}${WF_NAME} (${CONSEC_FAILS} consecutive failures)\n"
+            elif [ "$CONSEC_FAILS" -ge 3 ]; then
+              STATUS="degraded"
+            elif [ "$FAIL_RATE" -gt 50 ] && [ "$COMPLETED" -ge 3 ]; then
+              STATUS="degraded"
+            fi
+
+            if [ "$FAILURE_COUNT" -gt 0 ]; then
+              FAILED_COUNT=$((FAILED_COUNT + 1))
+            fi
+
+            # Add to health report
+            ENTRY=$(jq -n \
+              --arg name "$WF_NAME" \
+              --arg path "$WF_PATH" \
+              --argjson wf_id "$WF_ID" \
+              --arg status "$STATUS" \
+              --argjson runs "$WF_RUN_COUNT" \
+              --argjson successes "$SUCCESS_COUNT" \
+              --argjson failures "$FAILURE_COUNT" \
+              --argjson cancelled "$CANCELLED_COUNT" \
+              --argjson in_progress "$IN_PROGRESS" \
+              --argjson fail_rate "$FAIL_RATE" \
+              --argjson consec_fails "$CONSEC_FAILS" \
+              --arg last_conclusion "$LAST_CONCLUSION" \
+              --arg last_url "$LAST_URL" \
+              '{name: $name, path: $path, workflow_id: $wf_id, status: $status,
+                runs: $runs, successes: $successes, failures: $failures,
+                cancelled: $cancelled, in_progress: $in_progress,
+                failRate: $fail_rate, consecutiveFailures: $consec_fails,
+                lastConclusion: $last_conclusion, lastUrl: $last_url}' 2>/dev/null || echo '{}')
+
+            if echo "$ENTRY" | jq empty 2>/dev/null; then
+              WORKFLOW_HEALTH=$(echo "$WORKFLOW_HEALTH" | jq --argjson e "$ENTRY" '. + [$e]' 2>/dev/null || echo "$WORKFLOW_HEALTH")
+            fi
+          done
+
+          echo "::endgroup::"
+
+          # Build summary report
+          CRITICAL_COUNT=$(echo "$WORKFLOW_HEALTH" | jq '[.[] | select(.status == "critical")] | length' 2>/dev/null || echo 0)
+          DEGRADED_COUNT=$(echo "$WORKFLOW_HEALTH" | jq '[.[] | select(.status == "degraded")] | length' 2>/dev/null || echo 0)
+          HEALTHY_COUNT=$(echo "$WORKFLOW_HEALTH" | jq '[.[] | select(.status == "healthy")] | length' 2>/dev/null || echo 0)
+
+          REPORT=$(jq -n \
+            --arg timestamp "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --arg since "$SINCE" \
+            --argjson total "$TOTAL" \
+            --argjson total_runs "$TOTAL_RUNS" \
+            --argjson critical "$CRITICAL_COUNT" \
+            --argjson degraded "$DEGRADED_COUNT" \
+            --argjson healthy "$HEALTHY_COUNT" \
+            --argjson failed "$FAILED_COUNT" \
+            --argjson workflows "$WORKFLOW_HEALTH" \
+            '{
+              timestamp: $timestamp,
+              lookbackSince: $since,
+              summary: {
+                totalWorkflows: $total,
+                totalRuns: $total_runs,
+                workflowsWithFailures: $failed,
+                critical: $critical,
+                degraded: $degraded,
+                healthy: $healthy,
+                overallStatus: (if $critical > 0 then "critical" elif $degraded > 0 then "degraded" else "healthy" end)
+              },
+              criticalWorkflows: [($workflows // [])[] | select(.status == "critical")],
+              degradedWorkflows: [($workflows // [])[] | select(.status == "degraded")],
+              allWorkflows: $workflows
+            }')
+
+          # Save report to file for other steps
+          echo "$REPORT" > /tmp/health-report.json
+
+          echo "total_workflows=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "failed_count=$FAILED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "critical_failures=$CRITICAL_COUNT" >> "$GITHUB_OUTPUT"
+
+          # Log summary
+          echo "## Workflow Health Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total workflows | $TOTAL |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Recent runs (${LOOKBACK}h) | $TOTAL_RUNS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Critical | $CRITICAL_COUNT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Degraded | $DEGRADED_COUNT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Healthy | $HEALTHY_COUNT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "### Critical Workflows" >> "$GITHUB_STEP_SUMMARY"
+            echo "$WORKFLOW_HEALTH" | jq -r '.[] | select(.status == "critical") | "- **\(.name)** — \(.consecutiveFailures) consecutive failures (\(.failRate)% fail rate) [Last run](\(.lastUrl))"' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$DEGRADED_COUNT" -gt 0 ]; then
+            echo "### Degraded Workflows" >> "$GITHUB_STEP_SUMMARY"
+            echo "$WORKFLOW_HEALTH" | jq -r '.[] | select(.status == "degraded") | "- **\(.name)** — \(.failures)/\(.runs) failed (\(.failRate)% fail rate)"' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Save report to autopilot-state
+        run: |
+          REPORT_B64=$(base64 -w0 /tmp/health-report.json)
+          EXISTING_SHA=$(gh api "repos/$REPO/contents/state/workflow-health-report.json?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          PAYLOAD=$(jq -n \
+            --arg content "$REPORT_B64" \
+            --arg sha "$EXISTING_SHA" \
+            --arg message "chore: update workflow health report [auto]" \
+            --arg branch "$STATE_BRANCH" \
+            '{message: $message, content: $content, branch: $branch} + (if $sha != "" then {sha: $sha} else {} end)')
+
+          gh api "repos/$REPO/contents/state/workflow-health-report.json" \
+            --method PUT --input - <<< "$PAYLOAD" > /dev/null 2>&1 || \
+            echo "::warning ::Failed to save health report to state branch"
+
+  alert:
+    name: "Create alert if critical"
+    needs: monitor
+    if: needs.monitor.outputs.critical_failures != '0'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check for existing alert issue
+        id: existing
+        run: |
+          EXISTING=$(gh api "repos/$REPO/issues?labels=workflow-health,critical&state=open&per_page=1" \
+            --jq '.[0].number // ""' 2>/dev/null || echo "")
+          echo "issue=$EXISTING" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update alert issue
+        if: steps.existing.outputs.issue == ''
+        run: |
+          CRITICAL="${{ needs.monitor.outputs.critical_failures }}"
+          FAILED="${{ needs.monitor.outputs.failed_count }}"
+          TOTAL="${{ needs.monitor.outputs.total_workflows }}"
+
+          gh api "repos/$REPO/issues" \
+            --method POST \
+            --field "title=[Alert] $CRITICAL critical workflow(s) detected" \
+            --field "body=## Workflow Health Alert
+
+          **$CRITICAL** workflow(s) in critical state (5+ consecutive failures).
+          **$FAILED** workflow(s) with failures in the last scan period.
+          **$TOTAL** total workflows monitored.
+
+          ### Action Required
+          1. Check the [workflow health report](https://github.com/$REPO/actions/workflows/workflow-health-monitor.yml) for details
+          2. Review failed workflow runs and fix root causes
+          3. The auto-repair system will attempt fixes for known patterns
+
+          ### Auto-generated
+          This issue was created by the Workflow Health Monitor.
+          Close this issue once all critical workflows are resolved." \
+            --field "labels=[\"workflow-health\",\"critical\",\"auto-generated\"]" \
+            > /dev/null 2>&1 || echo "::warning ::Failed to create alert issue"
+
+  auto-repair:
+    name: "Trigger auto-repair"
+    needs: monitor
+    if: |
+      needs.monitor.outputs.critical_failures != '0' &&
+      (github.event.inputs.auto_repair == 'true' || github.event_name == 'schedule')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Dispatch auto-repair
+        run: |
+          echo "::notice ::Dispatching workflow-auto-repair for critical failures"
+          gh api "repos/$REPO/actions/workflows/workflow-auto-repair.yml/dispatches" \
+            --method POST \
+            --field "ref=main" \
+            --field "inputs[source]=workflow-health-monitor" \
+            > /dev/null 2>&1 || echo "::warning ::Failed to dispatch auto-repair (workflow may not exist yet)"

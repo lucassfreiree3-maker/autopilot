@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 388,
+  "branch": "claude/fix-autopilot-workflow-dvOB7",
+  "timestamp": "2026-03-30T19:31:24Z",
+  "runId": "23763645153",
+  "healthStatus": "degraded"
+}

@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-29T19:30:00Z",
-  "lastSessionId": "claude_session_01C2jHzg9iscD8qutXUiqKy1",
+  "lastUpdated": "2026-03-30T15:00:00Z",
+  "lastSessionId": "session_01N6wTVvkGd7Hs1zMtus8i5i",
   "multiCompanyModel": {
     "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
     "companies": {
@@ -605,10 +605,10 @@
       "15. Atualizar session memory com resultado"
     ],
     "triggerFile": "trigger/source-change.json",
-    "lastTriggerRun": 72,
-    "lastSuccessfulRun": 71,
-    "lastDeployPR": 197,
-    "pipelineStatus": "CI_GATE_FAILED — agent 2.3.3 (run #72). ci-diagnose triggered (run #26). Check logs on autopilot-state.",
+    "lastTriggerRun": 73,
+    "lastSuccessfulRun": 73,
+    "lastDeployPR": 371,
+    "pipelineStatus": "CI_MONITORING — agent 2.3.3 (run #73). ci-diagnose run #27 triggered. deploy-pipeline-monitor active.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -644,7 +644,12 @@
       "Apos merge do PR: fazer polling ATIVO a cada 2-3 min. NAO confiar em sleep passivo. AVISAR usuario imediatamente ao finalizar.",
       "Run #34 (3.5.5) confirmou pipeline estavel — 2 deploys consecutivos com sucesso (33 + 34)",
       "Ambiente web sem gh CLI: usar ops/scripts/github/watch-pr-checks.sh com GH_TOKEN para polling ativo de checks de PR.",
-      "Token GitHub pode ser temporario em variavel de sessao, mas NUNCA persistir segredo em arquivos versionados/memoria."
+      "Token GitHub pode ser temporario em variavel de sessao, mas NUNCA persistir segredo em arquivos versionados/memoria.",
+      "autonomous_merge_queued_bug: autonomous-merge-direct filtrava suites 'queued' do polling, causando merge em 7s sem esperar compliance-gate. Fix: nao filtrar queued, esperar 30s inicial, timeout 15min.",
+      "ci_monitor_never_fired: ci-monitor-loop dependia de workflow_run trigger que nao funcionava. Fix: Stage 7 adicionado em apply-source-change que dispara ci-monitor-loop explicitamente via gh workflow run.",
+      "deploy_pipeline_monitor: novo Level-1 watcher deploy-pipeline-monitor.yml. Roda a cada 10min, detecta stuck (>30min sem ci-monitor), auto-despacha, escreve pipeline-status.json. Adicionado ao workflow-sentinel CRITICAL_MONITORS.",
+      "full_autonomous_loop: apply-source-change Stage7 -> ci-monitor-loop poll -> sucesso: promote-cap, falha: ci-diagnose+fix-corporate-ci. deploy-pipeline-monitor garante ci-monitor dispara. sentinel garante deploy-pipeline-monitor ativo.",
+      "pipeline_observability: pipeline-status.json sintetiza todo o estado do deploy (stage, health, ci-monitor result, age). Visivel no dashboard panel aba Active Workspace."
     ]
   },
   "workflowMonitoring": {
@@ -1312,6 +1317,23 @@
       "concurrency_added": 7,
       "spark_sync_rewritten": true,
       "total_workflows_fixed": 27
+    },
+    "deployPipelineMonitor": {
+      "workflow": "deploy-pipeline-monitor.yml",
+      "schedule": "every 10min business hours, 30min otherwise",
+      "triggers": [
+        "apply-source-change completed",
+        "ci-monitor-loop completed",
+        "ci-diagnose completed",
+        "fix-corporate-ci completed"
+      ],
+      "stateFile": "state/workspaces/ws-default/pipeline-status.json",
+      "watchedBy": "workflow-sentinel CRITICAL_MONITORS",
+      "actions": [
+        "auto-dispatch ci-monitor-loop if stuck >30min",
+        "create issue if stuck >60min"
+      ],
+      "dashboardVisibility": "panel/index.html Active Workspace tab - Deploy Pipeline Status section"
     }
   },
   "commonPatterns": {
@@ -1441,20 +1463,20 @@
   "currentState": {
     "controllerVersion": "3.7.0",
     "agentVersion": "2.3.3",
-    "lastTriggerRun": 72,
-    "lastSuccessfulRun": 71,
+    "lastTriggerRun": 73,
+    "lastSuccessfulRun": 73,
     "historia930217": "completed — all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)",
     "pendingDeploy": {
       "historia": "#930188",
       "component": "agent",
       "version": "2.3.3",
-      "triggerRun": 72,
-      "status": "CI_GATE_FAILED",
-      "nextStep": "Run ci-diagnose to get logs. If CI Gate false positive, re-trigger with skip_ci_wait:true. If real failure, fix patches and re-deploy.",
+      "triggerRun": 73,
+      "status": "CI_MONITORING",
+      "nextStep": "ci-diagnose run #27 triggered. deploy-pipeline-monitor will auto-dispatch ci-monitor-loop if stuck. Monitor pipeline-status.json on autopilot-state.",
       "patches": [
         "patches/cronjob-callback.ts (Agent endpoint)",
         "patches/agent-apis.ts (route registration)",
-        "patches/cronjob-callback.test.ts (unit tests)",
+        "patches/cronjob-callback.test.ts (unit tests — import paths fixed)",
         "patches/agent-swagger.json (swagger 2.3.3)"
       ],
       "controllerPending": {
@@ -1498,5 +1520,12 @@
     "sourceOfTruth": "CAP repo values.yaml image tag (bbvinet/psc_releases_cap_sre-aut-controller and agent)",
     "mustVerify": "Check if spark-sync-state runs are completing successfully after PR #334",
     "agentVersionDiscrepancy": "autopilot-state says 2.3.2 promoted, but state.json shows 2.3.1 because sync is stale"
+  },
+  "newWorkflowsThisSession": {
+    "2026-03-30": [
+      "deploy-pipeline-monitor.yml — Level 1 watcher, schedule 10min + workflow_run triggers",
+      "Fixed: autonomous-merge-direct.yml — queued filter bug causing instant merge without compliance gate",
+      "Fixed: apply-source-change.yml — Stage 7 added to dispatch ci-monitor-loop explicitly"
+    ]
   }
 }

@@ -573,7 +573,8 @@ Maps errors to known patterns, generates learning report with pipeline visualiza
 | ops-workflow-observability.yml | Workflow run observability and metrics |
 | ci-self-heal.yml | Auto-heal CI failures with pattern matching |
 | ci-status-check.yml | Check corporate CI status for a commit (trigger via `trigger/ci-status.json`) |
-| ci-monitor-loop.yml | Continuous CI monitoring loop |
+| ci-monitor-loop.yml | Continuous CI monitoring loop — polls corporate CI, on success promotes CAP, on failure triggers ci-diagnose + fix-corporate-ci. Dispatched by apply-source-change Stage 7 AND deploy-pipeline-monitor. |
+| deploy-pipeline-monitor.yml | **Level 1 Pipeline Watcher** — schedule every 10min + workflow_run triggers. Reads release-state + ci-monitor, detects stuck pipelines (>30min no ci-monitor), auto-dispatches ci-monitor-loop, writes pipeline-status.json. Watched by workflow-sentinel. |
 | clone-corporate-repos.yml | Clone corporate repos locally (trigger via `trigger/clone-repos.json`) |
 | auto-merge-sweeper.yml | Sweep and auto-merge eligible agent PRs |
 | autopilot-dispatcher.yml | Central dispatcher for autopilot operations |
@@ -736,7 +737,9 @@ The corporate "Esteira de Build NPM" runs INDEPENDENTLY after code is pushed.
 4.   Promote        → Update CAP values.yaml (agent + controller — both auto-promote via GitHub API)
 5.   Save State     → Record on autopilot-state
 6.   Audit          → Audit trail + Release lock
+7.   CI Monitor     → Dispatch ci-monitor-loop explicitly (ALWAYS fires, regardless of CI Gate result)
 ```
+**CRITICAL**: Stage 7 ensures ci-monitor-loop always activates after every deploy. deploy-pipeline-monitor (Level 1) is backup: if ci-monitor still missing after 30min, auto-dispatches again.
 
 ## Continuous Improvement Pipeline (6 Stages)
 ```

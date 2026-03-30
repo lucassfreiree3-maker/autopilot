@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 371,
+  "branch": "claude/deploy-pipeline-observability",
+  "timestamp": "2026-03-30T13:53:35Z",
+  "runId": "23748370012",
+  "healthStatus": "degraded"
+}

@@ -9,12 +9,17 @@
       "workflow": ".github/workflows/emergency-watchdog.yml",
       "consecutiveAt": "2026-03-30T04:25:02Z",
       "count": 5
+    },
+    {
+      "workflow": "[Core] Autonomous Direct Merge",
+      "consecutiveAt": "2026-03-30T20:05:34Z",
+      "count": 3
     }
   ],
   "fixes": [],
-  "lastRun": "2026-03-30T19:19:22Z",
+  "lastRun": "2026-03-30T20:05:34Z",
   "lastHealth": "degraded",
-  "runCount": 15,
+  "runCount": 16,
   "healthHistory": [
     {
       "ts": "2026-03-30T04:25:02Z",
@@ -74,6 +79,10 @@
     },
     {
       "ts": "2026-03-30T19:19:22Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-30T20:05:34Z",
       "health": "degraded"
     }
   ]

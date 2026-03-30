@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr377-20260330-171102",
+  "event": "post-merge-monitor",
+  "prNumber": 377,
+  "branch": "claude/fix-monitoring-stack-workflows",
+  "mergeSha": "6ee3782893439bf69c7871d8d27787d97b01cf49",
+  "timestamp": "2026-03-30T17:11:02Z",
+  "runId": "23757536795",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

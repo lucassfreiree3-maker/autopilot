@@ -76,10 +76,12 @@ jobs:
           DISABLED=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
             --jq '[.workflows[] | select(.state == "disabled_manually" or .state == "disabled_inactivity") | {id: .id, name: .name, path: .path, state: .state}]' 2>/dev/null || echo '[]')
 
-          for WF in $(echo "$DISABLED" | jq -c '.[]' 2>/dev/null); do
-            WF_NAME=$(echo "$WF" | jq -r '.name')
-            WF_ID=$(echo "$WF" | jq -r '.id')
-            WF_STATE=$(echo "$WF" | jq -r '.state')
+          while IFS= read -r WF; do
+            [ -z "$WF" ] && continue
+            WF_NAME=$(echo "$WF" | jq -r '.name' 2>/dev/null || echo "")
+            WF_ID=$(echo "$WF" | jq -r '.id' 2>/dev/null || echo "")
+            WF_STATE=$(echo "$WF" | jq -r '.state' 2>/dev/null || echo "")
+            [ -z "$WF_NAME" ] || [ -z "$WF_ID" ] && continue
             REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
               \"type\": \"re-enable\",
               \"workflow_id\": $WF_ID,
@@ -87,7 +89,7 @@ jobs:
               \"reason\": \"Workflow is $WF_STATE\",
               \"action\": \"Enable workflow via API\"
             }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
-          done
+          done < <(echo "$DISABLED" | jq -c '.[]' 2>/dev/null || true)
           echo "::endgroup::"
 
           # ── Pattern 2: Stuck runs (in_progress > 60 min) ──
@@ -96,9 +98,11 @@ jobs:
           STUCK=$(gh api "repos/$REPO/actions/runs?status=in_progress&per_page=50" \
             --jq "[.workflow_runs[] | select(.created_at < \"$SIXTY_MIN_AGO\") | {id: .id, name: .name, created: .created_at, url: .html_url}]" 2>/dev/null || echo '[]')
 
-          for RUN in $(echo "$STUCK" | jq -c '.[]' 2>/dev/null); do
-            RUN_ID=$(echo "$RUN" | jq -r '.id')
-            RUN_NAME=$(echo "$RUN" | jq -r '.name')
+          while IFS= read -r RUN; do
+            [ -z "$RUN" ] && continue
+            RUN_ID=$(echo "$RUN" | jq -r '.id' 2>/dev/null || echo "")
+            RUN_NAME=$(echo "$RUN" | jq -r '.name' 2>/dev/null || echo "")
+            [ -z "$RUN_ID" ] || [ -z "$RUN_NAME" ] && continue
             REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
               \"type\": \"cancel-stuck\",
               \"run_id\": $RUN_ID,
@@ -106,7 +110,7 @@ jobs:
               \"reason\": \"Run stuck for >60 minutes\",
               \"action\": \"Cancel stuck run\"
             }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
-          done
+          done < <(echo "$STUCK" | jq -c '.[]' 2>/dev/null || true)
           echo "::endgroup::"
 
           # ── Pattern 3: Expired locks on state branch ──
@@ -138,11 +142,13 @@ jobs:
           echo "::group::Checking critical workflows from health report"
           if [ -f /tmp/health-report.json ]; then
             CRITICAL_WFS=$(jq -c '.criticalWorkflows // []' /tmp/health-report.json 2>/dev/null || echo '[]')
-            for WF in $(echo "$CRITICAL_WFS" | jq -c '.[]' 2>/dev/null); do
-              WF_NAME=$(echo "$WF" | jq -r '.name')
-              WF_ID=$(echo "$WF" | jq -r '.workflow_id')
-              CONSEC=$(echo "$WF" | jq -r '.consecutiveFailures')
-              LAST_URL=$(echo "$WF" | jq -r '.lastUrl // ""')
+            while IFS= read -r WF; do
+              [ -z "$WF" ] && continue
+              WF_NAME=$(echo "$WF" | jq -r '.name' 2>/dev/null || echo "")
+              WF_ID=$(echo "$WF" | jq -r '.workflow_id' 2>/dev/null || echo "")
+              CONSEC=$(echo "$WF" | jq -r '.consecutiveFailures' 2>/dev/null || echo "0")
+              LAST_URL=$(echo "$WF" | jq -r '.lastUrl // ""' 2>/dev/null || echo "")
+              [ -z "$WF_NAME" ] || [ -z "$WF_ID" ] && continue
 
               # Check if it's spark-sync-state (most common)
               if echo "$WF_NAME" | grep -qi "spark"; then
@@ -163,7 +169,7 @@ jobs:
                   \"lastUrl\": \"$LAST_URL\"
                 }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
               fi
-            done
+            done < <(echo "$CRITICAL_WFS" | jq -c '.[]' 2>/dev/null || true)
           fi
           echo "::endgroup::"
 
@@ -172,16 +178,18 @@ jobs:
           QUEUED_PILE=$(gh api "repos/$REPO/actions/runs?status=queued&per_page=100" \
             --jq '[.workflow_runs | group_by(.workflow_id)[] | select(length > 10) | {workflow_id: .[0].workflow_id, name: .[0].name, count: length, oldest: (sort_by(.created_at) | .[0].id)}]' 2>/dev/null || echo '[]')
 
-          for PILE in $(echo "$QUEUED_PILE" | jq -c '.[]' 2>/dev/null); do
-            PILE_NAME=$(echo "$PILE" | jq -r '.name')
-            PILE_COUNT=$(echo "$PILE" | jq -r '.count')
+          while IFS= read -r PILE; do
+            [ -z "$PILE" ] && continue
+            PILE_NAME=$(echo "$PILE" | jq -r '.name' 2>/dev/null || echo "")
+            PILE_COUNT=$(echo "$PILE" | jq -r '.count' 2>/dev/null || echo "0")
+            [ -z "$PILE_NAME" ] && continue
             REPAIRS=$(echo "$REPAIRS" | jq --argjson r "{
               \"type\": \"cancel-queued\",
               \"workflow_name\": \"$PILE_NAME\",
               \"reason\": \"$PILE_COUNT queued runs piled up\",
               \"action\": \"Cancel oldest queued runs\"
             }" '. + [$r]' 2>/dev/null || echo "$REPAIRS")
-          done
+          done < <(echo "$QUEUED_PILE" | jq -c '.[]' 2>/dev/null || true)
           echo "::endgroup::"
 
           REPAIR_COUNT=$(echo "$REPAIRS" | jq 'length' 2>/dev/null || echo 0)
@@ -200,7 +208,7 @@ jobs:
           if [ "$REPAIR_COUNT" -gt 0 ]; then
             echo "| Type | Workflow | Reason | Action |" >> "$GITHUB_STEP_SUMMARY"
             echo "|------|----------|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
-            echo "$REPAIRS" | jq -r '.[] | "| \(.type) | \(.workflow_name) | \(.reason) | \(.action) |"' >> "$GITHUB_STEP_SUMMARY"
+            echo "$REPAIRS" | jq -r '.[] | "| \(.type) | \(.workflow_name) | \(.reason) | \(.action) |"' 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
           fi
 
   repair:

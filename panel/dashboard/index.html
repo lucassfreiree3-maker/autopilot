@@ -1340,143 +1340,79 @@
   function fmtTokens(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(0)+'K';return String(Math.round(n))}
 
   function renderTokens(){
-    const t=computeTokenUsage();
+    // Token page shows operational metrics (deploys, sessions, workflows)
+    // NOT actual Claude billing — that's only on claude.ai/settings
+    const sessions=(state.executionHistory||[]).length;
+    const deploys=(state.deployHistory||[]).length;
+    const wfs=(state.recentWorkflows||[]).length;
+    const successWfs=(state.recentWorkflows||[]).filter(w=>w.conclusion==='success').length;
+    const failedWfs=wfs-successWfs;
 
-    // PLAN CONFIG — Max 5x, billing cycle starts day 21
-    const PLAN={name:'Max 5x',price:'$100/mo',limit:25000000};
-    const BILLING_DAY=21;
-
-    // Calculate billing cycle dates
-    const now=new Date();
-    let cycleStart,cycleEnd;
-    if(now.getDate()>=BILLING_DAY){
-      cycleStart=new Date(now.getFullYear(),now.getMonth(),BILLING_DAY);
-      cycleEnd=new Date(now.getFullYear(),now.getMonth()+1,BILLING_DAY);
-    }else{
-      cycleStart=new Date(now.getFullYear(),now.getMonth()-1,BILLING_DAY);
-      cycleEnd=new Date(now.getFullYear(),now.getMonth(),BILLING_DAY);
-    }
-    const cycleDays=Math.round((cycleEnd-cycleStart)/(1000*60*60*24));
-    const dayInCycle=Math.round((now-cycleStart)/(1000*60*60*24));
-    const daysLeft=Math.max(0,cycleDays-dayInCycle);
-    const cycleEndStr=cycleEnd.toLocaleDateString('en',{month:'short',day:'numeric'});
-
-    // Usage — use MY_BUDGET (personal half) for all limits
-    const dailyAvg=t.dailyAvg;
-    const myUsed=dailyAvg*dayInCycle;
-    const dailyLimit=Math.round(PLAN.limit/cycleDays);
-    const weeklyLimit=dailyLimit*7;
-    const projectedTotal=dailyAvg*cycleDays;
-
-    // Today
-    const todayUsed=dailyAvg;
-    const dayPct=Math.min(100,Math.round(todayUsed/dailyLimit*100));
-    const dayRemain=Math.max(0,dailyLimit-todayUsed);
-    const dc=dayPct<60?'green':dayPct<85?'yellow':'red';
-
-    // This week
-    const dow=now.getDay()||7;
-    const weekUsed=dailyAvg*dow;
-    const weekPct=Math.min(100,Math.round(weekUsed/weeklyLimit*100));
-    const weekRemain=Math.max(0,weeklyLimit-weekUsed);
-    const wc=weekPct<60?'green':weekPct<85?'yellow':'red';
-
-    // Billing cycle (personal budget)
-    const cyclePct=Math.min(100,Math.round(myUsed/PLAN.limit*100));
-    const cycleRemain=Math.max(0,PLAN.limit-myUsed);
-    const mc=cyclePct<60?'green':cyclePct<85?'yellow':'red';
-    const projPct=Math.min(100,Math.round(projectedTotal/PLAN.limit*100));
-
-    document.getElementById('tokenBadge').textContent=cyclePct+'%';
-    document.getElementById('tokenBadge').className='badge b-'+mc;
-    document.getElementById('navTokens').textContent=cyclePct+'%';
-    document.getElementById('navTokens').style.color='var(--'+mc+')';
+    document.getElementById('tokenBadge').textContent='Ops';
+    document.getElementById('tokenBadge').className='badge b-blue';
+    document.getElementById('navTokens').textContent='';
 
     document.getElementById('tokenMain').innerHTML=`
-      <!-- BILLING CYCLE METER -->
-      <div class="section" style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div>
-            <span style="font-size:32px;font-weight:700;color:var(--${mc})">${cyclePct}%</span>
-            <span style="font-size:14px;color:var(--muted);margin-left:8px">${PLAN.name} (${PLAN.price})</span>
-          </div>
-          <div style="text-align:right;font-size:12px;color:var(--muted)">
-            ${PLAN.name} · ${PLAN.price} · Renews: <strong>${cycleEndStr}</strong><br>
-            <strong>${daysLeft} days left</strong> · Day ${dayInCycle} of ${cycleDays}
-          </div>
+      <div class="alert-bar" style="background:var(--surface2);border-left:3px solid var(--blue);margin-bottom:16px">
+        <span style="font-size:13px">This page shows <strong>operational activity metrics</strong> — not billing data. For real token usage, check <a href="https://claude.ai/settings" target="_blank" rel="noopener" style="color:var(--blue)">claude.ai/settings → Usage</a>.</span>
+      </div>
+
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-title">Deploys</div>
+          <div class="card-value" style="color:var(--green)">${deploys}</div>
+          <div class="card-sub">tracked in audit</div>
         </div>
-        <div style="background:var(--surface2);border-radius:8px;height:28px;overflow:hidden;position:relative">
-          <div style="height:100%;width:${cyclePct}%;background:var(--${mc});border-radius:8px;transition:width .5s"></div>
-          ${projPct>cyclePct?`<div style="position:absolute;top:0;left:${Math.min(98,projPct)}%;height:100%;width:2px;background:var(--yellow);opacity:.8" title="Projected end of cycle"></div>`:''}
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-title">Sessions</div>
+          <div class="card-value" style="color:var(--blue)">${sessions}</div>
+          <div class="card-sub">Claude Code sessions</div>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px">
-          <span>Used: <strong>${fmtTokens(myUsed)}</strong></span>
-          <span>Remaining: <strong style="color:var(--${mc})">${fmtTokens(cycleRemain)}</strong></span>
-          <span>Limit: <strong>${fmtTokens(PLAN.limit)}</strong></span>
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-title">Workflow Runs</div>
+          <div class="card-value">${wfs}</div>
+          <div class="card-sub">${successWfs} passed · ${failedWfs} failed</div>
         </div>
-        <div style="margin-top:10px;font-size:13px">
-          ${cyclePct<60?`<span style="color:var(--green)">✅ Comfortable</span> — ${fmtTokens(cycleRemain)} remaining for ${daysLeft} days.`:
-            cyclePct<85?`<span style="color:var(--yellow)">⚠️ Watch usage</span> — ${fmtTokens(cycleRemain)} left for ${daysLeft} days. Budget ~${fmtTokens(Math.round(cycleRemain/Math.max(daysLeft,1)))}/day.`:
-            `<span style="color:var(--red)">🔴 Near limit</span> — only ${fmtTokens(cycleRemain)} left for ${daysLeft} days. Reduce usage.`}
+        <div class="card" style="padding:14px;text-align:center">
+          <div class="card-title">Success Rate</div>
+          <div class="card-value" style="color:var(--${wfs>0&&successWfs/wfs>=0.8?'green':wfs>0&&successWfs/wfs>=0.5?'yellow':'red'})">${wfs>0?Math.round(successWfs/wfs*100):0}%</div>
+          <div class="card-sub">recent workflows</div>
         </div>
       </div>
 
-      <!-- TODAY / WEEK / CYCLE -->
-      <div class="grid-3" style="margin-bottom:16px">
-        <div class="card" style="padding:14px">
-          <div class="card-title">Today</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <div style="font-size:22px;font-weight:700;color:var(--${dc})">${fmtTokens(todayUsed)}</div>
-            <span style="font-size:12px;color:var(--muted)">/ ${fmtTokens(dailyLimit)}</span>
-          </div>
-          <div style="background:var(--surface2);height:6px;border-radius:3px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${dayPct}%;background:var(--${dc});border-radius:3px"></div></div>
-          <div style="font-size:11px;color:var(--muted)">Left today: <strong style="color:var(--${dc})">${fmtTokens(dayRemain)}</strong></div>
-        </div>
-        <div class="card" style="padding:14px">
-          <div class="card-title">This Week (day ${dow}/7)</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <div style="font-size:22px;font-weight:700;color:var(--${wc})">${fmtTokens(weekUsed)}</div>
-            <span style="font-size:12px;color:var(--muted)">/ ${fmtTokens(weeklyLimit)}</span>
-          </div>
-          <div style="background:var(--surface2);height:6px;border-radius:3px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${weekPct}%;background:var(--${wc});border-radius:3px"></div></div>
-          <div style="font-size:11px;color:var(--muted)">Left this week: <strong style="color:var(--${wc})">${fmtTokens(weekRemain)}</strong></div>
-        </div>
-        <div class="card" style="padding:14px">
-          <div class="card-title">Billing Cycle (day ${dayInCycle}/${cycleDays})</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <div style="font-size:22px;font-weight:700;color:var(--${mc})">${fmtTokens(myUsed)}</div>
-            <span style="font-size:12px;color:var(--muted)">/ ${fmtTokens(PLAN.limit)}</span>
-          </div>
-          <div style="background:var(--surface2);height:6px;border-radius:3px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${cyclePct}%;background:var(--${mc});border-radius:3px"></div></div>
-          <div style="font-size:11px;color:var(--muted)">Left: <strong style="color:var(--${mc})">${fmtTokens(cycleRemain)}</strong> · Projected: ${fmtTokens(projectedTotal)} (${projPct}%)</div>
-        </div>
-      </div>
-
-      <!-- TOP COST DRIVERS -->
-      <div class="section" style="margin-bottom:16px">
-        <h3>Where tokens go</h3>
-        ${t.opBreakdown.slice(0,5).map(o=>{
-          const pct=Math.round(o.tokens/t.totalTokens*100);
-          return`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="min-width:120px;font-size:12px;color:var(--muted)">${esc(o.key)}</span>
-            <div style="flex:1;background:var(--surface2);height:12px;border-radius:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--purple);border-radius:6px"></div></div>
-            <span style="min-width:50px;text-align:right;font-size:12px;font-weight:600">${pct}%</span>
-          </div>`;
-        }).join('')}
-      </div>
-
-      <!-- FAQ (collapsible) -->
       <div class="section">
-        <h3>FAQ</h3>
-        <details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 0">What are tokens?</summary><div style="font-size:12px;color:var(--muted);padding:8px 0">Tokens are text units the AI processes (~4 chars = 1 token). Every message sent, file read, and response generated costs tokens. You pay for input (what Claude reads) and output (what Claude writes).</div></details>
-        <details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 0">How is this calculated?</summary><div style="font-size:12px;color:var(--muted);padding:8px 0">Estimated from operation counts (deploys, sessions, workflows) × typical token cost per operation. This is an approximation — not a direct billing API reading.</div></details>
-        <details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 0">When does usage reset?</summary><div style="font-size:12px;color:var(--muted);padding:8px 0">Monthly on your billing date (usually the 1st). The meter above tracks estimated usage for the current period.</div></details>
-        <details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 0">How to reduce costs?</summary><div style="font-size:12px;color:var(--muted);padding:8px 0">Auto-optimizer runs daily (saves ~40%). Batch changes in single commits. Let auto-workflows handle monitoring. The system already uses cheaper models (Haiku) for simple tasks.</div></details>
-        <details><summary style="cursor:pointer;font-size:13px;font-weight:600;padding:6px 0">What happens if I hit the limit?</summary><div style="font-size:12px;color:var(--muted);padding:8px 0">Claude Code may become slower or unavailable until the next billing cycle. The meter turns red at 85% to warn you in advance. Reduce usage or upgrade your plan.</div></details>
-      </div>`;
+        <h3>Recent Workflow Activity</h3>
+        <div style="display:grid;gap:4px;max-height:300px;overflow-y:auto">
+          ${(state.recentWorkflows||[]).slice(0,15).map(w=>{
+            const c=w.conclusion==='success'?'green':w.conclusion==='failure'?'red':'muted';
+            const icon=w.conclusion==='success'?'✓':w.conclusion==='failure'?'✗':'·';
+            return \`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:12px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="color:var(--\${c});font-weight:700">\${icon}</span>
+                <span>\${esc(w.name||'?')}</span>
+              </div>
+              <span style="color:var(--muted)">\${w.created?new Date(w.created).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</span>
+            </div>\`;
+          }).join('')}
+        </div>
+      </div>
 
-    // end renderTokens
+      <div class="section" style="margin-top:16px">
+        <h3>Cost Optimization Tips</h3>
+        <div style="display:grid;gap:8px">
+          <div style="background:var(--surface2);border-radius:6px;padding:10px;font-size:12px">
+            <strong style="color:var(--green)">Subagent routing</strong> — Use Haiku for exploration, Sonnet for simple research, Opus only for complex tasks
+          </div>
+          <div style="background:var(--surface2);border-radius:6px;padding:10px;font-size:12px">
+            <strong style="color:var(--blue)">Session memory</strong> — Compacted daily by token-auto-optimize.yml to reduce startup cost
+          </div>
+          <div style="background:var(--surface2);border-radius:6px;padding:10px;font-size:12px">
+            <strong style="color:var(--yellow)">Dashboard sync</strong> — Runs every 5/15 min instead of every 1 min (saves ~80% sync compute)
+          </div>
+        </div>
+      </div>`;
   }
+
   // ===== OPERATIONS CENTER =====
   const OPS_ACTIONS=[
     {id:'check-health',label:'Check System Health',desc:'Runs full check: state, locks, drift, CI, versions',category:'monitor',icon:'💚',safe:true},

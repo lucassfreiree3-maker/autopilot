@@ -1,10 +1,10 @@
 {
   "workspaceId": "ws-default",
   "component": "controller",
-  "commitSha": "fab95e76df8573581d3298a3ac9e7e989127e473",
+  "commitSha": "f5ec64b840504117652a614df17f01a7b89a045e",
   "version": "",
-  "monitoredAt": "2026-03-30T18:27:09Z",
+  "monitoredAt": "2026-03-30T18:35:32Z",
   "ciOutcome": "failure",
-  "monitorRunId": "23760894949",
-  "failedRunUrl": "https://github.com/bbvinet/psc-sre-automacao-controller/actions/runs/23760695581"
+  "monitorRunId": "23761267229",
+  "failedRunUrl": "https://github.com/bbvinet/psc-sre-automacao-controller/actions/runs/23761051413"
 }

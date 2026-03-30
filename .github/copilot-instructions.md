@@ -375,7 +375,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | claude | claude-code | architecture-analysis, code-review, workflow-authoring, release-orchestration, c |
 | codex | codex | code-implementation, code-refactoring, bulk-changes, test-execution, ci-monitori |
 | copilot | copilot | workflow-dispatch, pr-review, issue-management, state-reading, handoff-creation, |
-| ? | ? | — |
+| ? | ? |  |
 
 
 ---
@@ -423,6 +423,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | fix-and-validate.yml | [Corp] Fix: CI + Validate Full Flow | trigger file, manual |
 | fix-corporate-ci.yml | [Corp] Fix: CI Lint Errors | trigger file, manual |
 | health-check.yml | [Core] Health Check | scheduled, manual |
+| intelligent-orchestrator.yml | [Core] Intelligent Orchestrator | scheduled, manual |
 | langchain-orchestrator.yml | [Agent] LangChain Orchestrator | manual, reusable |
 | ops-cloud-diagnose.yml | Ops: Cloud Diagnostics | manual |
 | ops-k8s-health.yml | Ops: K8s Cluster Health | manual |
@@ -485,6 +486,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 | fix-and-validate.yml | workspace_id |
 | fix-corporate-ci.yml | workspace_id, component |
 | health-check.yml | workspace_id |
+| intelligent-orchestrator.yml | mode |
 | langchain-orchestrator.yml | workspace_id, task, context |
 | ops-cloud-diagnose.yml | provider, action, workspace_id |
 | ops-k8s-health.yml | cluster, provider, namespace, workspace_id |
@@ -696,4 +698,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-30T00:53:26Z | Run: 23723297600*
+*Last synced: 2026-03-30T01:08:21Z | Run: 23723610749*

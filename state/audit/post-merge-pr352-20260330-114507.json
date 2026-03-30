@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr352-20260330-114507",
+  "event": "post-merge-monitor",
+  "prNumber": 352,
+  "branch": "claude/fix-builds-monitoring-9FrG1",
+  "mergeSha": "d22228153a685f9786fc0537d177e218c5c009f7",
+  "timestamp": "2026-03-30T11:45:07Z",
+  "runId": "23743037264",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

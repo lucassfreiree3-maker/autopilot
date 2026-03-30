@@ -1,7 +1,7 @@
 {
   "_context": "GETRONICS | ws-default | BBVINET_TOKEN",
   "workspace_id": "ws-default",
-  "component": "agent",
-  "note": "Diagnose agent 2.3.3 CI failure — cronjob callback deploy #930188 run73",
-  "run": 27
+  "component": "controller",
+  "note": "Diagnose controller 3.7.2 CI failure — run80 sha f5ec64b840504117652a614df17f01a7b89a045e",
+  "run": 28
 }

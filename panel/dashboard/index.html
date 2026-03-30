@@ -791,8 +791,9 @@
       const ctx=WS_CTX[w.id];
       const isDefault=w.id==='ws-default';
       const hasDrift=isDefault&&(cc.drift||ca.drift);
-      const ctrlVer=isDefault?(c.version||w.controllerVersion||'—'):(w.controllerVersion||'—');
-      const agentVer=isDefault?(a.version||w.agentVersion||'—'):(w.agentVersion||'—');
+      // Unified version source: CAP tag > agent/ctrl version > workspace version
+      const ctrlVer=isDefault?(cc.capTag&&cc.capTag!=='?'?cc.capTag:(c.version||w.controllerVersion||'—')):(w.controllerVersion||'—');
+      const agentVer=isDefault?(ca.capTag&&ca.capTag!=='?'?ca.capTag:(a.version||w.agentVersion||'—')):(w.agentVersion||'—');
 
       document.getElementById('wsDetailView').innerHTML=`
         <div class="ws-back-btn" onclick="closeWs()">← Back to list</div>
@@ -806,8 +807,8 @@
 
         ${ctrlVer!=='—'||agentVer!=='—'?`
         <div class="grid-4" style="margin-bottom:16px">
-          <div class="card" style="padding:12px"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(isDefault?c.ciResult:'idle')})">${isDefault&&cc.capTag&&cc.capTag!=='?'?esc(cc.capTag):esc(ctrlVer)}</div><div class="card-sub">${isDefault?badge(c.ciResult||'?'):''} ${isDefault&&c.promoted?badge('promoted','green'):''} ${isDefault&&cc.capTag&&cc.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
-          <div class="card" style="padding:12px"><div class="card-title">Agent</div><div class="card-value" style="color:var(--${statusColor(isDefault?a.ciResult:'idle')})">${isDefault&&ca.capTag&&ca.capTag!=='?'?esc(ca.capTag):esc(agentVer)}</div><div class="card-sub">${isDefault?badge(a.ciResult||'?'):''} ${isDefault&&a.promoted?badge('promoted','green'):''} ${isDefault&&ca.capTag&&ca.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
+          <div class="card" style="padding:12px"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(isDefault?c.ciResult:'idle')})">${esc(ctrlVer)}</div><div class="card-sub">${isDefault?badge(c.ciResult||'?'):''} ${isDefault&&c.promoted?badge('promoted','green'):''} ${isDefault&&cc.capTag&&cc.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
+          <div class="card" style="padding:12px"><div class="card-title">Agent</div><div class="card-value" style="color:var(--${statusColor(isDefault?a.ciResult:'idle')})">${esc(agentVer)}</div><div class="card-sub">${isDefault?badge(a.ciResult||'?'):''} ${isDefault&&a.promoted?badge('promoted','green'):''} ${isDefault&&ca.capTag&&ca.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
           <div class="card" style="padding:12px"><div class="card-title">Last Run</div><div class="card-value">#${isDefault?p.lastRun||0:0}</div><div class="card-sub">${badge(isDefault?p.status||'idle':'idle')}</div></div>
           <div class="card" style="padding:12px"><div class="card-title">Pipeline</div><div class="card-value" style="color:var(--${statusColor(w.pipelineStatus||'idle')})">${esc(w.pipelineStatus||'idle')}</div></div>
         </div>`:''}
@@ -850,20 +851,14 @@
       ${ws.map(w=>{
         const sc=w.status==='active'?'active':w.status==='setup'?'setup':w.status==='locked'?'locked':'empty';
         const isDefault=w.id==='ws-default';
-        const ctrlVer=isDefault?(c.version||w.controllerVersion||'—'):(w.controllerVersion||'—');
-        const agentVer=isDefault?(a.version||w.agentVersion||'—'):(w.agentVersion||'—');
         return`<div class="ws-list-item ws-${sc}" onclick="${w.status!=='locked'?`openWs('${w.id}')`:''}" ${w.status==='locked'?'style="cursor:not-allowed;opacity:.7"':''}>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <strong style="font-size:15px">${esc(w.company)}</strong>
             ${badge(w.status)}
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')}</div>
           ${w.status==='locked'?'<div style="font-size:11px;color:var(--red)">🔒 Third-party — access blocked</div>':`
-          <div style="display:flex;gap:8px">
-            <div style="flex:1;background:var(--surface2);border-radius:4px;padding:6px;text-align:center"><div style="font-size:9px;color:var(--muted)">CTRL</div><div style="font-size:14px;font-weight:700">${esc(ctrlVer)}</div></div>
-            <div style="flex:1;background:var(--surface2);border-radius:4px;padding:6px;text-align:center"><div style="font-size:9px;color:var(--muted)">AGENT</div><div style="font-size:14px;font-weight:700">${esc(agentVer)}</div></div>
-          </div>
-          <div style="margin-top:6px;font-size:11px;color:var(--blue)">Click to open →</div>`}
+          <div style="margin-top:4px;font-size:11px;color:var(--blue)">Click to open →</div>`}
         </div>`;
       }).join('')}
       </div>`;

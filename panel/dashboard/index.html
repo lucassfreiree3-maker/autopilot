@@ -158,21 +158,6 @@
     <div class="sidebar-logo"><h1>Autopilot</h1><p>Intelligence Dashboard v2</p></div>
     <div class="sidebar-nav">
       <div class="nav-item active" onclick="go('workspaces')">Workspaces <span class="nav-badge" id="wsCount2">0</span></div>
-      <div class="nav-item" onclick="go('pipeline')">Pipeline</div>
-      <div class="nav-item" onclick="go('alerts')">Alerts <span class="nav-badge" id="navAlerts">0</span></div>
-      <div class="nav-item" onclick="go('corporate')">Corporate Real <span class="nav-badge" id="navDrift" style="color:var(--cyan)">—</span></div>
-      <div class="nav-item" onclick="go('improvements')">Improvements <span class="nav-badge" id="navImprov" style="color:var(--green)">0</span></div>
-      <div class="nav-item" onclick="go('history')">Deploy History</div>
-      <div class="nav-item" onclick="go('workflows')">System Health <span id="navHealth" style="font-size:10px"></span></div>
-      <div class="nav-item" onclick="go('agents')">Claude Agent <span class="nav-badge" id="navAgents"></span></div>
-      <div class="nav-item" onclick="go('tokens')">Token Intelligence <span class="nav-badge" id="navTokens" style="color:var(--cyan)">$</span></div>
-      <div class="nav-item" onclick="go('compliance')">Compliance</div>
-      <div class="nav-item" onclick="go('prs')">Open PRs <span class="nav-badge" id="navPRs">0</span></div>
-      <div class="nav-item" onclick="go('lessons')">Lessons <span class="nav-badge" id="navLessons">0</span></div>
-      <div class="nav-item" onclick="go('errors')">Error Patterns</div>
-      <div class="nav-item" onclick="go('ops')" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px">Operations Center <span class="nav-badge" id="navOps" style="color:var(--orange)">SOS</span></div>
-      <div class="nav-item" onclick="go('aikit')">AI Takeover Kit</div>
-      <div class="nav-item" onclick="go('architecture')">Architecture</div>
     </div>
     <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)" id="sidebarSync">Loading...</div>
   </nav>
@@ -237,7 +222,6 @@
     <!-- WORKSPACES -->
     <div class="panel active" id="panel-workspaces">
       <div class="page-header"><h2>Workspaces</h2><span class="badge b-blue" id="wsCount">0</span></div>
-      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Each workspace represents a completely isolated company context. Click on a workspace to see its full details: versions, repositories, infrastructure, quick links, corporate reality, and a dedicated Work Center for creating tasks.</p>
       <div id="wsListView"></div>
       <div id="wsDetailView" style="display:none"></div>
     </div>
@@ -332,7 +316,7 @@
   function getSyncInterval(){return isBusinessHours()?'1 min':'5 min'}
   function getStaleThreshold(){return isBusinessHours()?3:12}
   let REFRESH=getRefreshMs();
-  const PAGES = ['workspaces','pipeline','alerts','corporate','improvements','history','workflows','agents','tokens','compliance','prs','lessons','errors','ops','aikit','architecture'];
+  const PAGES = ['workspaces'];
   const STAGES = [
     {name:'Setup',desc:'Read workspace config'},
     {name:'Session Guard',desc:'Acquire multi-agent lock'},
@@ -492,10 +476,7 @@
 </script>
 <script>
   function renderAll(){
-    renderSync();renderWorkspaces();renderPipeline();renderAlerts();
-    renderCorporate();renderImprovements();renderWorkflows();renderAgents();renderTokens();
-    renderCompliance();renderPRs();renderHistory();renderLessons();renderErrors();
-    renderOps();renderAIKit();renderArchitecture();renderNavBadges();
+    renderSync();renderWorkspaces();renderNavBadges();
   }
 
   function renderSync(){
@@ -505,9 +486,6 @@
   }
 
   function renderNavBadges(){
-    document.getElementById('navAlerts').textContent=computeAlerts().length;
-    document.getElementById('navPRs').textContent=(state.openPRs||[]).length;
-    document.getElementById('navLessons').textContent=(state.lessonsLearned||{}).total||0;
     const ws2=document.getElementById('wsCount2');
     if(ws2)ws2.textContent=(state.workspaces||[]).length;
   }
@@ -805,6 +783,8 @@
 
         ${w.status==='locked'?`<div class="alert-bar alert-error">🔒 Third-party workspace — DO NOT OPERATE without explicit authorization</div>`:`
 
+        ${isDefault?computeAlerts().map(al=>`<div class="alert-bar alert-${al.type}">${alertIcon(al.type)} <div>${esc(al.msg)}</div></div>`).join(''):''}
+
         ${ctrlVer!=='—'||agentVer!=='—'?`
         <div class="grid-4" style="margin-bottom:16px">
           <div class="card" style="padding:12px"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(isDefault?c.ciResult:'idle')})">${esc(ctrlVer)}</div><div class="card-sub">${isDefault?badge(c.ciResult||'?'):''} ${isDefault&&c.promoted?badge('promoted','green'):''} ${isDefault&&cc.capTag&&cc.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
@@ -838,27 +818,37 @@
           </div>
         </div>`:''}`}
 
-        ${getWorkCenterHTML(w.id)}`;
+        `;
       return;
     }
 
     // List view — compact cards, click to open
     document.getElementById('wsListView').style.display='block';
     document.getElementById('wsDetailView').style.display='none';
+    const corp2=state.corporateReal||{};const cc2=corp2.controller||{};const ca2=corp2.agent||{};
+    const c2=state.controller||{};const a2=state.agent||{};const p2=state.pipeline||{};
     document.getElementById('wsListView').innerHTML=`
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Click on a workspace to see all company details.</p>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
       ${ws.map(w=>{
         const sc=w.status==='active'?'active':w.status==='setup'?'setup':w.status==='locked'?'locked':'empty';
         const isDefault=w.id==='ws-default';
+        const ctrlV=isDefault?(cc2.capTag&&cc2.capTag!=='?'?cc2.capTag:(c2.version||'—')):(w.controllerVersion||'—');
+        const agentV=isDefault?(ca2.capTag&&ca2.capTag!=='?'?ca2.capTag:(a2.version||'—')):(w.agentVersion||'—');
+        const alerts=isDefault?computeAlerts().filter(a=>a.type==='error'||a.type==='warn'):[];
         return`<div class="ws-list-item ws-${sc}" onclick="${w.status!=='locked'?`openWs('${w.id}')`:''}" ${w.status==='locked'?'style="cursor:not-allowed;opacity:.7"':''}>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <strong style="font-size:15px">${esc(w.company)}</strong>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="font-size:16px">${esc(w.company)}</strong>
             ${badge(w.status)}
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px"><code>${esc(w.id)}</code> · ${esc(w.stack||'—')} · token: <code>${esc(w.token||'—')}</code></div>
           ${w.status==='locked'?'<div style="font-size:11px;color:var(--red)">🔒 Third-party — access blocked</div>':`
-          <div style="margin-top:4px;font-size:11px;color:var(--blue)">Click to open →</div>`}
+          ${isDefault&&ctrlV!=='—'?`<div style="display:flex;gap:16px;font-size:12px;margin-bottom:6px">
+            <span><span style="color:var(--muted)">Controller</span> <strong style="color:var(--${statusColor(c2.ciResult||'idle')})">${esc(ctrlV)}</strong> ${badge(c2.ciResult||'idle')}</span>
+            <span><span style="color:var(--muted)">Agent</span> <strong style="color:var(--${statusColor(a2.ciResult||'idle')})">${esc(agentV)}</strong> ${badge(a2.ciResult||'idle')}</span>
+          </div>`:''}
+          ${isDefault?`<div style="font-size:11px;color:var(--muted)">Pipeline <strong>${esc(p2.status||'idle')}</strong> · Run #${p2.lastRun||0}</div>`:''}
+          ${alerts.length?`<div style="font-size:11px;color:var(--${alerts[0].type==='error'?'red':'yellow'});margin-top:6px">${alerts.length} alert${alerts.length>1?'s':''}: ${esc(alerts[0].msg.slice(0,60))}${alerts[0].msg.length>60?'…':''}</div>`:''}
+          <div style="margin-top:8px;font-size:11px;color:var(--blue)">Click to open →</div>`}
         </div>`;
       }).join('')}
       </div>`;

@@ -87,6 +87,7 @@ jobs:
 
       - name: Push dashboard HTML to Spark repo
         if: steps.config.outputs.skip != 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
@@ -107,13 +108,11 @@ jobs:
             --arg message "chore: sync dashboard UI [automated]" \
             '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
 
-          if gh api "repos/$SPARK_REPO/contents/public/index.html" \
+          gh api "repos/$SPARK_REPO/contents/public/index.html" \
             --method PUT \
-            --input - <<< "$PAYLOAD" 2>&1; then
-            echo "::notice ::Dashboard HTML synced to $SPARK_REPO"
-          else
-            echo "::warning ::Failed to push dashboard HTML to $SPARK_REPO (repo may not exist yet)"
-          fi
+            --input - <<< "$PAYLOAD" > /dev/null 2>&1 && \
+            echo "::notice ::Dashboard HTML synced to $SPARK_REPO" || \
+            echo "::warning ::Failed to push dashboard HTML to $SPARK_REPO (non-critical)"
 
       - name: Update panel/dashboard/state.json (GitHub Pages)
         if: always() && steps.state.outputs.state_b64 != ''

@@ -1,10 +1,10 @@
 {
   "workspaceId": "ws-default",
   "component": "agent",
-  "commitSha": "ad0bfca36e92faa59b4f8545f11b55be01edbce0",
+  "commitSha": "169879ad0c92221c699974e99ea1e955c605bf98",
   "version": "",
-  "monitoredAt": "2026-03-30T14:34:11Z",
+  "monitoredAt": "2026-03-30T14:45:35Z",
   "ciOutcome": "failure",
-  "monitorRunId": "23750313981",
-  "failedRunUrl": "https://github.com/bbvinet/psc-sre-automacao-agent/actions/runs/23750152837"
+  "monitorRunId": "23750856822",
+  "failedRunUrl": "https://github.com/bbvinet/psc-sre-automacao-agent/actions/runs/23750722932"
 }

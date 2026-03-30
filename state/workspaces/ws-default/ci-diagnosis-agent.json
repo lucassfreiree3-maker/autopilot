@@ -2,18 +2,18 @@
   "workspaceId": "ws-default",
   "component": "agent",
   "sourceRepo": "bbvinet/psc-sre-automacao-agent",
-  "commitSha": "fbf8b7050d8dc93be411a17c66ffdcd8f187af29",
-  "commitMessage": "feat(agent): cronjob callback endpoint + forward to controller (2.2.7) #930217",
+  "commitSha": "e4fb515fed6348bbac259f74f3122bf9b103cd29",
+  "commitMessage": "feat(agent): implement cronjob callback endpoint (#930188)",
   "commitAuthor": "github-actions",
-  "diagnosedAt": "2026-03-26T18:35:38Z",
-  "runId": "23611582769",
-  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23611582769",
+  "diagnosedAt": "2026-03-30T13:16:22Z",
+  "runId": "23746583660",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23746583660",
   "reproduction": {
     "scripts": "  build: tsc && tsoa spec\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  dev: tsc && tsoa spec && nodemon\n  test: jest\n  test:watch: jest --watch\n  test:coverage: jest --coverage\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --forceExit --passWithNoTests\n",
     "lintErrors": [],
     "buildSuccess": false,
-    "buildLog": "\n> psc-sre-automacao-agent@2.2.7 build\n> tsc && tsoa spec\n\ntsconfig.json(17,5): error TS5011: The common source directory of 'tsconfig.json' is './src'. The 'rootDir' setting must be explicitly set to this or another path to adjust your output's file layout.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(48,25): error TS5107: Option 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(50,5): error TS5101: Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\nBuild failed or not available\n",
-    "testSuccess": false,
-    "testLog": "\n> psc-sre-automacao-agent@2.2.7 test\n> jest\n\nsh: 1: jest: not found\nTests failed, timed out, or not available\n"
+    "buildLog": "\n> psc-sre-automacao-agent@2.3.3 build\n> tsc && tsoa spec\n\ntsconfig.json(17,5): error TS5011: The common source directory of 'tsconfig.json' is './src'. The 'rootDir' setting must be explicitly set to this or another path to adjust your output's file layout.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(48,25): error TS5107: Option 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(50,5): error TS5101: Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n",
+    "testSuccess": true,
+    "testLog": "\n> psc-sre-automacao-agent@2.3.3 test\n> jest\n\nsh: 1: jest: not found\n"
   }
 }

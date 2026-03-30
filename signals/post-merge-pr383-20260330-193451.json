@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 383,
+  "branch": "claude/security-update-refresh-g4TL2",
+  "timestamp": "2026-03-30T19:34:51Z",
+  "runId": "23763794065",
+  "healthStatus": "degraded"
+}

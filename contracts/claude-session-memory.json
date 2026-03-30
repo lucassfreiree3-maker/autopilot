@@ -1393,6 +1393,16 @@
         "SEMPRE verificar se JWTService.generateCallbackToken existe antes de referenciar",
         "SEMPRE incluir swagger atualizado com novos endpoints",
         "SEMPRE registrar novas rotas no roteador (apis.ts / agentsRouter.ts)"
+      ],
+      "autonomous_operation": [
+        "NUNCA perguntar ao usuario se deve continuar — SEMPRE continuar autonomamente",
+        "NUNCA perguntar se deve investigar CI failure — SEMPRE investigar e corrigir",
+        "NUNCA perguntar se deve deployar — seguir fluxo completo automaticamente",
+        "NUNCA parar no meio de um deploy para pedir confirmacao",
+        "CI Gate falhou? Baixar logs, analisar, corrigir, re-deployar AUTOMATICAMENTE",
+        "Dashboard quebrou? Corrigir imediatamente sem perguntar",
+        "Workflow falhando? Investigar e corrigir sem pedir permissao",
+        "O unico motivo para perguntar: credencial ausente ou decisao de negocio irreversivel"
       ]
     },
     "dashboard_state_empty": "CRITICO: state.json foi escrito VAZIO (0 bytes) pelo step 7 do spark-sync-state porque steps.state.outputs.state_b64 ficou vazio (limite de tamanho GHA outputs). FIX: mover o update do panel/dashboard/state.json para DENTRO do collect-state.sh (mesmo processo, sem output cross-step). SEMPRE validar STATE_B64 > 100 chars antes de escrever."

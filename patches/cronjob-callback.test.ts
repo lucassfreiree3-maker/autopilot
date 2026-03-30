@@ -3,7 +3,7 @@ import request from "supertest";
 
 jest.setTimeout(15000);
 
-jest.mock("../../util/jwt", () => ({
+jest.mock("../../src/util/jwt", () => ({
   JWTService: {
     generateCallbackToken: jest.fn().mockReturnValue("mock-callback-token"),
   },
@@ -14,7 +14,7 @@ describe("CronjobCallbackAPI", () => {
 
   async function makeApp() {
     const { default: CronjobCallbackAPI } = await import(
-      "../../apis/cronjob-callback"
+      "../../src/apis/cronjob-callback"
     );
     const router = express.Router();
     new CronjobCallbackAPI(router);
@@ -262,7 +262,7 @@ describe("CronjobCallbackAPI", () => {
     });
 
     test("returns 500 when JWT generation throws", async () => {
-      const { JWTService } = await import("../../util/jwt");
+      const { JWTService } = await import("../../src/util/jwt");
       (JWTService.generateCallbackToken as jest.Mock).mockImplementationOnce(
         () => {
           throw new Error("JWT signing error");

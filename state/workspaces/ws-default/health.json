@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "workspaceId": "ws-default",
-  "checkedAt": "2026-03-30T18:46:07Z",
+  "checkedAt": "2026-03-30T19:16:27Z",
   "overall": "degraded",
   "checks": {
     "workspace": {
@@ -10,7 +10,7 @@
     },
     "controllerRelease": {
       "status": "pass",
-      "message": "Tag: 3.7.2",
+      "message": "Tag: source-change",
       "detail": "Age: 0h"
     },
     "agentRelease": {
@@ -23,13 +23,13 @@
       "message": "None"
     },
     "locks": {
-      "status": "pass",
-      "message": "No active locks"
+      "status": "warn",
+      "message": "1 active locks"
     },
     "drift": {
       "status": "warn",
       "message": "? commits ahead"
     }
   },
-  "summary": "degraded at 2026-03-30T18:46:07Z"
+  "summary": "degraded at 2026-03-30T19:16:27Z"
 }

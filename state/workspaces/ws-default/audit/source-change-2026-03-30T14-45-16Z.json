@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T14:45:16Z",
+  "runId": "23750704685",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23750704685",
+  "component": "agent",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(agent): move test to unit dir, correct import paths (#930188)",
+  "commitSha": "169879ad0c92221c699974e99ea1e955c605bf98",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

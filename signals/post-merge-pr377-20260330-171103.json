@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 377,
+  "branch": "claude/fix-monitoring-stack-workflows",
+  "timestamp": "2026-03-30T17:11:03Z",
+  "runId": "23757536795",
+  "healthStatus": "degraded"
+}

@@ -250,7 +250,7 @@ Edit a trigger file on `main` branch, bump the `run` field.
   "run": 64
 }
 ```
-**CRITICAL**: `run` field MUST be incremented — without increment, workflow does NOT trigger.
+CRITICAL: run field MUST be incremented — without increment, workflow does NOT trigger.
 
 ### Method 2: workflow_dispatch API
 ```bash
@@ -556,7 +556,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 ## EFFICIENCY RULES (CRITICAL — minimize confirmations)
 
 ### USE push_files FOR ALL FILE OPERATIONS
-**MANDATORY**: Use the `push_files` MCP tool for ALL file changes. This creates/updates
+MANDATORY: Use the push_files MCP tool for ALL file changes. This creates/updates
 multiple files in a SINGLE API call = SINGLE user confirmation instead of N confirmations.
 
 **WRONG (N confirmations):**
@@ -699,4 +699,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-30T12:37:48Z | Run: 23745055460*
+*Last synced: 2026-03-30T12:41:36Z | Run: 23745207755*

@@ -58,7 +58,9 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          # NOTE: Do NOT use pipefail here — pipes with `gh api | base64 || echo`
+          # fail with pipefail because the first command's exit code propagates.
+          set -e
 
           # ── Release states from autopilot-state (what AUTOPILOT thinks) ──
           CTRL_STATE=$(gh api "repos/${{ github.repository }}/contents/state/workspaces/ws-default/controller-release-state.json?ref=autopilot-state" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')

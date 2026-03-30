@@ -1378,6 +1378,13 @@
     "fixApplied": "PR #334 — retry 3x with fresh SHA, removed [skip ci], added error logging",
     "sourceOfTruth": "CAP repo values.yaml image tag (bbvinet/psc_releases_cap_sre-aut-controller and agent)",
     "mustVerify": "Check if spark-sync-state runs are completing successfully after PR #334",
-    "agentVersionDiscrepancy": "autopilot-state says 2.3.2 promoted, but state.json shows 2.3.1 because sync is stale"
+    "agentVersionDiscrepancy": "autopilot-state says 2.3.2 promoted, but state.json shows 2.3.1 because sync is stale",
+    "fixesApplied": [
+      "PR #334: retry 3x with fresh SHA, removed [skip ci]",
+      "PR #336: removed pipefail that broke pipe fallbacks",
+      "PR #337: removed set -e, removed build loops, pre-compute vars, base64 to file not GITHUB_OUTPUT, safe jq syntax"
+    ],
+    "status": "FIXED — waiting for next scheduled run to verify",
+    "nextAction": "Check https://github.com/lucassfreiree/autopilot/actions/workflows/spark-sync-state.yml for green run after PR #337"
   }
 }

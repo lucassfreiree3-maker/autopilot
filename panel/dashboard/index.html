@@ -163,7 +163,7 @@
       <div class="nav-item" onclick="go('corporate')">Corporate Real <span class="nav-badge" id="navDrift" style="color:var(--cyan)">—</span></div>
       <div class="nav-item" onclick="go('improvements')">Improvements <span class="nav-badge" id="navImprov" style="color:var(--green)">0</span></div>
       <div class="nav-item" onclick="go('history')">Deploy History</div>
-      <div class="nav-item" onclick="go('workflows')">Workflows</div>
+      <div class="nav-item" onclick="go('workflows')">System Health <span id="navHealth" style="font-size:10px"></span></div>
       <div class="nav-item" onclick="go('agents')">Claude Agent <span class="nav-badge" id="navAgents"></span></div>
       <div class="nav-item" onclick="go('tokens')">Token Intelligence <span class="nav-badge" id="navTokens" style="color:var(--cyan)">$</span></div>
       <div class="nav-item" onclick="go('compliance')">Compliance</div>
@@ -251,11 +251,11 @@
       <div class="section" style="margin-top:16px"><h3>Autonomous Mechanisms (Running)</h3><div id="improvMechanisms"></div></div>
     </div>
 
-    <!-- WORKFLOWS -->
+    <!-- SYSTEM HEALTH -->
     <div class="panel" id="panel-workflows">
-      <div class="page-header"><h2>Recent Workflows</h2><span class="badge b-blue" id="wfCount">0</span></div>
-      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">All GitHub Actions workflow runs from the autopilot repository. Shows status, result, triggering branch, and timing. Workflows are categorized: Corp (deploy), Core (state management), Infra (sync/cleanup), Agent (automation).</p>
-      <div class="section"><div id="wfTable"></div></div>
+      <div class="page-header"><h2>System Health</h2><span class="badge" id="wfCount">—</span></div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Live ecosystem health — synced every 5 min. Shows workflow success rate, failing pipelines, self-healing status, and monitoring layers.</p>
+      <div id="wfTable"></div>
     </div>
 
     <!-- PRs -->
@@ -1040,34 +1040,116 @@
 
   function renderWorkflows(){
     const wfs=state.recentWorkflows||[];
-    document.getElementById('wfCount').textContent=wfs.length+' recent';
-    if(!wfs.length){document.getElementById('wfTable').innerHTML='<div class="empty">No recent workflows</div>';return}
+    if(!wfs.length){document.getElementById('wfTable').innerHTML='<div class="empty">No data yet — waiting for sync</div>';return}
 
-    // Group by category
-    const cats={};
-    wfs.forEach(wf=>{
-      let cat='Other';
-      const n=wf.name||'';
-      if(n.startsWith('[Corp]'))cat='Corporate';
-      else if(n.startsWith('[Core]'))cat='Core';
-      else if(n.startsWith('[Release]'))cat='Release';
-      else if(n.startsWith('[Agent]'))cat='Agent';
-      else if(n.startsWith('[Infra]'))cat='Infra';
-      else if(n.startsWith('Ops:'))cat='Ops';
-      else if(n.startsWith('[Copilot]'))cat='Agent';
-      if(!cats[cat])cats[cat]=[];
-      cats[cat].push(wf);
+    // Compute health metrics
+    const completed=wfs.filter(w=>w.status==='completed');
+    const success=completed.filter(w=>w.conclusion==='success');
+    const failed=completed.filter(w=>w.conclusion==='failure');
+    const running=wfs.filter(w=>w.status==='in_progress'||w.status==='queued');
+    const rate=completed.length>0?Math.round(success.length/completed.length*100):0;
+    const hc=rate>=90?'green':rate>=70?'yellow':'red';
+
+    // Unique failed workflow names (deduplicated)
+    const failedNames=[...new Set(failed.map(w=>w.name))];
+
+    // Monitoring layers status
+    const layers=[
+      {name:'Prevention',wf:'Builds Validation Gate',icon:'🛡'},
+      {name:'Detection',wf:'Workflow Health Monitor',icon:'🔍'},
+      {name:'Repair',wf:'Workflow Auto-Repair',icon:'🔧'},
+      {name:'Brain',wf:'Intelligent Orchestrator',icon:'🧠'},
+      {name:'Sentinel',wf:'Workflow Sentinel',icon:'👁'}
+    ].map(l=>{
+      const runs=wfs.filter(w=>(w.name||'').includes(l.wf));
+      const last=runs[0];
+      l.status=!last?'idle':last.conclusion==='success'?'healthy':last.status==='in_progress'?'running':'failing';
+      l.lastRun=last?fmtDate(last.created):'never';
+      return l;
     });
 
-    document.getElementById('wfTable').innerHTML=`<table><thead><tr><th>Workflow</th><th>Status</th><th>Result</th><th>Branch</th><th>When</th></tr></thead><tbody>
-      ${wfs.map(wf=>`<tr>
-        <td>${wf.url?`<a href="${esc(wf.url)}" target="_blank" rel="noopener">${esc(wf.name)}</a>`:esc(wf.name)}</td>
-        <td>${badge(wf.status)}</td>
-        <td>${wf.conclusion?badge(wf.conclusion):badge('in progress','yellow')}</td>
-        <td class="mono" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(wf.head_branch||'')}</td>
-        <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDate(wf.created)}</td>
-      </tr>`).join('')}
-    </tbody></table>`;
+    const healthyLayers=layers.filter(l=>l.status==='healthy').length;
+    const overallHealth=rate>=90&&healthyLayers>=3?'HEALTHY':rate>=70?'DEGRADED':'CRITICAL';
+    const ohc=overallHealth==='HEALTHY'?'green':overallHealth==='DEGRADED'?'yellow':'red';
+
+    // Badge
+    document.getElementById('wfCount').textContent=overallHealth;
+    document.getElementById('wfCount').className='badge b-'+ohc;
+    const navH=document.getElementById('navHealth');
+    if(navH){navH.textContent=rate+'%';navH.style.color='var(--'+hc+')'}
+
+    // Last sync age
+    const syncAge=state.lastSync?Math.round((Date.now()-new Date(state.lastSync).getTime())/60000):999;
+    const syncStatus=syncAge<10?'live':syncAge<30?'recent':'stale';
+    const sc=syncStatus==='live'?'green':syncStatus==='recent'?'yellow':'red';
+
+    document.getElementById('wfTable').innerHTML=`
+      <!-- HEALTH SCORE -->
+      <div class="section" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+          <span style="font-size:42px;font-weight:700;color:var(--${ohc})">${rate}%</span>
+          <div>
+            <div style="font-size:16px;font-weight:600;color:var(--${ohc})">${overallHealth}</div>
+            <div style="font-size:12px;color:var(--muted)">${success.length} passed · ${failed.length} failed · ${running.length} running</div>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <div style="font-size:11px;color:var(--${sc})">Sync: ${syncAge<1?'just now':syncAge+'min ago'}</div>
+            <div style="font-size:10px;color:var(--muted)">${completed.length} runs analyzed</div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;height:12px;overflow:hidden;display:flex">
+          <div style="width:${rate}%;background:var(--green);transition:width .5s"></div>
+          <div style="width:${completed.length>0?Math.round(failed.length/completed.length*100):0}%;background:var(--red);transition:width .5s"></div>
+        </div>
+      </div>
+
+      <!-- MONITORING LAYERS -->
+      <div class="section" style="margin-bottom:16px">
+        <h3>Monitoring Layers (${healthyLayers}/5 active)</h3>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+          ${layers.map(l=>{
+            const lc=l.status==='healthy'?'green':l.status==='running'?'yellow':l.status==='failing'?'red':'muted';
+            return`<div style="background:var(--surface2);border-radius:6px;padding:10px;text-align:center;border-top:3px solid var(--${lc})">
+              <div style="font-size:18px">${l.icon}</div>
+              <div style="font-size:11px;font-weight:600;margin:4px 0">${esc(l.name)}</div>
+              <div style="font-size:10px;color:var(--${lc});font-weight:700">${l.status.toUpperCase()}</div>
+              <div style="font-size:9px;color:var(--muted);margin-top:2px">${l.lastRun}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      ${failed.length>0?`
+      <!-- FAILING WORKFLOWS -->
+      <div class="section" style="margin-bottom:16px">
+        <h3 style="color:var(--red)">Failing Workflows (${failedNames.length})</h3>
+        <div style="display:grid;gap:4px">
+          ${failedNames.map(name=>{
+            const runs=failed.filter(w=>w.name===name);
+            const last=runs[0];
+            return`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:4px;padding:8px 12px;border-left:3px solid var(--red)">
+              <div>
+                <div style="font-size:12px;font-weight:600">${last.url?`<a href="${esc(last.url)}" target="_blank" rel="noopener" style="color:var(--red)">${esc(name)}</a>`:esc(name)}</div>
+                <div style="font-size:10px;color:var(--muted)">${runs.length}x failed · last: ${fmtDate(last.created)}</div>
+              </div>
+              <span style="font-size:10px;color:var(--muted)">${esc(last.head_branch||'main')}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`:''}
+
+      ${success.length>0?`
+      <!-- RECENT SUCCESSES -->
+      <div class="section">
+        <h3 style="color:var(--green)">Recent Successes</h3>
+        <div style="display:grid;gap:2px;max-height:200px;overflow-y:auto">
+          ${success.slice(0,10).map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;font-size:11px">
+            <span style="color:var(--green)">✓ ${esc(w.name||'?')}</span>
+            <span style="color:var(--muted)">${fmtDate(w.created)}</span>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+    `;
   }
 
   function renderPRs(){

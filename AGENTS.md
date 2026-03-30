@@ -116,7 +116,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ (1 files)
-  audit/ (474 files)
+  audit/ (476 files)
   improvements/ (1 files)
   metrics/ (8 files)
   handoffs/ (1 files)
@@ -274,6 +274,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | dashboard-auto-improve.yml | [Core] Dashboard Auto-Improve | scheduled, manual |
 | deploy-auto-learn.yml | [Core] Deploy Auto-Learn | manual |
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
+| deploy-pipeline-monitor.yml | [Core] Deploy Pipeline Monitor | scheduled, manual |
 | dispatch-proxy.yml | [Core] Operations Dispatch Proxy | manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
 | emergency-watchdog.yml | [Core] Emergency Watchdog | scheduled, manual |
@@ -339,6 +340,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | copilot-post-deploy-sync.yml | version, run_number |
 | copilot-task-dispatch.yml | task, task_type, component, version |
 | deploy-auto-learn.yml | source |
+| deploy-pipeline-monitor.yml | workspace_id, force_dispatch_monitor |
 | dispatch-proxy.yml | operation, confirm, workspace |
 | drift-correction.yml | workspace_id, dry_run |
 | emergency-watchdog.yml | force_heal |
@@ -417,4 +419,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-30T13:47:00Z | Run: 23748050093*
+*Last synced: 2026-03-30T13:53:34Z | Run: 23748370186*

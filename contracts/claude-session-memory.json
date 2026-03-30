@@ -535,7 +535,7 @@
     ]
   },
   "versioningRules": {
-    "currentVersion": "3.7.0",
+    "currentVersion": "3.7.2",
     "previousVersion": "3.6.9",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
@@ -1386,7 +1386,9 @@
       "gha_max_expression_length": "CRITICO: GitHub Actions tem limite de 21000 caracteres por bloco run: inline. Scripts grandes DEVEM ser extraidos para arquivos externos (scripts/). spark-sync-state.yml foi corrigido movendo coleta de dados para scripts/dashboard/collect-state.sh (418 linhas). NUNCA colocar scripts gigantes inline em workflows.",
       "gha_json_injection_via_outputs": "CRITICO: NUNCA passar JSON de outputs entre jobs via aspas simples: PLAN='${{ needs.x.outputs.json }}'. Quando o JSON contem aspas, o shell quebra. SEMPRE usar env var: env: PLAN_JSON: ${{ needs.x.outputs.json }} e depois PLAN=\"$PLAN_JSON\" + jq empty validation. Corrigido em intelligent-orchestrator, workflow-auto-repair, continuous-improvement.",
       "spark_dashboard_repo": "lucassfreiree/spark-dashboard e o repo do dashboard externo. Tem Dependabot configurado (weekly). Auto-merge workflow em .github/workflows/auto-merge-dependabot.yml (patch/minor = auto, major = label needs-review). Arquivos de referencia ficam em references/spark-dashboard/ no autopilot. sync-spark-dashboard.yml sincroniza automaticamente. MCP server mcp__b66412ee tem read+merge access (nao write). mcp__github__ NAO tem acesso.",
-      "mcp_servers_access": "mcp__github__ (original): acesso somente a lucassfreiree/autopilot (read+write+merge). mcp__b66412ee__ (novo): acesso a lucassfreiree/spark-dashboard (read+merge, SEM write/push). Para push no spark-dashboard: usar sync-spark-dashboard.yml via RELEASE_TOKEN."
+      "mcp_servers_access": "mcp__github__ (original): acesso somente a lucassfreiree/autopilot (read+write+merge). mcp__b66412ee__ (novo): acesso a lucassfreiree/spark-dashboard (read+merge, SEM write/push). Para push no spark-dashboard: usar sync-spark-dashboard.yml via RELEASE_TOKEN.",
+      "no_restricted_syntax_no_for_of": "CRITICO: ESLint no-restricted-syntax proibe for...of neste codebase. NUNCA usar 'for (const x of y)'. SEMPRE usar array iterations: .map(), .reduce(), .filter(), Object.fromEntries(Object.entries().map()). Afeta: qualquer arquivo TypeScript nos patches do controller.",
+      "ci_gate_broken_always_check_logs": "CRITICO: CI Gate e sabidamente quebrado (ci_gate_preexisting_bug). NUNCA assumir que CI passou so porque CI Gate reportou sucesso. SEMPRE buscar o ci-logs-controller-*.txt mais recente no autopilot-state e verificar se ha erro real. Tempo ~3.5min = falha, ~14min = passou."
     },
     "gha_yaml_markdown_bold": "CRITICO: NUNCA usar **texto**: (markdown bold seguido de dois-pontos) dentro de blocos run: | em workflows GitHub Actions. O parser YAML do GHA interpreta ** como alias syntax e : como mapping key, quebrando o YAML ANTES de avaliar o shell. Fix: remover ** ou usar variaveis. Corrigido em 6 workflows: emergency-watchdog, auto-dispatch-task, continuous-improvement, dashboard-auto-improve, deploy-auto-learn, workflow-sentinel.",
     "gha_no_heredoc_in_run": "CRITICO: NUNCA usar heredoc (cat <<EOF / cat <<'EOF') dentro de blocos run: | em GitHub Actions. O GHA parser le TODO o bloco run: como YAML literal ANTES de avaliar como shell. Qualquer linha com dois-pontos (ex: 'Workspace: $WS') e interpretada como YAML key-value e quebra. FIX: usar variavel simples com string inline. Ex: BODY='texto sem colon' e depois gh issue comment --body \"$BODY\". NUNCA heredoc.",
@@ -1461,18 +1463,18 @@
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
   "currentState": {
-    "controllerVersion": "3.7.0",
+    "controllerVersion": "3.7.2",
     "agentVersion": "2.3.3",
-    "lastTriggerRun": 73,
+    "lastTriggerRun": 79,
     "lastSuccessfulRun": 73,
     "historia930217": "completed — all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)",
     "pendingDeploy": {
       "historia": "#930188",
       "component": "agent",
-      "version": "2.3.3",
-      "triggerRun": 73,
+      "version": "3.7.2",
+      "triggerRun": 79,
       "status": "CI_MONITORING",
-      "nextStep": "ci-diagnose run #27 triggered. deploy-pipeline-monitor will auto-dispatch ci-monitor-loop if stuck. Monitor pipeline-status.json on autopilot-state.",
+      "nextStep": "run #79 triggered (fix for...of lint). Monitor ci-logs-controller-*.txt",
       "patches": [
         "patches/cronjob-callback.ts (Agent endpoint)",
         "patches/agent-apis.ts (route registration)",

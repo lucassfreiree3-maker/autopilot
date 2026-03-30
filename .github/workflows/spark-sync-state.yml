@@ -263,7 +263,7 @@ jobs:
               syncSource: "autopilot/spark-sync-state.yml",
 
               controller: {
-                version: ($ctrl.lastTag // $trigger.version // "?"),
+                version: (if $ctrl_cap != "?" then $ctrl_cap else ($ctrl.lastTag // $trigger.version // "?") end),
                 status: ($ctrl.status // "unknown"),
                 ciResult: ($ctrl.ciResult // "unknown"),
                 promoted: ($ctrl.promoted // false),
@@ -275,7 +275,7 @@ jobs:
               },
 
               agent: {
-                version: ($agent.lastTag // "?"),
+                version: (if $agent_cap != "?" then $agent_cap else ($agent.lastTag // "?") end),
                 status: ($agent.status // "unknown"),
                 ciResult: ($agent.ciResult // "unknown"),
                 promoted: ($agent.promoted // false),
@@ -339,8 +339,8 @@ jobs:
                   status: "active",
                   stack: "Node/TypeScript (NestJS, Jest, ESLint)",
                   token: "BBVINET_TOKEN",
-                  controllerVersion: ($ctrl.lastTag // $trigger.version // "?"),
-                  agentVersion: ($agent.lastTag // "?"),
+                  controllerVersion: (if $ctrl_cap != "?" then $ctrl_cap else ($ctrl.lastTag // $trigger.version // "?") end),
+                  agentVersion: (if $agent_cap != "?" then $agent_cap else ($agent.lastTag // "?") end),
                   pipelineStatus: ($copilot.currentState.pipelineStatus // "idle"),
                   repos: ["psc-sre-automacao-controller", "psc-sre-automacao-agent", "psc_releases_cap_sre-aut-controller", "psc_releases_cap_sre-aut-agent"]
                 },
@@ -355,28 +355,6 @@ jobs:
                   pipelineStatus: "not-configured",
                   repos: []
                 },
-                {
-                  id: "ws-socnew",
-                  company: "SocNew (terceiro)",
-                  status: "locked",
-                  stack: null,
-                  token: null,
-                  controllerVersion: null,
-                  agentVersion: null,
-                  pipelineStatus: "locked",
-                  repos: []
-                },
-                {
-                  id: "ws-corp-1",
-                  company: "Corp-1 (terceiro)",
-                  status: "locked",
-                  stack: null,
-                  token: null,
-                  controllerVersion: null,
-                  agentVersion: null,
-                  pipelineStatus: "locked",
-                  repos: []
-                }
               ],
 
               recentWorkflows: $runs,
@@ -477,7 +455,7 @@ jobs:
                 autopilotRepo: "lucassfreiree/autopilot",
                 sparkRepo: "lucassfreiree/spark-dashboard",
                 totalAgents: 1,
-                totalWorkspaces: 4,
+                totalWorkspaces: 2,
                 syncInterval: "5min business hours (8-17 BRT Mon-Fri) / 15min off-hours",
                 stateVersion: 5
               }

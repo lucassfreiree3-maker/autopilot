@@ -1267,6 +1267,23 @@
       "Usar git checkout -B (force) em vez de delete + create"
     ]
   },
+  "monitoringStack": {
+    "description": "5-layer self-healing monitoring architecture — built session 01UUEz9wrwdB57dxdkLXc5Kw",
+    "layers": [
+      {"layer": 1, "name": "Prevention", "workflow": "builds-validation-gate.yml", "schedule": "on PR + weekly", "purpose": "Validates workflow YAML before merge"},
+      {"layer": 2, "name": "Detection", "workflow": "workflow-health-monitor.yml", "schedule": "30min/2h", "purpose": "Scans all 69+ workflows for failures"},
+      {"layer": 3, "name": "Repair", "workflow": "workflow-auto-repair.yml", "schedule": "on-demand", "purpose": "Auto-fixes disabled, stuck, expired, piled-up"},
+      {"layer": 4, "name": "Brain", "workflow": "intelligent-orchestrator.yml", "schedule": "15min/30min/1h", "purpose": "OBSERVE-DECIDE-ACT-LEARN loop with knowledge base"},
+      {"layer": 5, "name": "Sentinel", "workflow": "workflow-sentinel.yml", "schedule": "4h", "purpose": "Meta-monitor watches the monitors"}
+    ],
+    "knowledgeBase": "state/orchestrator-knowledge.json on autopilot-state",
+    "fixes_applied_session": {
+      "pipefail_removed": 18,
+      "concurrency_added": 7,
+      "spark_sync_rewritten": true,
+      "total_workflows_fixed": 27
+    }
+  },
   "commonPatterns": {
     "patchCreation": {
       "location": "patches/",

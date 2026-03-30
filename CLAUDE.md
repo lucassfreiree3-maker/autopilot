@@ -542,6 +542,15 @@ Maps errors to known patterns, generates learning report with pipeline visualiza
 |----------|---------|
 | continuous-improvement.yml | Weekly self-analysis: scan → auto-fix → learn → alert (6-stage pipeline) |
 
+### Intelligent Monitoring Stack (5 layers of self-healing)
+| Workflow | Schedule | Purpose |
+|----------|----------|---------|
+| builds-validation-gate.yml | On PR + weekly | **Layer 1 (Prevention)**: Validates ALL workflow YAML syntax, deprecated actions, missing concurrency, hardcoded secrets. Blocks broken workflows. |
+| workflow-health-monitor.yml | 30min / 2h | **Layer 2 (Detection)**: Scans ALL 69+ workflows, detects consecutive failures, calculates fail rates, creates alert Issues. |
+| workflow-auto-repair.yml | On-demand | **Layer 3 (Repair)**: Auto-fixes disabled workflows, stuck runs (>60min), expired locks, queued pile-ups. Triggered by health-monitor. |
+| intelligent-orchestrator.yml | 15min / 30min / 1h | **Layer 4 (Brain)**: OBSERVE → DECIDE → ACT → LEARN loop. Persistent knowledge base on autopilot-state. Learns from outcomes. |
+| workflow-sentinel.yml | 4h | **Layer 5 (Meta-monitor)**: Watches the monitoring stack itself. Re-enables disabled monitors, re-runs failed monitors, escalates via Issue. |
+
 ### Infrastructure
 | Workflow | Purpose |
 |----------|---------|
@@ -573,8 +582,12 @@ Maps errors to known patterns, generates learning report with pipeline visualiza
 | copilot-task-dispatch.yml | Dispatch tasks to Copilot via issue creation |
 | repo-cleanup.yml | Clean up unused files and branches |
 | promote-cap.yml | Manual CAP promotion (trigger via `trigger/promote-cap.json`) |
-| spark-sync-state.yml | Sync state.json to Spark dashboard repo (every 15 min) |
+| spark-sync-state.yml | Sync state.json to Spark dashboard repo (every 5/15 min). Uses safe_api/safe_content helpers — crash-proof. |
 | post-merge-monitor.yml | Monitor workflows after PR merge |
+| dashboard-auto-improve.yml | Daily dashboard data accuracy validation (version consistency, sync freshness, HTML integrity) |
+| auto-dispatch-task.yml | Auto-dispatch tasks from Issues to appropriate agents |
+| dispatch-proxy.yml | Operations dispatch proxy for multi-workspace routing |
+| token-auto-optimize.yml | Daily token usage optimization (compact memory, archive old sessions) |
 | sync-copilot-prompt.yml | Auto-regenerates Copilot prompt when project changes |
 
 ### Codex Automation

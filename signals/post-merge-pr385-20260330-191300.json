@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 385,
+  "branch": "claude/add-live-monitoring-rule",
+  "timestamp": "2026-03-30T19:13:00Z",
+  "runId": "23762875126",
+  "healthStatus": "degraded"
+}

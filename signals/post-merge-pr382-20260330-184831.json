@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 382,
+  "branch": "claude/fix-test-count-3.7.2",
+  "timestamp": "2026-03-30T18:48:31Z",
+  "runId": "23761823988",
+  "healthStatus": "degraded"
+}

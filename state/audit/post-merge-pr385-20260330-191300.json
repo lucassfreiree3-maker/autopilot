@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr385-20260330-191300",
+  "event": "post-merge-monitor",
+  "prNumber": 385,
+  "branch": "claude/add-live-monitoring-rule",
+  "mergeSha": "590a1f036b040818861a9ad4bef2b844ace8dc28",
+  "timestamp": "2026-03-30T19:13:00Z",
+  "runId": "23762875126",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "psc-sre-automacao-agent",
-  "version": "2.2.6",
+  "version": "2.3.2",
   "description": "psc-sre-automacao-agent in node with expressjs",
   "repository": {
     "type": "git",

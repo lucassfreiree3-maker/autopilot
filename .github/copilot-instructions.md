@@ -59,8 +59,8 @@ For the absolute latest state (versions, in-progress deploys), read:
 | Item | Value |
 |---|---|
 | Controller version | `3.7.0` |
-| Agent version | `2.3.2` |
-| Last trigger run | `71` |
+| Agent version | `2.3.3` |
+| Last trigger run | `72` |
 | Last successful run | `71` |
 
 ---
@@ -323,7 +323,7 @@ The **apply-source-change.yml** pipeline runs in 7 stages:
 
 ## VERSIONING RULES
 
-- **Current versions**: Controller `3.7.0`, Agent `2.3.2`
+- **Current versions**: Controller `3.7.0`, Agent `2.3.3`
 - **Pattern**: `unknown` — After X.Y.9, next is X.(Y+1).0 — NEVER X.Y.10
 - **5 places to update** (controller):
   1. `package.json` — `version` field
@@ -700,4 +700,4 @@ Rules:
 
 
 ---
-*Last synced: 2026-03-30T13:04:13Z | Run: 23746139153*
+*Last synced: 2026-03-30T13:08:11Z | Run: 23746301961*

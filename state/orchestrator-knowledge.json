@@ -14,12 +14,24 @@
       "workflow": "[Core] Autonomous Direct Merge",
       "consecutiveAt": "2026-03-30T20:05:34Z",
       "count": 3
+    },
+    {
+      "workflow": "[Core] Workflow Auto-Repair",
+      "consecutiveAt": "2026-03-30T21:02:32Z",
+      "count": 3
     }
   ],
-  "fixes": [],
-  "lastRun": "2026-03-30T20:36:28Z",
+  "fixes": [
+    {
+      "workflow": "[Core] Workflow Auto-Repair",
+      "action": "re-run",
+      "fixedAt": "2026-03-30T21:02:32Z",
+      "method": "re-run"
+    }
+  ],
+  "lastRun": "2026-03-30T21:02:32Z",
   "lastHealth": "critical",
-  "runCount": 17,
+  "runCount": 18,
   "healthHistory": [
     {
       "ts": "2026-03-30T04:25:02Z",
@@ -87,6 +99,10 @@
     },
     {
       "ts": "2026-03-30T20:36:28Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-30T21:02:32Z",
       "health": "critical"
     }
   ]

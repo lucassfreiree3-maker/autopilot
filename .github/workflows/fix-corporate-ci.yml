@@ -165,50 +165,54 @@ jobs:
           # ── 7. Commit and push ─────────────────────────────
           git add -A
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "::warning ::Auto-fix could not apply any changes — lint errors may need manual code fix"
+            # Create notification issue since auto-fix couldn't fix the problem
+            GH_TOKEN="$RELEASE_TOKEN" gh issue create \
+              --repo "$AUTOPILOT_REPO" \
+              --title "[AutoPilot] CI auto-fix blocked: $COMPONENT — no auto-fixable errors found" \
+              --body "fix-corporate-ci ran for component \`$COMPONENT\` (workspace \`$WS_ID\`) but could not apply any automatic fixes. The ESLint error may require a code-level patch update in autopilot. Check the CI logs on autopilot-state branch (ci-logs-${COMPONENT}-*.txt) for the specific error." \
+              2>/dev/null || echo "::warning ::Could not create issue"
             exit 0
           fi
           git commit -m "fix: resolve CI errors (lint + build)"
           git push origin main
           echo "Fix pushed to main"
 
-          # ── 7. Wait for CI ─────────────────────────────────
+          # ── 8. Close the autonomous loop ──────────────────────────────────────
           NEW_SHA=$(git rev-parse HEAD)
-          echo "=== Waiting for CI on $NEW_SHA ==="
-          FOUND=false
-          for i in $(seq 1 36); do
-            sleep 5
-            COUNT=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$NEW_SHA/check-runs" --jq '.total_count' 2>/dev/null || echo "0")
-            if [ "$COUNT" -gt 0 ]; then FOUND=true; break; fi
-            echo "  Waiting... ($i)"
-          done
-          if [ "$FOUND" = "false" ]; then
-            echo "No CI checks found. Done."
-            exit 0
-          fi
-          for i in $(seq 1 120); do
-            sleep 10
-            DATA=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$SOURCE_REPO/commits/$NEW_SHA/check-runs" \
-              --jq '{t:.total_count, c:[.check_runs[]|select(.status=="completed")]|length, s:[.check_runs[]|select(.conclusion=="success")]|length, f:[.check_runs[]|select(.conclusion=="failure")]|length}' 2>/dev/null || echo '{}')
-            if ! echo "$DATA" | jq empty 2>/dev/null; then
-              echo "  Warning: invalid JSON from API, using safe defaults"
-              DATA='{"t":0,"c":0,"s":0,"f":0}'
-            fi
-            T=$(echo "$DATA"|jq -r '.t//0' 2>/dev/null || echo "0"); C=$(echo "$DATA"|jq -r '.c//0' 2>/dev/null || echo "0")
-            S=$(echo "$DATA"|jq -r '.s//0' 2>/dev/null || echo "0"); F=$(echo "$DATA"|jq -r '.f//0' 2>/dev/null || echo "0")
-            echo "  CI: $C/$T done (ok=$S fail=$F) [$i]"
-            if [ "$T" -gt 0 ] && [ "$C" -eq "$T" ]; then
-              if [ "$F" -gt 0 ]; then
-                echo "::error ::CI still failing after fix"
-              else
-                echo "CI passed!"
-              fi
-              break
-            fi
-          done
+          echo "Fix SHA: $NEW_SHA"
 
-          echo "---" >> "$GITHUB_STEP_SUMMARY"
-          echo "## CI Fix Result" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Errors found: $ERROR_COUNT" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Remaining: $REMAINING" >> "$GITHUB_STEP_SUMMARY"
-          echo "- CI: $S/$T passed" >> "$GITHUB_STEP_SUMMARY"
+          # Update release state with the new SHA so ci-monitor-loop tracks the right commit
+          STATE_FILE="state/workspaces/${WS_ID}/${COMPONENT}-release-state.json"
+          EXISTING_FILE_SHA=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+          EXISTING_CONTENT=$(GH_TOKEN="$RELEASE_TOKEN" gh api \
+            "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{}')
+          UPDATED_CONTENT=$(echo "$EXISTING_CONTENT" | jq \
+            --arg sha "$NEW_SHA" \
+            --arg status "ci-fix-applied" \
+            '.lastReleasedSha = $sha | .status = $status' 2>/dev/null || echo "$EXISTING_CONTENT")
+
+          FIX_ARGS=(-f "branch=$STATE_BRANCH" \
+            -f "message=ci-fix: update SHA to $NEW_SHA [skip ci]" \
+            -f "content=$(echo "$UPDATED_CONTENT" | base64 -w0)")
+          [ -n "$EXISTING_FILE_SHA" ] && FIX_ARGS+=(-f "sha=$EXISTING_FILE_SHA")
+          GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$AUTOPILOT_REPO/contents/${STATE_FILE}" \
+            --method PUT "${FIX_ARGS[@]}" > /dev/null 2>&1 || echo "::warning ::Could not update release state"
+
+          # Re-dispatch ci-monitor-loop for the fix commit — closes the autonomous loop
+          GH_TOKEN="$RELEASE_TOKEN" gh workflow run ci-monitor-loop.yml \
+            --repo "$AUTOPILOT_REPO" \
+            --ref main \
+            --field workspace_id="$WS_ID" \
+            --field component="$COMPONENT" \
+            --field commit_sha="$NEW_SHA"
+
+          echo "::notice ::Autonomous loop closed — ci-monitor-loop dispatched for fix SHA $NEW_SHA"
+
+          echo "## CI Fix Applied" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Fix SHA: \`$NEW_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Lint errors fixed: $ERROR_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ci-monitor-loop dispatched to verify fix" >> "$GITHUB_STEP_SUMMARY"

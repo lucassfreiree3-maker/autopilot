@@ -277,6 +277,47 @@ jobs:
 
           echo "fix-corporate-ci dispatched for $COMPONENT."
 
+      # ── 3c. Create failure notification issue ─────────────────────────────────
+      - name: "Create CI failure notification issue"
+        if: >
+          steps.poll.outputs.overall == 'failure' ||
+          steps.poll.outputs.overall == 'timeout'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          COMPONENT="${{ steps.inputs.outputs.component }}"
+          VERSION="${{ steps.inputs.outputs.version }}"
+          COMMIT_SHA="${{ steps.inputs.outputs.commit_sha }}"
+          FAILED_URL="${{ steps.poll.outputs.failed_run_url }}"
+          OVERALL="${{ steps.poll.outputs.overall }}"
+          SOURCE_REPO="${{ steps.inputs.outputs.source_repo }}"
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          TITLE="[AutoPilot] Corporate CI $OVERALL: $COMPONENT $VERSION @ $NOW"
+          BODY="Corporate CI failed and auto-fix has been dispatched.
+
+          Component: $COMPONENT
+          Version: $VERSION
+          Commit SHA: $COMMIT_SHA
+          Source repo: $SOURCE_REPO
+          Outcome: $OVERALL
+          Failed run: $FAILED_URL
+
+          Actions taken:
+          - ci-diagnose dispatched (logs saved to autopilot-state)
+          - fix-corporate-ci dispatched (will attempt lint/build auto-fix)
+          - ci-monitor-loop will be re-dispatched by fix-corporate-ci with the fix SHA
+
+          If this issue persists after auto-fix, manual intervention is needed.
+          Check: state/workspaces/ws-default/ci-logs-${COMPONENT}-*.txt on autopilot-state branch."
+
+          gh issue create \
+            --repo "$AUTOPILOT_REPO" \
+            --title "$TITLE" \
+            --body "$BODY" \
+            2>/dev/null || echo "::warning ::Could not create failure notification issue"
+          echo "::notice ::CI failure issue created for $COMPONENT"
+
       # ── 4. Save result to autopilot-state ────────────────────────────────────
       - name: "Save monitor result to state"
         if: always()

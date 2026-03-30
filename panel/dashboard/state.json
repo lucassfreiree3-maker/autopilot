@@ -1,0 +1,54 @@
+{
+  "lastSync": "2026-03-30T13:18:11Z",
+  "syncSource": "manual-restore",
+  "controller": {
+    "version": "3.7.0",
+    "status": "promoted",
+    "ciResult": "success",
+    "promoted": true
+  },
+  "agent": {
+    "version": "2.3.2",
+    "status": "promoted",
+    "ciResult": "success",
+    "promoted": true
+  },
+  "pipeline": {
+    "status": "idle",
+    "lastRun": 72,
+    "component": "agent",
+    "version": "2.3.3"
+  },
+  "agents": {
+    "claude": {
+      "status": "active"
+    },
+    "copilot": {
+      "sessionCount": 0
+    },
+    "codex": {
+      "sessionCount": 0
+    }
+  },
+  "workspaces": [
+    {
+      "id": "ws-default",
+      "company": "Getronics",
+      "status": "active",
+      "stack": "Node/TypeScript (NestJS, Jest, ESLint)"
+    },
+    {
+      "id": "ws-cit",
+      "company": "CIT",
+      "status": "setup",
+      "stack": "DevOps"
+    }
+  ],
+  "recentWorkflows": [],
+  "openPRs": [],
+  "metadata": {
+    "stateVersion": 5,
+    "totalWorkspaces": 2,
+    "degraded": false
+  }
+}

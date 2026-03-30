@@ -1270,11 +1270,41 @@
   "monitoringStack": {
     "description": "5-layer self-healing monitoring architecture — built session 01UUEz9wrwdB57dxdkLXc5Kw",
     "layers": [
-      {"layer": 1, "name": "Prevention", "workflow": "builds-validation-gate.yml", "schedule": "on PR + weekly", "purpose": "Validates workflow YAML before merge"},
-      {"layer": 2, "name": "Detection", "workflow": "workflow-health-monitor.yml", "schedule": "30min/2h", "purpose": "Scans all 69+ workflows for failures"},
-      {"layer": 3, "name": "Repair", "workflow": "workflow-auto-repair.yml", "schedule": "on-demand", "purpose": "Auto-fixes disabled, stuck, expired, piled-up"},
-      {"layer": 4, "name": "Brain", "workflow": "intelligent-orchestrator.yml", "schedule": "15min/30min/1h", "purpose": "OBSERVE-DECIDE-ACT-LEARN loop with knowledge base"},
-      {"layer": 5, "name": "Sentinel", "workflow": "workflow-sentinel.yml", "schedule": "4h", "purpose": "Meta-monitor watches the monitors"}
+      {
+        "layer": 1,
+        "name": "Prevention",
+        "workflow": "builds-validation-gate.yml",
+        "schedule": "on PR + weekly",
+        "purpose": "Validates workflow YAML before merge"
+      },
+      {
+        "layer": 2,
+        "name": "Detection",
+        "workflow": "workflow-health-monitor.yml",
+        "schedule": "30min/2h",
+        "purpose": "Scans all 69+ workflows for failures"
+      },
+      {
+        "layer": 3,
+        "name": "Repair",
+        "workflow": "workflow-auto-repair.yml",
+        "schedule": "on-demand",
+        "purpose": "Auto-fixes disabled, stuck, expired, piled-up"
+      },
+      {
+        "layer": 4,
+        "name": "Brain",
+        "workflow": "intelligent-orchestrator.yml",
+        "schedule": "15min/30min/1h",
+        "purpose": "OBSERVE-DECIDE-ACT-LEARN loop with knowledge base"
+      },
+      {
+        "layer": 5,
+        "name": "Sentinel",
+        "workflow": "workflow-sentinel.yml",
+        "schedule": "4h",
+        "purpose": "Meta-monitor watches the monitors"
+      }
     ],
     "knowledgeBase": "state/orchestrator-knowledge.json on autopilot-state",
     "fixes_applied_session": {
@@ -1335,7 +1365,8 @@
       "gha_json_injection_via_outputs": "CRITICO: NUNCA passar JSON de outputs entre jobs via aspas simples: PLAN='${{ needs.x.outputs.json }}'. Quando o JSON contem aspas, o shell quebra. SEMPRE usar env var: env: PLAN_JSON: ${{ needs.x.outputs.json }} e depois PLAN=\"$PLAN_JSON\" + jq empty validation. Corrigido em intelligent-orchestrator, workflow-auto-repair, continuous-improvement.",
       "spark_dashboard_repo": "lucassfreiree/spark-dashboard e o repo do dashboard externo. Tem Dependabot configurado (weekly). Auto-merge workflow em .github/workflows/auto-merge-dependabot.yml (patch/minor = auto, major = label needs-review). Arquivos de referencia ficam em references/spark-dashboard/ no autopilot. sync-spark-dashboard.yml sincroniza automaticamente. MCP server mcp__b66412ee tem read+merge access (nao write). mcp__github__ NAO tem acesso.",
       "mcp_servers_access": "mcp__github__ (original): acesso somente a lucassfreiree/autopilot (read+write+merge). mcp__b66412ee__ (novo): acesso a lucassfreiree/spark-dashboard (read+merge, SEM write/push). Para push no spark-dashboard: usar sync-spark-dashboard.yml via RELEASE_TOKEN."
-    }
+    },
+    "gha_yaml_markdown_bold": "CRITICO: NUNCA usar **texto**: (markdown bold seguido de dois-pontos) dentro de blocos run: | em workflows GitHub Actions. O parser YAML do GHA interpreta ** como alias syntax e : como mapping key, quebrando o YAML ANTES de avaliar o shell. Fix: remover ** ou usar variaveis. Corrigido em 6 workflows: emergency-watchdog, auto-dispatch-task, continuous-improvement, dashboard-auto-improve, deploy-auto-learn, workflow-sentinel."
   },
   "deployFlowGuide": {
     "_ref": "contracts/archive/static-reference.json#deployFlowGuide",

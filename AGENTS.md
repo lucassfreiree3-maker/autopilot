@@ -116,7 +116,7 @@ lucassfreiree/autopilot (this repo)
   controller-release-state.json
   release-freeze.json
   locks/ ({"message":"Not Found","documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content","status":"404"}0 files)
-  audit/ (451 files)
+  audit/ (456 files)
   improvements/ (1 files)
   metrics/ (8 files)
   handoffs/ (1 files)
@@ -247,7 +247,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | agent-sync.yml | [Corp] Agent Sync: Claude + ChatGPT | trigger file, manual |
 | alert-notify.yml | [Infra] Alert & Notify | manual |
 | apply-source-change.yml | [Corp] Deploy: Apply Source Change | trigger file, manual |
-| auto-dispatch-task.yml | auto-dispatch-task.yml | unknown |
+| auto-dispatch-task.yml | [Core] Auto-Dispatch Task | unknown |
 | auto-merge-sweeper.yml | [Core] Auto-Merge Sweeper | scheduled, manual |
 | auto-pr-codex.yml | [Agent] Auto PR + Auto-Merge (Codex) | push |
 | autonomous-merge-direct.yml | [Core] Autonomous Direct Merge | unknown |
@@ -276,7 +276,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | deploy-panel.yml | [Infra] Deploy Panel (GitHub Pages) | push, manual |
 | dispatch-proxy.yml | [Core] Operations Dispatch Proxy | manual |
 | drift-correction.yml | [Corp] Drift Correction | scheduled, manual |
-| emergency-watchdog.yml | emergency-watchdog.yml | unknown |
+| emergency-watchdog.yml | [Core] Emergency Watchdog | scheduled, manual |
 | enqueue-agent-handoff.yml | [Agent] Enqueue Handoff | manual |
 | fetch-files.yml | [Corp] Fetch: Source Files | trigger file, manual |
 | fix-and-validate.yml | [Corp] Fix: CI + Validate Full Flow | trigger file, manual |
@@ -341,6 +341,7 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | deploy-auto-learn.yml | source |
 | dispatch-proxy.yml | operation, confirm, workspace |
 | drift-correction.yml | workspace_id, dry_run |
+| emergency-watchdog.yml | force_heal |
 | enqueue-agent-handoff.yml | workspace_id, from_agent, to_agent, component, summary, next_steps, priority |
 | fetch-files.yml | workspace_id, component, files |
 | fix-and-validate.yml | workspace_id |
@@ -416,4 +417,4 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/<WS_ID>/{FILE}?r
 | Handoff to Claude | Dispatch `enqueue-agent-handoff.yml`, `to_agent=claude` |
 
 ---
-*Last synced: 2026-03-30T12:41:44Z | Run: 23745207731*
+*Last synced: 2026-03-30T12:57:48Z | Run: 23745863481*

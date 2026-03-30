@@ -18,11 +18,16 @@
     {
       "action": "replace-file",
       "target_path": "test/apis/cronjob-callback.test.ts",
+      "content_ref": "patches/cronjob-callback-stub.test.ts"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/__tests__/unit/cronjob-callback.test.ts",
       "content_ref": "patches/cronjob-callback.test.ts"
     }
   ],
-  "commit_message": "fix(agent): fix timer leak and test mock in cronjob-callback (#930188)",
+  "commit_message": "fix(agent): move test to unit dir, correct import paths (#930188)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 74
+  "run": 75
 }

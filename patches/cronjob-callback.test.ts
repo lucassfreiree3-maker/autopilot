@@ -1,10 +1,10 @@
 import express from "express";
 import request from "supertest";
-import { JWTService } from "../../src/util/jwt";
+import { JWTService } from "../../util/jwt";
 
 jest.setTimeout(15000);
 
-jest.mock("../../src/util/jwt", () => ({
+jest.mock("../../util/jwt", () => ({
   JWTService: {
     generateCallbackToken: jest.fn().mockReturnValue("mock-callback-token"),
   },
@@ -15,7 +15,7 @@ describe("CronjobCallbackAPI", () => {
 
   async function makeApp() {
     const { default: CronjobCallbackAPI } = await import(
-      "../../src/apis/cronjob-callback"
+      "../../routes/cronjob-callback"
     );
     const router = express.Router();
     new CronjobCallbackAPI(router);

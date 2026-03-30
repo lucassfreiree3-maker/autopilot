@@ -404,7 +404,7 @@ jobs:
             "run": 64
           }
           ```
-          **CRITICAL**: `run` field MUST be incremented — without increment, workflow does NOT trigger.
+          CRITICAL: run field MUST be incremented — without increment, workflow does NOT trigger.
 
           ### Method 2: workflow_dispatch API
           ```bash
@@ -581,7 +581,7 @@ jobs:
           ## EFFICIENCY RULES (CRITICAL — minimize confirmations)
 
           ### USE push_files FOR ALL FILE OPERATIONS
-          **MANDATORY**: Use the `push_files` MCP tool for ALL file changes. This creates/updates
+          MANDATORY: Use the push_files MCP tool for ALL file changes. This creates/updates
           multiple files in a SINGLE API call = SINGLE user confirmation instead of N confirmations.
 
           **WRONG (N confirmations):**

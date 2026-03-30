@@ -1,5 +1,6 @@
 import express from "express";
 import request from "supertest";
+import { JWTService } from "../../src/util/jwt";
 
 jest.setTimeout(15000);
 
@@ -262,7 +263,6 @@ describe("CronjobCallbackAPI", () => {
     });
 
     test("returns 500 when JWT generation throws", async () => {
-      const { JWTService } = await import("../../src/util/jwt");
       (JWTService.generateCallbackToken as jest.Mock).mockImplementationOnce(
         () => {
           throw new Error("JWT signing error");

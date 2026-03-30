@@ -175,10 +175,16 @@ async function forwardToController(
   const abort = new AbortController();
   const timeoutId = setTimeout(() => abort.abort(), timeoutMs);
 
-  const token = JWTService.generateCallbackToken({
-    execId: payload.execId,
-    scope: ["send_logs"],
-  });
+  let token: string;
+  try {
+    token = JWTService.generateCallbackToken({
+      execId: payload.execId,
+      scope: ["send_logs"],
+    });
+  } catch (tokenError) {
+    clearTimeout(timeoutId);
+    throw tokenError;
+  }
 
   try {
     const response = await fetch(url, {

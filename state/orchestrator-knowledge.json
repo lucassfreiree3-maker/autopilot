@@ -1,0 +1,24 @@
+{
+  "patterns": [
+    {
+      "workflow": ".github/workflows/auto-dispatch-task.yml",
+      "consecutiveAt": "2026-03-30T04:25:02Z",
+      "count": 5
+    },
+    {
+      "workflow": ".github/workflows/emergency-watchdog.yml",
+      "consecutiveAt": "2026-03-30T04:25:02Z",
+      "count": 5
+    }
+  ],
+  "fixes": [],
+  "lastRun": "2026-03-30T04:25:02Z",
+  "lastHealth": "critical",
+  "runCount": 1,
+  "healthHistory": [
+    {
+      "ts": "2026-03-30T04:25:02Z",
+      "health": "critical"
+    }
+  ]
+}

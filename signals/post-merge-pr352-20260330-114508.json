@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 352,
+  "branch": "claude/fix-builds-monitoring-9FrG1",
+  "timestamp": "2026-03-30T11:45:08Z",
+  "runId": "23743037264",
+  "healthStatus": "degraded"
+}

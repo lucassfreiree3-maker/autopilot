@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cleanup-branches
+  cancel-in-progress: true
+
 jobs:
   cleanup-merged:
     name: "Delete head branch after merge"

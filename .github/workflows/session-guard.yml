@@ -56,7 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           AGENT="${{ inputs.agent_id }}"
           OP="${{ inputs.operation }}"

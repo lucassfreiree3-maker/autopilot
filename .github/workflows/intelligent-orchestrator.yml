@@ -1,0 +1,515 @@
+name: "[Core] Intelligent Orchestrator"
+run-name: "${{ github.workflow }} • brain — observe, decide, act, learn"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE BRAIN: Central intelligence that observes all automation, decides
+# what needs to happen, acts autonomously, and learns from outcomes.
+#
+# This is NOT a simple monitor. It's an intelligent control loop:
+#
+#   OBSERVE → all 69+ workflows, all triggers, all state, all failures
+#   DECIDE  → what needs fixing, what's optimal, what's degraded
+#   ACT     → re-run, repair, re-enable, re-configure, escalate
+#   LEARN   → record patterns, improve rules, update knowledge base
+#
+# Runs every 15 minutes. Lightweight when healthy. Deep when issues exist.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  schedule:
+    # Every 15 min business hours (8-17 BRT = 11-20 UTC, Mon-Fri)
+    - cron: '*/15 11-20 * * 1-5'
+    # Every 30 min off-hours
+    - cron: '0,30 0-10,21-23 * * 1-5'
+    # Every hour weekends
+    - cron: '0 * * * 0,6'
+  workflow_run:
+    workflows:
+      - "[Infra] Spark Dashboard Sync"
+      - "[Core] Workflow Health Monitor"
+      - "[Core] Workflow Auto-Repair"
+      - "[Core] Emergency Watchdog"
+      - "[Core] Dashboard Auto-Improve"
+      - "[Corp] Deploy: Apply Source Change"
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Orchestration mode'
+        required: false
+        default: 'auto'
+        type: choice
+        options: ['auto', 'deep-scan', 'repair-all', 'learning-only']
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: intelligent-orchestrator
+  cancel-in-progress: true
+
+env:
+  REPO: lucassfreiree/autopilot
+  STATE_BRANCH: autopilot-state
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 1: OBSERVE — collect intelligence from all sources
+  # ═══════════════════════════════════════════════════════════════════
+  observe:
+    name: "Phase 1: Observe"
+    runs-on: ubuntu-latest
+    outputs:
+      ecosystem_health: ${{ steps.collect.outputs.ecosystem_health }}
+      failing_workflows: ${{ steps.collect.outputs.failing_workflows }}
+      failing_count: ${{ steps.collect.outputs.failing_count }}
+      stale_monitors: ${{ steps.collect.outputs.stale_monitors }}
+      dashboard_stale: ${{ steps.collect.outputs.dashboard_stale }}
+      trigger_anomalies: ${{ steps.collect.outputs.trigger_anomalies }}
+      needs_action: ${{ steps.collect.outputs.needs_action }}
+      knowledge_base: ${{ steps.collect.outputs.knowledge_base }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect ecosystem intelligence
+        id: collect
+        run: |
+          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          echo "::group::Collecting intelligence (mode: $MODE)"
+
+          # ── 1. Recent workflow runs (last 100) ──
+          RUNS=$(gh api "repos/$REPO/actions/runs?per_page=100" \
+            --jq '[.workflow_runs[] | {
+              id: .id, name: .name, wf_id: .workflow_id,
+              status: .status, conclusion: .conclusion,
+              created: .created_at, event: .event
+            }]' 2>/dev/null || echo '[]')
+
+          # ── 2. Workflow definitions ──
+          WF_DEFS=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
+            --jq '[.workflows[] | {id: .id, name: .name, state: .state, path: .path}]' 2>/dev/null || echo '[]')
+
+          TOTAL_WFS=$(echo "$WF_DEFS" | jq 'length' 2>/dev/null || echo 0)
+          DISABLED=$(echo "$WF_DEFS" | jq '[.[] | select(.state != "active")] | length' 2>/dev/null || echo 0)
+
+          # ── 3. Per-workflow failure analysis ──
+          FAILING="[]"
+          FAILING_COUNT=0
+          STALE_MONITORS=""
+
+          # Critical monitoring stack
+          MONITORS=("Spark Dashboard Sync" "Workflow Health Monitor" "Workflow Auto-Repair" "Emergency Watchdog" "Workflow Sentinel" "Dashboard Auto-Improve" "Builds Validation Gate")
+
+          for WF_NAME in $(echo "$WF_DEFS" | jq -r '.[].name' 2>/dev/null); do
+            WF_ID=$(echo "$WF_DEFS" | jq -r --arg n "$WF_NAME" '.[] | select(.name == $n) | .id' 2>/dev/null || echo "")
+            [ -z "$WF_ID" ] && continue
+
+            # Last 5 runs for this workflow
+            WF_RUNS=$(echo "$RUNS" | jq --argjson id "$WF_ID" '[.[] | select(.wf_id == $id)] | .[:5]' 2>/dev/null || echo '[]')
+            RUN_COUNT=$(echo "$WF_RUNS" | jq 'length' 2>/dev/null || echo 0)
+            [ "$RUN_COUNT" -eq 0 ] && continue
+
+            FAIL_COUNT=$(echo "$WF_RUNS" | jq '[.[] | select(.conclusion == "failure")] | length' 2>/dev/null || echo 0)
+            LAST_CONCLUSION=$(echo "$WF_RUNS" | jq -r '.[0].conclusion // "unknown"' 2>/dev/null || echo "unknown")
+            LAST_CREATED=$(echo "$WF_RUNS" | jq -r '.[0].created // ""' 2>/dev/null || echo "")
+
+            # Consecutive failures
+            CONSEC=$(echo "$WF_RUNS" | jq '[foreach .[] as $r (0; if $r.conclusion == "failure" then . + 1 else 0 end)] | max' 2>/dev/null || echo 0)
+
+            if [ "$FAIL_COUNT" -gt 0 ]; then
+              ENTRY=$(jq -n --arg name "$WF_NAME" --argjson id "$WF_ID" \
+                --argjson fails "$FAIL_COUNT" --argjson consec "$CONSEC" \
+                --arg last "$LAST_CONCLUSION" --arg created "$LAST_CREATED" \
+                --argjson total "$RUN_COUNT" \
+                '{name:$name, id:$id, failures:$fails, consecutive:$consec,
+                  lastConclusion:$last, lastRun:$created, totalRuns:$total}' 2>/dev/null || echo '{}')
+
+              if echo "$ENTRY" | jq empty 2>/dev/null; then
+                FAILING=$(echo "$FAILING" | jq --argjson e "$ENTRY" '. + [$e]' 2>/dev/null || echo "$FAILING")
+                FAILING_COUNT=$((FAILING_COUNT + 1))
+              fi
+            fi
+
+            # Check monitor staleness
+            for MON in "${MONITORS[@]}"; do
+              if echo "$WF_NAME" | grep -qi "$MON" 2>/dev/null; then
+                if [ -n "$LAST_CREATED" ] && [ "$LAST_CREATED" != "null" ]; then
+                  AGE_SEC=$(( $(date +%s) - $(date -d "$LAST_CREATED" +%s 2>/dev/null || echo $(date +%s)) ))
+                  AGE_HR=$(( AGE_SEC / 3600 ))
+                  if [ "$AGE_HR" -gt 12 ]; then
+                    STALE_MONITORS="${STALE_MONITORS}${WF_NAME} (${AGE_HR}h stale)\n"
+                  fi
+                fi
+              fi
+            done
+          done
+
+          # ── 4. Dashboard freshness ──
+          DASH_STALE="false"
+          if [ -f panel/dashboard/state.json ]; then
+            LAST_SYNC=$(jq -r '.lastSync // ""' panel/dashboard/state.json 2>/dev/null || echo "")
+            if [ -n "$LAST_SYNC" ]; then
+              SYNC_AGE=$(( ($(date +%s) - $(date -d "$LAST_SYNC" +%s 2>/dev/null || echo $(date +%s))) / 60 ))
+              if [ "$SYNC_AGE" -gt 30 ]; then
+                DASH_STALE="true"
+              fi
+            fi
+          fi
+
+          # ── 5. Trigger anomalies ──
+          TRIGGER_ISSUES=""
+          for TF in trigger/*.json; do
+            [ ! -f "$TF" ] && continue
+            TF_NAME=$(basename "$TF")
+            if ! jq empty "$TF" 2>/dev/null; then
+              TRIGGER_ISSUES="${TRIGGER_ISSUES}${TF_NAME}: invalid JSON\n"
+            fi
+          done
+
+          # ── 6. Load previous knowledge base ──
+          KB=$(gh api "repos/$REPO/contents/state/orchestrator-knowledge.json?ref=$STATE_BRANCH" \
+            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null || echo '{"patterns":[],"fixes":[],"lastRun":"never"}')
+          echo "$KB" | jq empty 2>/dev/null || KB='{"patterns":[],"fixes":[],"lastRun":"never"}'
+
+          # ── 7. Determine overall health ──
+          CRITICAL_FAILS=$(echo "$FAILING" | jq '[.[] | select(.consecutive >= 5)] | length' 2>/dev/null || echo 0)
+          DEGRADED_FAILS=$(echo "$FAILING" | jq '[.[] | select(.consecutive >= 3 and .consecutive < 5)] | length' 2>/dev/null || echo 0)
+
+          if [ "$CRITICAL_FAILS" -gt 0 ] || [ "$DISABLED" -gt 2 ]; then
+            HEALTH="critical"
+          elif [ "$DEGRADED_FAILS" -gt 0 ] || [ "$DASH_STALE" = "true" ]; then
+            HEALTH="degraded"
+          else
+            HEALTH="healthy"
+          fi
+
+          NEEDS_ACTION="false"
+          if [ "$HEALTH" != "healthy" ] || [ "$FAILING_COUNT" -gt 0 ] || [ -n "$STALE_MONITORS" ] || [ "$DASH_STALE" = "true" ]; then
+            NEEDS_ACTION="true"
+          fi
+
+          echo "::endgroup::"
+
+          # Output
+          echo "ecosystem_health=$HEALTH" >> "$GITHUB_OUTPUT"
+          echo "failing_count=$FAILING_COUNT" >> "$GITHUB_OUTPUT"
+          echo "failing_workflows=$(echo "$FAILING" | jq -c '.' 2>/dev/null || echo '[]')" >> "$GITHUB_OUTPUT"
+          echo "stale_monitors=$(echo -e "$STALE_MONITORS" | head -20)" >> "$GITHUB_OUTPUT"
+          echo "dashboard_stale=$DASH_STALE" >> "$GITHUB_OUTPUT"
+          echo "trigger_anomalies=$(echo -e "$TRIGGER_ISSUES" | head -10)" >> "$GITHUB_OUTPUT"
+          echo "needs_action=$NEEDS_ACTION" >> "$GITHUB_OUTPUT"
+          echo "knowledge_base=$(echo "$KB" | jq -c '.' 2>/dev/null || echo '{}')" >> "$GITHUB_OUTPUT"
+
+          # Summary
+          echo "## Orchestrator Intelligence Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Signal | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Ecosystem health | **$HEALTH** |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total workflows | $TOTAL_WFS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Disabled workflows | $DISABLED |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Workflows with failures | $FAILING_COUNT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Critical (5+ consec) | $CRITICAL_FAILS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Dashboard stale | $DASH_STALE |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Needs action | $NEEDS_ACTION |" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 2: DECIDE — analyze what needs to happen
+  # ═══════════════════════════════════════════════════════════════════
+  decide:
+    name: "Phase 2: Decide"
+    needs: observe
+    if: needs.observe.outputs.needs_action == 'true' || github.event.inputs.mode == 'deep-scan' || github.event.inputs.mode == 'repair-all'
+    runs-on: ubuntu-latest
+    outputs:
+      action_plan: ${{ steps.plan.outputs.action_plan }}
+      action_count: ${{ steps.plan.outputs.action_count }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Build action plan
+        id: plan
+        run: |
+          HEALTH="${{ needs.observe.outputs.ecosystem_health }}"
+          FAILING='${{ needs.observe.outputs.failing_workflows }}'
+          DASH_STALE="${{ needs.observe.outputs.dashboard_stale }}"
+          KB='${{ needs.observe.outputs.knowledge_base }}'
+
+          ACTIONS="[]"
+
+          # ── Decision 1: Dashboard stale → force sync ──
+          if [ "$DASH_STALE" = "true" ]; then
+            ACTIONS=$(echo "$ACTIONS" | jq '. + [{
+              "type": "force-sync",
+              "target": "spark-sync-state",
+              "priority": "high",
+              "reason": "Dashboard is stale (>30min)",
+              "method": "dispatch"
+            }]' 2>/dev/null || echo "$ACTIONS")
+          fi
+
+          # ── Decision 2: Failing workflows → categorize and plan ──
+          for ENTRY in $(echo "$FAILING" | jq -c '.[]' 2>/dev/null); do
+            WF_NAME=$(echo "$ENTRY" | jq -r '.name')
+            WF_ID=$(echo "$ENTRY" | jq -r '.id')
+            CONSEC=$(echo "$ENTRY" | jq -r '.consecutive')
+
+            # Check knowledge base for known fix
+            KNOWN_FIX=$(echo "$KB" | jq -r --arg n "$WF_NAME" '.fixes[] | select(.workflow == $n) | .action' 2>/dev/null || echo "")
+
+            if [ -n "$KNOWN_FIX" ] && [ "$KNOWN_FIX" != "null" ]; then
+              # Known pattern — apply learned fix
+              ACTIONS=$(echo "$ACTIONS" | jq --arg name "$WF_NAME" --argjson id "$WF_ID" \
+                --arg fix "$KNOWN_FIX" --argjson consec "$CONSEC" '. + [{
+                  type: "known-fix",
+                  target: $name,
+                  workflow_id: $id,
+                  priority: (if $consec >= 5 then "critical" elif $consec >= 3 then "high" else "medium" end),
+                  reason: ("Known pattern: " + $fix),
+                  method: $fix
+                }]' 2>/dev/null || echo "$ACTIONS")
+            elif [ "$CONSEC" -ge 5 ]; then
+              # Critical — try re-enable + re-run
+              ACTIONS=$(echo "$ACTIONS" | jq --arg name "$WF_NAME" --argjson id "$WF_ID" \
+                --argjson consec "$CONSEC" '. + [{
+                  type: "critical-repair",
+                  target: $name,
+                  workflow_id: $id,
+                  priority: "critical",
+                  reason: ($name + ": " + ($consec|tostring) + " consecutive failures"),
+                  method: "re-enable-and-dispatch"
+                }]' 2>/dev/null || echo "$ACTIONS")
+            elif [ "$CONSEC" -ge 2 ]; then
+              # Degraded — try simple re-run
+              ACTIONS=$(echo "$ACTIONS" | jq --arg name "$WF_NAME" --argjson id "$WF_ID" \
+                --argjson consec "$CONSEC" '. + [{
+                  type: "re-run",
+                  target: $name,
+                  workflow_id: $id,
+                  priority: "medium",
+                  reason: ($name + ": " + ($consec|tostring) + " failures"),
+                  method: "dispatch"
+                }]' 2>/dev/null || echo "$ACTIONS")
+            fi
+          done
+
+          # ── Decision 3: Disabled workflows → re-enable ──
+          DISABLED=$(gh api "repos/$REPO/actions/workflows?per_page=100" \
+            --jq '[.workflows[] | select(.state != "active") | {id: .id, name: .name, state: .state}]' 2>/dev/null || echo '[]')
+
+          for D in $(echo "$DISABLED" | jq -c '.[]' 2>/dev/null); do
+            D_NAME=$(echo "$D" | jq -r '.name')
+            D_ID=$(echo "$D" | jq -r '.id')
+            ACTIONS=$(echo "$ACTIONS" | jq --arg name "$D_NAME" --argjson id "$D_ID" '. + [{
+              type: "re-enable",
+              target: $name,
+              workflow_id: $id,
+              priority: "high",
+              reason: ("Workflow disabled: " + $name),
+              method: "enable"
+            }]' 2>/dev/null || echo "$ACTIONS")
+          done
+
+          # Sort by priority
+          ACTIONS=$(echo "$ACTIONS" | jq 'sort_by(if .priority == "critical" then 0 elif .priority == "high" then 1 elif .priority == "medium" then 2 else 3 end)' 2>/dev/null || echo "$ACTIONS")
+
+          ACTION_COUNT=$(echo "$ACTIONS" | jq 'length' 2>/dev/null || echo 0)
+
+          echo "action_plan=$(echo "$ACTIONS" | jq -c '.')" >> "$GITHUB_OUTPUT"
+          echo "action_count=$ACTION_COUNT" >> "$GITHUB_OUTPUT"
+
+          echo "### Action Plan ($ACTION_COUNT actions)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$ACTION_COUNT" -gt 0 ]; then
+            echo "| Priority | Type | Target | Reason |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|----------|------|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "$ACTIONS" | jq -r '.[] | "| \(.priority) | \(.type) | \(.target) | \(.reason) |"' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No actions needed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 3: ACT — execute the action plan
+  # ═══════════════════════════════════════════════════════════════════
+  act:
+    name: "Phase 3: Act"
+    needs: [observe, decide]
+    if: needs.decide.outputs.action_count != '0' && github.event.inputs.mode != 'learning-only'
+    runs-on: ubuntu-latest
+    outputs:
+      results: ${{ steps.execute.outputs.results }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Execute action plan
+        id: execute
+        run: |
+          PLAN='${{ needs.decide.outputs.action_plan }}'
+          RESULTS="[]"
+          SUCCESS=0
+          FAILED=0
+
+          for ACTION in $(echo "$PLAN" | jq -c '.[]' 2>/dev/null); do
+            TYPE=$(echo "$ACTION" | jq -r '.type')
+            TARGET=$(echo "$ACTION" | jq -r '.target')
+            WF_ID=$(echo "$ACTION" | jq -r '.workflow_id // ""')
+            METHOD=$(echo "$ACTION" | jq -r '.method // ""')
+            PRIORITY=$(echo "$ACTION" | jq -r '.priority')
+
+            echo "::group::[$PRIORITY] $TYPE: $TARGET"
+            RESULT="unknown"
+
+            case "$METHOD" in
+              "dispatch"|"re-enable-and-dispatch")
+                # Re-enable first if needed
+                if [ "$METHOD" = "re-enable-and-dispatch" ] && [ -n "$WF_ID" ]; then
+                  gh api "repos/$REPO/actions/workflows/$WF_ID/enable" --method PUT 2>/dev/null || true
+                  sleep 2
+                fi
+                # Dispatch
+                if [ -n "$WF_ID" ]; then
+                  if gh api "repos/$REPO/actions/workflows/$WF_ID/dispatches" \
+                    --method POST --field "ref=main" 2>/dev/null; then
+                    RESULT="dispatched"
+                    SUCCESS=$((SUCCESS + 1))
+                  else
+                    RESULT="dispatch-failed"
+                    FAILED=$((FAILED + 1))
+                  fi
+                fi
+                ;;
+              "enable")
+                if [ -n "$WF_ID" ]; then
+                  if gh api "repos/$REPO/actions/workflows/$WF_ID/enable" --method PUT 2>/dev/null; then
+                    RESULT="enabled"
+                    SUCCESS=$((SUCCESS + 1))
+                  else
+                    RESULT="enable-failed"
+                    FAILED=$((FAILED + 1))
+                  fi
+                fi
+                ;;
+              *)
+                RESULT="unknown-method"
+                ;;
+            esac
+
+            echo "Result: $RESULT"
+            echo "::endgroup::"
+
+            RESULTS=$(echo "$RESULTS" | jq --arg t "$TARGET" --arg type "$TYPE" \
+              --arg result "$RESULT" --arg pri "$PRIORITY" \
+              '. + [{target: $t, type: $type, result: $result, priority: $pri}]' 2>/dev/null || echo "$RESULTS")
+          done
+
+          echo "results=$(echo "$RESULTS" | jq -c '.')" >> "$GITHUB_OUTPUT"
+
+          echo "### Execution Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Success: $SUCCESS" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Failed: $FAILED" >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 4: LEARN — update knowledge base with outcomes
+  # ═══════════════════════════════════════════════════════════════════
+  learn:
+    name: "Phase 4: Learn"
+    needs: [observe, decide, act]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Update knowledge base
+        run: |
+          HEALTH="${{ needs.observe.outputs.ecosystem_health || 'unknown' }}"
+          FAILING='${{ needs.observe.outputs.failing_workflows || '[]' }}'
+          RESULTS='${{ needs.act.outputs.results || '[]' }}'
+          KB='${{ needs.observe.outputs.knowledge_base || '{}' }}'
+          NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+          # Build learning entry
+          NEW_KB=$(echo "$KB" | jq --arg ts "$NOW" --arg health "$HEALTH" \
+            --argjson results "$RESULTS" --argjson failing "$FAILING" '
+            .lastRun = $ts |
+            .lastHealth = $health |
+            .runCount = ((.runCount // 0) + 1) |
+            # Record successful fixes as learned patterns
+            .fixes = ((.fixes // []) + [
+              $results[] | select(.result == "dispatched" or .result == "enabled") |
+              {workflow: .target, action: .type, fixedAt: $ts, method: .type}
+            ] | unique_by(.workflow) | .[-50:]) |
+            # Track failure patterns
+            .patterns = ((.patterns // []) + [
+              $failing[] | select(.consecutive >= 3) |
+              {workflow: .name, consecutiveAt: $ts, count: .consecutive}
+            ] | unique_by(.workflow) | .[-50:]) |
+            # Health history (last 20)
+            .healthHistory = ((.healthHistory // []) + [{ts: $ts, health: $health}] | .[-20:])
+          ' 2>/dev/null || echo "$KB")
+
+          # Validate
+          echo "$NEW_KB" | jq empty 2>/dev/null || NEW_KB="$KB"
+
+          # Save to state branch
+          KB_B64=$(echo "$NEW_KB" | base64 -w0)
+          EXISTING_SHA=$(gh api "repos/$REPO/contents/state/orchestrator-knowledge.json?ref=$STATE_BRANCH" \
+            --jq '.sha' 2>/dev/null || echo "")
+
+          PAYLOAD=$(jq -n \
+            --arg content "$KB_B64" \
+            --arg sha "$EXISTING_SHA" \
+            --arg message "chore: orchestrator learning update [auto]" \
+            --arg branch "$STATE_BRANCH" \
+            '{message: $message, content: $content, branch: $branch} + (if $sha != "" then {sha: $sha} else {} end)')
+
+          gh api "repos/$REPO/contents/state/orchestrator-knowledge.json" \
+            --method PUT --input - <<< "$PAYLOAD" > /dev/null 2>&1 || \
+            echo "::warning ::Failed to save knowledge base"
+
+          # Summary
+          RUN_COUNT=$(echo "$NEW_KB" | jq '.runCount // 0' 2>/dev/null || echo 0)
+          FIXES_COUNT=$(echo "$NEW_KB" | jq '.fixes | length' 2>/dev/null || echo 0)
+          PATTERNS_COUNT=$(echo "$NEW_KB" | jq '.patterns | length' 2>/dev/null || echo 0)
+
+          echo "### Learning Update" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Total orchestrator runs: $RUN_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Known fix patterns: $FIXES_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Failure patterns tracked: $PATTERNS_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Current ecosystem health: **$HEALTH**" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create alert if critical and unresolvable
+        if: needs.observe.outputs.ecosystem_health == 'critical'
+        run: |
+          # Check for existing orchestrator alert
+          EXISTING=$(gh api "repos/$REPO/issues?labels=orchestrator,critical&state=open&per_page=1" \
+            --jq '.[0].number // ""' 2>/dev/null || echo "")
+
+          if [ -z "$EXISTING" ]; then
+            FAILING='${{ needs.observe.outputs.failing_workflows || '[]' }}'
+            FAILING_DETAIL=$(echo "$FAILING" | jq -r '.[] | select(.consecutive >= 5) | "- **\(.name)**: \(.consecutive) consecutive failures"' 2>/dev/null || echo "- Details unavailable")
+
+            gh api "repos/$REPO/issues" \
+              --method POST \
+              --field "title=[Orchestrator] Ecosystem CRITICAL — auto-repair attempted" \
+              --field "body=## Intelligent Orchestrator Alert
+
+            The ecosystem is in **CRITICAL** state. Auto-repair has been attempted.
+
+            ### Failing Workflows
+            $FAILING_DETAIL
+
+            ### What was tried
+            The orchestrator ran observe → decide → act → learn cycle.
+            Check the [latest run](https://github.com/$REPO/actions/workflows/intelligent-orchestrator.yml) for details.
+
+            ### Next steps
+            If this persists after 2 orchestrator cycles, manual intervention is needed.
+
+            _Auto-generated by Intelligent Orchestrator_" \
+              --field "labels=[\"orchestrator\",\"critical\",\"auto-generated\"]" \
+              > /dev/null 2>&1 || echo "::warning ::Failed to create alert"
+          fi

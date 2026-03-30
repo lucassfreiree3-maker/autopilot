@@ -54,6 +54,8 @@ jobs:
             "[Core] Workflow Auto-Repair"
             "[Core] Emergency Watchdog"
             "[Core] Builds Validation Gate"
+            "[Core] Intelligent Orchestrator"
+            "[Core] Dashboard Auto-Improve"
           )
 
           SICK_COUNT=0

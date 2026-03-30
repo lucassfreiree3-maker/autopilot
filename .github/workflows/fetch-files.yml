@@ -31,7 +31,7 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/fetch-files.json ]; then
             WS_ID=$(jq -r '.workspace_id // "ws-default"' trigger/fetch-files.json)
             COMPONENT=$(jq -r '.component // "controller"' trigger/fetch-files.json)

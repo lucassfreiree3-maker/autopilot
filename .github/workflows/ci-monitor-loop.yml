@@ -69,7 +69,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             WS_ID="${{ github.event.inputs.workspace_id }}"
@@ -147,7 +147,7 @@ jobs:
           # For other workspaces, add token selection based on ws_id when needed.
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           SOURCE_REPO="${{ steps.inputs.outputs.source_repo }}"
           COMMIT_SHA="${{ steps.inputs.outputs.commit_sha }}"
@@ -283,7 +283,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           WS_ID="${{ steps.inputs.outputs.ws_id }}"
           COMPONENT="${{ steps.inputs.outputs.component }}"
           OVERALL="${{ steps.poll.outputs.overall || 'unknown' }}"

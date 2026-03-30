@@ -43,7 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           # ── Resolve PR number and branch ─────────────────────────────────
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -131,7 +131,7 @@ jobs:
       - name: Apply safe fixes
         id: apply
         run: |
-          set -euo pipefail
+          set -e
           FIXED=false
           FIX_TYPE=""
 
@@ -207,7 +207,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           PR_NUMBER="${{ needs.gate.outputs.pr_number }}"
           BRANCH="${{ needs.gate.outputs.branch }}"
           PREV_ATTEMPT="${{ needs.gate.outputs.attempt }}"
@@ -259,7 +259,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           PR_NUMBER="${{ needs.gate.outputs.pr_number }}"
           BRANCH="${{ needs.gate.outputs.branch }}"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)

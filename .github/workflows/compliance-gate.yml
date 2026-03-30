@@ -55,7 +55,7 @@ jobs:
       - name: "Static compliance checks"
         id: checks
         run: |
-          set -euo pipefail
+          set -e
           V="[]"; W="[]"
           viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
           warn() { W=$(echo "$W" | jq --arg r "$1" --arg m "$2" '. + [{rule: $r, message: $m}]'); }
@@ -250,7 +250,7 @@ jobs:
       - name: "Pull corporate source"
         id: pull
         run: |
-          set -euo pipefail
+          set -e
           COMPONENT="${{ needs.static-analysis.outputs.component }}"
 
           if [ "$COMPONENT" = "controller" ]; then
@@ -282,7 +282,7 @@ jobs:
         id: apply
         if: steps.pull.outputs.skip != 'true'
         run: |
-          set -euo pipefail
+          set -e
           TRIGGER=$(cat trigger/source-change.json)
           CHANGES=$(echo "$TRIGGER" | jq -c '.changes // []')
 
@@ -322,7 +322,7 @@ jobs:
         if: steps.pull.outputs.skip != 'true'
         working-directory: /tmp/corporate
         run: |
-          set -euo pipefail
+          set -e
           V="[]"
           viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
 
@@ -392,7 +392,7 @@ jobs:
       - name: "Check version not duplicate + CAP tag"
         id: check
         run: |
-          set -euo pipefail
+          set -e
           V="[]"
           viol() { V=$(echo "$V" | jq --arg r "$1" --arg m "$2" --arg s "$3" '. + [{rule: $r, message: $m, severity: $s}]'); }
 

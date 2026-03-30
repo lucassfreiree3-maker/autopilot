@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: repo-cleanup
+  cancel-in-progress: true
+
 jobs:
   cleanup:
     name: "Analyze and clean unused files"

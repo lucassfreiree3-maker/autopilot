@@ -45,7 +45,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           # ── Workflows table ──
           echo "=== Scanning workflows ==="

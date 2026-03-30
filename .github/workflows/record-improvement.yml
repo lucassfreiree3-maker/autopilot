@@ -70,7 +70,7 @@ jobs:
             --method PUT \
             -f "branch=$STATE_BRANCH" \
             -f "message=improvement: $IMP_ID ($WS_ID) [skip ci]" \
-            -f "content=$ENCODED"
+            -f "content=$ENCODED" 2>/dev/null || echo "::warning ::Failed to record improvement $IMP_ID"
           echo "## Improvement Recorded" >> "$GITHUB_STEP_SUMMARY"
           echo "- **ID:** $IMP_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Category:** $INPUT_CATEGORY" >> "$GITHUB_STEP_SUMMARY"

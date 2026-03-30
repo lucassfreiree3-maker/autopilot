@@ -39,7 +39,7 @@ jobs:
         env:
           INPUT_INTENT: ${{ github.event.inputs.intent }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           INTENT=$(echo "$INPUT_INTENT" | tr '[:upper:]' '[:lower:]' | xargs)
           ROUTE="unknown"
           DESCRIPTION=""
@@ -127,7 +127,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           INPUT_PAYLOAD: ${{ github.event.inputs.payload }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           WORKFLOW="${{ needs.route.outputs.workflow }}"
           PAYLOAD="$INPUT_PAYLOAD"
 
@@ -160,7 +160,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           INPUT_INTENT: ${{ github.event.inputs.intent }}
         run: |
-          set -euo pipefail
+          set -eo pipefail
           INTENT="$INPUT_INTENT"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)

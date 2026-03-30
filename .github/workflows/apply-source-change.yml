@@ -93,7 +93,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           # ── Resolve inputs ──
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/source-change.json ]; then
@@ -186,7 +186,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           AGENT="claude-code"
           OP="source-change"
           WS="${{ needs.setup.outputs.ws_id }}"

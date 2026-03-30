@@ -41,7 +41,7 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           # ── 0. Resolve inputs ───────────────────────────────
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/fix-ci.json ]; then

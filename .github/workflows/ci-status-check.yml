@@ -62,7 +62,7 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           WS_ID="${{ steps.inputs.outputs.ws_id }}"
           COMPONENT="${{ steps.inputs.outputs.component }}"
           SHA="${{ steps.inputs.outputs.commit_sha }}"

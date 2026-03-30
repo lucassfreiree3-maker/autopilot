@@ -43,7 +43,7 @@ jobs:
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           mkdir -p "$SHARED_DIR"
 
           # ── 0. Resolve inputs ───────────────────────────────

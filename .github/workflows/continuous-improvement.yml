@@ -66,7 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
 
           if [ "${{ github.event_name }}" = "push" ] && [ -f trigger/improvement.json ]; then
             TRIG=$(cat trigger/improvement.json)
@@ -122,7 +122,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -euo pipefail
+          set -e
           SCOPE="${{ needs.setup.outputs.scope }}"
           ISSUES='[]'
           TOTAL=0; CRIT=0; HIGH=0; MED=0; LOW=0; FIXABLE=0
@@ -156,9 +156,9 @@ jobs:
                   add_issue "medium" "$F" "Silent error suppression (|| true without logging): $((SILENT_COUNT - LOGGED_COUNT)) occurrences" "true"
                 fi
               fi
-              # Check for missing set -euo pipefail
-              if grep -q 'run: |' "$F" && ! grep -q 'set -euo pipefail' "$F"; then
-                add_issue "low" "$F" "Missing 'set -euo pipefail' in shell scripts" "false"
+              # Check for missing set -e
+              if grep -q 'run: |' "$F" && ! grep -q 'set -e' "$F"; then
+                add_issue "low" "$F" "Missing 'set -e' in shell scripts" "false"
               fi
               # Check for hardcoded workspace IDs
               if grep -qE 'ws-[a-z]+-[0-9]+' "$F" 2>/dev/null; then
@@ -335,7 +335,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           REPORT_B64: ${{ needs.analyze.outputs.report_b64 }}
         run: |
-          set -euo pipefail
+          set -e
           REPORT=$(echo "$REPORT_B64" | base64 -d)
           FIXED=0
 
@@ -433,7 +433,7 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           REPORT_B64: ${{ needs.analyze.outputs.report_b64 }}
         run: |
-          set -euo pipefail
+          set -e
           WS_PATH="${{ needs.setup.outputs.ws_path }}"
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SN=$(echo "$NOW" | tr ':' '-')

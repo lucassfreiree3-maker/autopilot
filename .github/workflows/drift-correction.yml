@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: drift-correction
+  cancel-in-progress: true
+
 env:
   REPO: lucassfreiree/autopilot
   STATE_BRANCH: autopilot-state

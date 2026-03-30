@@ -37,7 +37,7 @@ jobs:
       - name: "Resolve deploy info"
         id: info
         run: |
-          set -euo pipefail
+          set -e
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             COMPONENT="${{ inputs.component }}"
@@ -66,7 +66,7 @@ jobs:
       - name: "1. Verify source repo version"
         id: source
         run: |
-          set -euo pipefail
+          set -e
           EXPECTED="${{ steps.info.outputs.version }}"
           REPO="${{ steps.info.outputs.source_repo }}"
           RESULT="unknown"
@@ -92,7 +92,7 @@ jobs:
       - name: "2. Verify CAP tag updated"
         id: cap
         run: |
-          set -euo pipefail
+          set -e
           EXPECTED="${{ steps.info.outputs.version }}"
           CAP_REPO="${{ steps.info.outputs.cap_repo }}"
           COMPONENT="${{ steps.info.outputs.component }}"
@@ -120,7 +120,7 @@ jobs:
       - name: "3. Verify autopilot state updated"
         id: state
         run: |
-          set -euo pipefail
+          set -e
           EXPECTED="${{ steps.info.outputs.version }}"
           COMPONENT="${{ steps.info.outputs.component }}"
           WS="${{ steps.info.outputs.ws_id }}"
@@ -148,7 +148,7 @@ jobs:
       - name: "4. Check corporate CI result"
         id: ci
         run: |
-          set -euo pipefail
+          set -e
           COMPONENT="${{ steps.info.outputs.component }}"
           WS="${{ steps.info.outputs.ws_id }}"
 

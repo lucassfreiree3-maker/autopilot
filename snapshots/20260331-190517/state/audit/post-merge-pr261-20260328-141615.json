@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr261-20260328-141615",
+  "event": "post-merge-monitor",
+  "prNumber": 261,
+  "branch": "claude/multi-company-orchestration",
+  "mergeSha": "e142178567c34ca5fb5618d86750d542e89ee415",
+  "timestamp": "2026-03-28T14:16:15Z",
+  "runId": "23687044355",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

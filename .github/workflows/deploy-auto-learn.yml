@@ -39,11 +39,31 @@ jobs:
 
       - name: "1. Collect deploy intelligence"
         id: collect
+        env:
+          TRIGGER_WF: ${{ github.event.workflow_run.name || '' }}
+          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          TRIGGER_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+          TRIGGER_EVENT: ${{ github.event.workflow_run.event || '' }}
         run: |
           set -e
 
-          # ── Get last 5 workflow runs ──
-          RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" --jq '[.workflow_runs[:10] | .[] | {name: .name, status: .status, conclusion: .conclusion, id: .id, created: .created_at, branch: .head_branch}]' 2>/dev/null || echo '[]')
+          # ── Log trigger context (PR-awareness) ──
+          if [ -n "$TRIGGER_WF" ]; then
+            echo "::notice ::Triggered by: $TRIGGER_WF ($TRIGGER_CONCLUSION) on branch $TRIGGER_BRANCH via $TRIGGER_EVENT"
+            if [ "$TRIGGER_EVENT" = "pull_request" ] && [ "$TRIGGER_CONCLUSION" = "failure" ]; then
+              echo "::warning ::PR workflow failure detected: $TRIGGER_WF on branch $TRIGGER_BRANCH (run $TRIGGER_RUN_ID)"
+              # Fetch PR number from the triggering run
+              PR_NUM=$(gh api "repos/${{ github.repository }}/actions/runs/$TRIGGER_RUN_ID" --jq '.pull_requests[0].number // empty' 2>/dev/null || echo "")
+              if [ -n "$PR_NUM" ]; then
+                echo "::warning ::Failed on PR #$PR_NUM — adding to failure context"
+                echo "pr_number=$PR_NUM" >> "$GITHUB_OUTPUT"
+              fi
+            fi
+          fi
+
+          # ── Get last 10 workflow runs ──
+          RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?per_page=10" --jq '[.workflow_runs[:10] | .[] | {name: .name, status: .status, conclusion: .conclusion, id: .id, created: .created_at, branch: .head_branch, event: .event}]' 2>/dev/null || echo '[]')
 
           # ── Count recent failures ──
           FAIL_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
@@ -72,21 +92,7 @@ jobs:
           FAILURES=$(echo "${{ steps.collect.outputs.failures_b64 }}" | base64 -d 2>/dev/null || echo '[]')
 
           # ── Known error patterns from compliance gate ──
-          KNOWN_PATTERNS=$(cat <<'PATTERNS'
-          [
-            {"pattern": "no-nested-ternary", "rule": "eslint_no_nested_ternary", "fix": "Replace nested ternary with if/else", "autofix": true},
-            {"pattern": "no-use-before-define", "rule": "eslint_no_use_before_define", "fix": "Move function definition before usage", "autofix": true},
-            {"pattern": "TS2769.*overload", "rule": "ts2769_jwt_sign", "fix": "Use parseExpiresIn() with cast", "autofix": false},
-            {"pattern": "TS2339.*Property.*does not exist", "rule": "ts_property_missing", "fix": "Add property to interface", "autofix": false},
-            {"pattern": "duplicate.*tag|already exists", "rule": "duplicate_tag", "fix": "Increment patch version", "autofix": true},
-            {"pattern": "scope.*plural|scopes", "rule": "jwt_scope_plural", "fix": "Use scope (singular)", "autofix": true},
-            {"pattern": "ASCII|garbled|encode", "rule": "swagger_garbled", "fix": "Remove accented characters", "autofix": true},
-            {"pattern": "validateTrustedUrl.*mock", "rule": "validate_in_fetch", "fix": "Remove from fetch, use at input", "autofix": true},
-            {"pattern": "403.*push|permission denied", "rule": "push_403", "fix": "Use agent branch prefix", "autofix": false},
-            {"pattern": "run.*not.*increment|trigger.*not.*fir", "rule": "trigger_not_firing", "fix": "Increment run field", "autofix": true}
-          ]
-          PATTERNS
-          )
+          KNOWN_PATTERNS='[{"pattern":"no-nested-ternary","rule":"eslint_no_nested_ternary","fix":"Replace nested ternary with if/else","autofix":true},{"pattern":"no-use-before-define","rule":"eslint_no_use_before_define","fix":"Move function definition before usage","autofix":true},{"pattern":"TS2769.*overload","rule":"ts2769_jwt_sign","fix":"Use parseExpiresIn() with cast","autofix":false},{"pattern":"TS2339.*Property.*does not exist","rule":"ts_property_missing","fix":"Add property to interface","autofix":false},{"pattern":"duplicate.*tag|already exists","rule":"duplicate_tag","fix":"Increment patch version","autofix":true},{"pattern":"scope.*plural|scopes","rule":"jwt_scope_plural","fix":"Use scope (singular)","autofix":true},{"pattern":"ASCII|garbled|encode","rule":"swagger_garbled","fix":"Remove accented characters","autofix":true},{"pattern":"validateTrustedUrl.*mock","rule":"validate_in_fetch","fix":"Remove from fetch, use at input","autofix":true},{"pattern":"403.*push|permission denied","rule":"push_403","fix":"Use agent branch prefix","autofix":false},{"pattern":"run.*not.*increment|trigger.*not.*fir","rule":"trigger_not_firing","fix":"Increment run field","autofix":true},{"pattern":"exit code 127|command not found","rule":"gha_command_not_found","fix":"Remove heredoc from run blocks","autofix":true},{"pattern":"heredoc.*EOF|EOFBODY|cat <<","rule":"gha_heredoc_in_run","fix":"Replace heredoc with inline variable","autofix":true}]'
 
           # ── Match failures against patterns ──
           NEW_LESSONS="[]"

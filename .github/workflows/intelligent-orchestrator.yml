@@ -31,6 +31,7 @@ on:
       - "[Core] Emergency Watchdog"
       - "[Core] Dashboard Auto-Improve"
       - "[Corp] Deploy: Apply Source Change"
+      - "[Core] Compliance Gate"
     types: [completed]
   workflow_dispatch:
     inputs:

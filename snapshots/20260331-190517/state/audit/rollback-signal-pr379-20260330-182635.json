@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 379,
+  "branch": "claude/fix-auto-repair-word-split",
+  "mergeSha": "f3d80b49e7a08e4eb017a060a8ab5a3cded766a3",
+  "timestamp": "2026-03-30T18:26:35Z",
+  "runId": "23760862911",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

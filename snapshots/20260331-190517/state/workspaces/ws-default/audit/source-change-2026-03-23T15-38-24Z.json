@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T15:38:24Z",
+  "runId": "23445631949",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23445631949",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/middleware/oas-origin-auth.ts",
+  "commitMessage": "fix: remove hardcoded auth values from oas-origin-auth middleware",
+  "commitSha": "fd60a30ef35b11d26bab58dd4fb5df97b0c54921",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

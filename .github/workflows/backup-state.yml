@@ -43,13 +43,15 @@ jobs:
           echo "Token and branch OK"
 
       - name: Snapshot state to backups
+        shell: bash {0}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           BACKUP_PATH="snapshots/${SAFE_NOW}"
-          FILE_COUNT=0
+          COUNT_FILE=$(mktemp)
+          echo "0" > "$COUNT_FILE"
 
           echo "Creating backup at $BACKUP_PATH..."
 
@@ -63,41 +65,44 @@ jobs:
 
             if [ -z "$FILES" ]; then
               echo "::warning ::No files found at $SRC_PATH"
-              return
+              return 0
             fi
 
-            while IFS='|' read -r NAME TYPE PATH; do
+            echo "$FILES" | while IFS='|' read -r NAME TYPE FPATH; do
               [ -z "$NAME" ] && continue
               if [ "$TYPE" = "dir" ]; then
-                copy_tree "$PATH" "$DST_PREFIX"
+                copy_tree "$FPATH" "$DST_PREFIX"
               elif [ "$TYPE" = "file" ]; then
-                CONTENT=$(gh api "repos/$REPO/contents/${PATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null || echo "")
+                CONTENT=$(gh api "repos/$REPO/contents/${FPATH}?ref=$STATE_BRANCH" --jq '.content' 2>/dev/null || echo "")
                 if [ -n "$CONTENT" ]; then
-                  DST="${DST_PREFIX}/${PATH}"
+                  DST="${DST_PREFIX}/${FPATH}"
                   if gh api "repos/$REPO/contents/${DST}" \
                     --method PUT \
                     -f "branch=$BACKUP_BRANCH" \
-                    -f "message=backup: $SAFE_NOW ${PATH} [skip ci]" \
+                    -f "message=backup: $SAFE_NOW ${FPATH} [skip ci]" \
                     -f "content=$CONTENT" > /dev/null 2>&1; then
-                    echo "  ✅ $PATH"
-                    FILE_COUNT=$((FILE_COUNT + 1))
+                    echo "  OK $FPATH"
+                    echo $(( $(cat "$COUNT_FILE") + 1 )) > "$COUNT_FILE"
                   else
-                    echo "  ⚠️ Failed: $PATH"
+                    echo "  WARN Failed: $FPATH"
                   fi
                 fi
               fi
-            done <<< "$FILES"
+            done
+            return 0
           }
 
           copy_tree "state" "$BACKUP_PATH"
+          FILE_COUNT=$(cat "$COUNT_FILE" 2>/dev/null || echo "0")
+          rm -f "$COUNT_FILE"
 
           # Write manifest
           MANIFEST=$(jq -n \
             --arg ts "$NOW" \
             --arg path "$BACKUP_PATH" \
             --arg run "${{ github.run_id }}" \
-            --arg files "$FILE_COUNT" \
-            '{timestamp: $ts, path: $path, runId: $run, type: "scheduled", fileCount: ($files | tonumber)}')
+            --argjson files "$FILE_COUNT" \
+            '{timestamp: $ts, path: $path, runId: $run, type: "scheduled", fileCount: $files}')
 
           gh api "repos/$REPO/contents/${BACKUP_PATH}/manifest.json" \
             --method PUT \
@@ -105,13 +110,13 @@ jobs:
             -f "message=backup: manifest $SAFE_NOW [skip ci]" \
             -f "content=$(echo "$MANIFEST" | base64 -w0)" 2>/dev/null || echo "::warning ::Failed to write manifest"
 
-          echo "## ✅ Backup Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Backup Complete" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
           echo "|------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Snapshot** | \`$BACKUP_PATH\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Timestamp** | $NOW |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| **Files backed up** | $FILE_COUNT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Snapshot | $BACKUP_PATH |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Timestamp | $NOW |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Files backed up | $FILE_COUNT |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
         if: always()

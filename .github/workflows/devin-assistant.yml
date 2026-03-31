@@ -1,0 +1,132 @@
+name: "[Agent] Devin Assistant"
+run-name: "Devin responding to @devin mention"
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  respond:
+    name: "Devin Response"
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@devin')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@devin')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body || '', '@devin'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract context
+        id: context
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body || github.event.issue.body || '' }}
+          ISSUE_TITLE: ${{ github.event.issue.title || '' }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+          PR_NUMBER: ${{ github.event.issue.pull_request && github.event.issue.number || '' }}
+        run: |
+          # Clean the @devin mention from the prompt
+          CLEAN=$(echo "$COMMENT_BODY" | sed 's/@devin//g' | head -c 2000)
+          echo "prompt=$CLEAN" >> "$GITHUB_OUTPUT"
+          echo "title=$ISSUE_TITLE" >> "$GITHUB_OUTPUT"
+          echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+
+          # Detect command type from prompt
+          COMMAND="general"
+          if echo "$CLEAN" | grep -qi "implement\|execute\|fix\|build\|deploy\|create"; then
+            COMMAND="implement"
+          elif echo "$CLEAN" | grep -qi "diagnose\|investigate\|analyze\|check\|status"; then
+            COMMAND="diagnose"
+          elif echo "$CLEAN" | grep -qi "review\|audit\|inspect"; then
+            COMMAND="review"
+          fi
+          echo "command=$COMMAND" >> "$GITHUB_OUTPUT"
+
+      - name: Read Devin contract and memory
+        id: agent_context
+        run: |
+          # Read current state from Devin session memory
+          if [ -f contracts/devin-session-memory.json ]; then
+            CTRL_VER=$(jq -r '.currentState.controller.currentVersion // "?"' contracts/devin-session-memory.json 2>/dev/null || echo "?")
+            AGENT_VER=$(jq -r '.currentState.agent.currentVersion // "?"' contracts/devin-session-memory.json 2>/dev/null || echo "?")
+            LAST_RUN=$(jq -r '.deployFlow.lastTriggerRun // 0' contracts/devin-session-memory.json 2>/dev/null || echo "0")
+          else
+            CTRL_VER="?"
+            AGENT_VER="?"
+            LAST_RUN="0"
+          fi
+          echo "ctrl_ver=$CTRL_VER" >> "$GITHUB_OUTPUT"
+          echo "agent_ver=$AGENT_VER" >> "$GITHUB_OUTPUT"
+          echo "last_run=$LAST_RUN" >> "$GITHUB_OUTPUT"
+
+          # Read workspace context clues
+          WS_CLUES=$(jq -r '.workspaceIdentification.contextClues | to_entries | map(.key + ": " + (.value | join(", "))) | join("; ")' contracts/shared-agent-contract.json 2>/dev/null || echo "unknown")
+          echo "ws_clues=$WS_CLUES" >> "$GITHUB_OUTPUT"
+
+      - name: Post acknowledgment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ISSUE_NUMBER="${{ steps.context.outputs.issue_number }}"
+          COMMAND="${{ steps.context.outputs.command }}"
+          CTRL_VER="${{ steps.agent_context.outputs.ctrl_ver }}"
+          AGENT_VER="${{ steps.agent_context.outputs.agent_ver }}"
+          LAST_RUN="${{ steps.agent_context.outputs.last_run }}"
+
+          if [ -z "$ISSUE_NUMBER" ]; then
+            echo "::warning ::No issue/PR number found — cannot post comment"
+            exit 0
+          fi
+
+          BODY=$(cat <<'COMMENT_EOF'
+**Devin received your request.**
+
+| Field | Value |
+|-------|-------|
+| Command type | `COMMAND_PLACEHOLDER` |
+| Controller version | `CTRL_PLACEHOLDER` |
+| Agent version | `AGENT_PLACEHOLDER` |
+| Last deploy run | `RUN_PLACEHOLDER` |
+
+To execute this task, [create a Devin session](https://app.devin.ai) with the context from this issue/PR.
+
+**Supported commands:**
+- `@devin implement <description>` — execute implementation
+- `@devin fix <description>` — diagnose and fix
+- `@devin diagnose <description>` — investigate and report
+- `@devin review` — review changes
+- `@devin status` — report current state
+
+---
+*Automated response by Devin Assistant workflow*
+COMMENT_EOF
+          )
+
+          BODY=$(echo "$BODY" | sed "s/COMMAND_PLACEHOLDER/$COMMAND/g")
+          BODY=$(echo "$BODY" | sed "s/CTRL_PLACEHOLDER/$CTRL_VER/g")
+          BODY=$(echo "$BODY" | sed "s/AGENT_PLACEHOLDER/$AGENT_VER/g")
+          BODY=$(echo "$BODY" | sed "s/RUN_PLACEHOLDER/$LAST_RUN/g")
+
+          echo "$BODY" > /tmp/devin-comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/devin-comment.md || \
+            echo "::warning ::Failed to post comment on issue/PR #$ISSUE_NUMBER"
+
+      - name: Write step summary
+        run: |
+          {
+            echo "## Devin Assistant Response"
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Issue/PR | #${{ steps.context.outputs.issue_number }} |"
+            echo "| Command | \`${{ steps.context.outputs.command }}\` |"
+            echo "| Title | ${{ steps.context.outputs.title }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

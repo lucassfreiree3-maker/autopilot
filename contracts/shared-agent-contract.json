@@ -138,14 +138,52 @@
     }
   },
   "multiAgentOrchestration": {
-    "description": "Universal agent system. Claude Code is primary. Any AI can be registered as backup/specialist via agent-registry.json.",
+    "description": "Universal agent system. Claude Code is primary, Devin is specialist. Any AI can be registered via agent-registry.json.",
     "registry": "contracts/agent-registry.json",
     "onboarding": "contracts/agent-onboarding.md",
     "agents": {
       "claude-code": {"role": "primary", "memory": "claude-session-memory.json", "status": "active"},
+      "devin": {"role": "specialist", "memory": "devin-session-memory.json", "status": "active"},
       "_note": "Additional agents registered in contracts/agent-registry.json. Legacy agents (copilot, codex) files preserved for history."
     },
     "sharedState": "claude-live-status.json",
+    "collaborationProtocol": {
+      "syncContract": [
+        "1. Read issue/PR context, repository instructions, and relevant handoff files",
+        "2. Restate goal in precise technical language",
+        "3. Produce task plan with assumptions, constraints, files, test strategy, rollback strategy, risk level",
+        "4. Decide role ownership: Claude (plan/review/design/risk) vs Devin (implement/execute/autofix)",
+        "5. Write handoff artifact before major execution",
+        "6. Execute only within scope of issue/PR",
+        "7. Run validation and summarize evidence",
+        "8. Leave structured handoff with enough context for next agent to continue without re-discovery"
+      ],
+      "roleDefaults": {
+        "claude-code": ["planning", "code-review", "architecture", "spec-hardening", "risk-analysis", "quality-gate"],
+        "devin": ["implementation", "execution", "deploy-operations", "ci-troubleshooting", "infrastructure", "autofix"]
+      },
+      "roleSwitchRule": "Either agent may switch roles if task requires it, but every switch must be explicit in the handoff note",
+      "conflictResolution": [
+        "If both agents need to modify state: Session Guard enforces mutual exclusion via locks",
+        "If agents disagree on approach: record disagreement in handoff, provide evidence, propose resolution",
+        "If uncertainty remains: prefer safer incremental changes and stronger tests"
+      ],
+      "learningLoop": [
+        "Persist learnings in repository files and PR comments, not implicit memory",
+        "Session memory files for agent-specific state",
+        "Improvement history for cross-agent patterns",
+        "Handoff files with lessons learned",
+        "Each learning must include: what changed, why, what failed, how fixed, what to avoid, which commands proved the result"
+      ],
+      "validationStandard": [
+        "Run lint before declaring success",
+        "Run unit tests where relevant",
+        "Verify build passes",
+        "Verify changed behavior against acceptance criteria",
+        "Verify no unrelated files were changed",
+        "Summarize evidence in plain technical language"
+      ]
+    },
     "workspaces": {
       "ws-default": {"company": "Getronics", "token": "BBVINET_TOKEN", "status": "active"},
       "ws-cit": {"company": "CIT", "token": "CIT_TOKEN", "status": "setup"},
@@ -156,7 +194,9 @@
       "Identificar workspace ANTES de qualquer acao",
       "Cada empresa usa EXCLUSIVAMENTE seu proprio token",
       "Se outro agente tem lock: ESPERAR ou criar handoff",
-      "Se Claude cair: Copilot assume em < 30 min",
+      "Nao competir — dividir trabalho por papel padrao (Claude=plan/review, Devin=implement/execute)",
+      "Nao sobrescrever raciocinio do outro agente — construir sobre ele",
+      "Nao duplicar edits nos mesmos arquivos sem ler o branch mais recente",
       "Spark dashboard mostra estado de TODAS as empresas",
       "Memoria de cada agente e EXCLUSIVA — so ler a dos outros"
     ]

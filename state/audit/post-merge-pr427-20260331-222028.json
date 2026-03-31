@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr427-20260331-222028",
+  "event": "post-merge-monitor",
+  "prNumber": 427,
+  "branch": "devin/1774993887-full-agent-integration",
+  "mergeSha": "e1c1ae9ec40cbe42ab582ec198bfa68996322434",
+  "timestamp": "2026-03-31T22:20:28Z",
+  "runId": "23822126936",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr426-20260331-213256",
+  "event": "post-merge-monitor",
+  "prNumber": 426,
+  "branch": "devin/1774992312-controller-version-bump",
+  "mergeSha": "54cb3111591f3602fae35fd679c1f2de5e4af5d6",
+  "timestamp": "2026-03-31T21:32:56Z",
+  "runId": "23820428626",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

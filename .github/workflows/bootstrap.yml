@@ -215,7 +215,7 @@ jobs:
 
       - name: "7/8 - Upload report artifact"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bootstrap-report-${{ github.run_number }}
           path: /tmp/report.md

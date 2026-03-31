@@ -128,7 +128,7 @@ jobs:
 
       - name: "Upload report artifact"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vuln-report-${{ steps.setup.outputs.component }}-${{ steps.setup.outputs.version }}
           path: /tmp/vuln-report.json

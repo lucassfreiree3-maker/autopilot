@@ -62,7 +62,7 @@ jobs:
           ./ops/scripts/cloud/cloud-check.sh "${{ inputs.provider }}" "${{ inputs.action }}" 2>&1 | tee cloud-diag.log
 
       - name: Upload diagnostic report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: cloud-diagnostic-${{ inputs.provider }}-${{ github.run_number }}

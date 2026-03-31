@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T19:06:34Z",
+  "runId": "23410204144",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23410204144",
+  "component": "agent",
+  "changeType": "add-file",
+  "targetPath": "src/utils/agentHealth.js",
+  "commitMessage": "feat: add agent health utility (autopilot pipeline test)",
+  "commitSha": "191ad36bfeede12dfb83324574aa02510747a433",
+  "ciResult": "failure",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

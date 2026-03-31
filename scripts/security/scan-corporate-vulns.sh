@@ -71,15 +71,22 @@ fetch_run_data() {
   echo "Jobs found:"
   jq -r '.jobs[] | "  \(.name): \(.conclusion // .status)"' /tmp/run-jobs.json 2>/dev/null || true
 
-  # Download logs archive
+  # Download logs archive (timeout 60s to avoid hanging)
   echo "Downloading logs archive..."
-  GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/actions/runs/$RUN_ID/logs" \
-    > /tmp/ci-logs.zip 2>/dev/null || true
+  timeout 60 bash -c "GH_TOKEN=\"$BBVINET_TOKEN\" gh api \"repos/$CORP_REPO/actions/runs/$RUN_ID/logs\" > /tmp/ci-logs.zip" 2>/dev/null || {
+    echo "::warning ::Log download timed out or failed — will use autopilot-state logs"
+    rm -f /tmp/ci-logs.zip
+  }
 
   if [ -s /tmp/ci-logs.zip ]; then
     mkdir -p /tmp/ci-logs-extracted
-    unzip -o -q /tmp/ci-logs.zip -d /tmp/ci-logs-extracted 2>/dev/null || true
-    echo "Extracted $(find /tmp/ci-logs-extracted -type f | wc -l) log files"
+    unzip -o -q /tmp/ci-logs.zip -d /tmp/ci-logs-extracted 2>/dev/null || {
+      echo "::warning ::Failed to extract logs (not a valid ZIP or binary content)"
+      rm -rf /tmp/ci-logs-extracted
+    }
+    if [ -d /tmp/ci-logs-extracted ]; then
+      echo "Extracted $(find /tmp/ci-logs-extracted -type f | wc -l) log files"
+    fi
   fi
 
   echo "::endgroup::"
@@ -123,90 +130,55 @@ $EXTRA_CVES"
   CVE_COUNT=$(echo "$UNIQUE_CVES" | grep -c "CVE" 2>/dev/null || echo "0")
   echo "Found $CVE_COUNT unique CVEs in CI logs"
 
-  # Parse npm package + version associations from logs
-  # Pattern: npm://package:version or "package":"version"
+  # Parse npm package + version associations from logs (batch with jq, no loop)
   local NPM_VULNS="[]"
   if [ -d /tmp/ci-logs-extracted ]; then
-    # XRay format: npm://package:version
-    while IFS= read -r line; do
-      [ -z "$line" ] && continue
-      local PKG VER
-      PKG=$(echo "$line" | sed -E 's/npm:\/\/([^:]+):.*/\1/' 2>/dev/null || true)
-      VER=$(echo "$line" | sed -E 's/npm:\/\/[^:]+:(.*)/\1/' 2>/dev/null || true)
-      if [ -n "$PKG" ] && [ -n "$VER" ]; then
-        NPM_VULNS=$(echo "$NPM_VULNS" | jq --arg p "$PKG" --arg v "$VER" \
-          'if any(.[]; .package == $p and .version == $v) then . else . + [{"package": $p, "version": $v}] end')
-      fi
-    done < <(grep -rohE "npm://[a-zA-Z0-9@._-]+:[0-9.]+" /tmp/ci-logs-extracted/ 2>/dev/null | sort -u || true)
+    local NPM_RAW
+    NPM_RAW=$(grep -rohE "npm://[a-zA-Z0-9@._-]+:[0-9.]+" /tmp/ci-logs-extracted/ 2>/dev/null | sort -u || true)
+    if [ -n "$NPM_RAW" ]; then
+      NPM_VULNS=$(echo "$NPM_RAW" | sed -E 's|npm://([^:]+):(.*)|{"package":"\1","version":"\2"}|' | jq -s 'unique_by(.package, .version)')
+    fi
   fi
 
-  # Parse rpm package + version associations
+  # Parse rpm package + version associations (batch with jq, no loop)
   local RPM_VULNS="[]"
   if [ -d /tmp/ci-logs-extracted ]; then
-    while IFS= read -r line; do
-      [ -z "$line" ] && continue
-      local PKG VER
-      PKG=$(echo "$line" | sed -E 's|rpm://[0-9]+:([^:]+):.*|\1|' 2>/dev/null || true)
-      VER=$(echo "$line" | sed -E 's|rpm://[0-9]+:[^:]+:([^+]+).*|\1|' 2>/dev/null || true)
-      if [ -n "$PKG" ] && [ -n "$VER" ]; then
-        RPM_VULNS=$(echo "$RPM_VULNS" | jq --arg p "$PKG" --arg v "$VER" \
-          'if any(.[]; .package == $p and .version == $v) then . else . + [{"package": $p, "version": $v, "type": "rpm"}] end')
-      fi
-    done < <(grep -rohE "rpm://[0-9]+:[a-zA-Z0-9._-]+:[0-9.]+" /tmp/ci-logs-extracted/ 2>/dev/null | sort -u || true)
+    local RPM_RAW
+    RPM_RAW=$(grep -rohE "rpm://[0-9]+:[a-zA-Z0-9._-]+:[0-9.]+" /tmp/ci-logs-extracted/ 2>/dev/null | sort -u || true)
+    if [ -n "$RPM_RAW" ]; then
+      RPM_VULNS=$(echo "$RPM_RAW" | sed -E 's|rpm://[0-9]+:([^:]+):([^+]+).*|{"package":"\1","version":"\2","type":"rpm"}|' | jq -s 'unique_by(.package, .version)')
+    fi
   fi
 
-  # ── Query GitHub Advisory DB for each CVE ──
+  # ── Query GitHub Advisory DB for each CVE (max 20 to avoid timeouts) ──
   echo "::group::Querying GitHub Advisory Database"
   local ALL_VULNS="[]"
 
-  # Map known CVE → GHSA (built dynamically + hardcoded fallbacks)
-  declare -A CVE_TO_GHSA
-  CVE_TO_GHSA["CVE-2023-29827"]="GHSA-j5pp-6f4w-r5r6"
-  CVE_TO_GHSA["CVE-2024-4068"]="GHSA-grv7-fg5c-xmjg"
+  # Limit to first 20 CVEs to avoid API rate limits / timeouts
+  local CVES_TO_CHECK
+  CVES_TO_CHECK=$(echo "$UNIQUE_CVES" | head -20)
+  local CHECKED=0
 
-  # Try to resolve each CVE via GitHub Advisory API
   while IFS= read -r CVE; do
     [ -z "$CVE" ] && continue
-    echo "Checking $CVE..."
+    CHECKED=$((CHECKED + 1))
+    echo "[$CHECKED] Checking $CVE..."
 
-    local GHSA_ID=""
-    local SEVERITY="unknown"
-    local SUMMARY=""
-    local FIXED_VER=""
-    local AFFECTED_PKG=""
+    local GHSA_ID="" SEVERITY="unknown" SUMMARY="" FIXED_VER="" AFFECTED_PKG=""
 
-    # Check hardcoded mapping first
-    if [ -n "${CVE_TO_GHSA[$CVE]+x}" ]; then
-      GHSA_ID="${CVE_TO_GHSA[$CVE]}"
+    # Try GitHub Advisory search by CVE (timeout 10s per query)
+    local SEARCH_RESULT
+    SEARCH_RESULT=$(timeout 10 gh api "advisories?cve_id=$CVE" 2>/dev/null || echo "[]")
+
+    if [ "$SEARCH_RESULT" != "[]" ] && [ -n "$SEARCH_RESULT" ]; then
+      GHSA_ID=$(echo "$SEARCH_RESULT" | jq -r '.[0].ghsa_id // ""' 2>/dev/null || echo "")
+      SEVERITY=$(echo "$SEARCH_RESULT" | jq -r '.[0].severity // "unknown"' 2>/dev/null || echo "unknown")
+      SUMMARY=$(echo "$SEARCH_RESULT" | jq -r '.[0].summary // ""' 2>/dev/null | head -c 200 || echo "")
+      FIXED_VER=$(echo "$SEARCH_RESULT" | jq -r '.[0].vulnerabilities[0].patched_versions // ""' 2>/dev/null | head -c 50 || echo "")
+      AFFECTED_PKG=$(echo "$SEARCH_RESULT" | jq -r '.[0].vulnerabilities[0].package.name // ""' 2>/dev/null || echo "")
     fi
 
-    # Try GitHub Advisory search by CVE
-    if [ -z "$GHSA_ID" ]; then
-      GHSA_ID=$(gh api "advisories?cve_id=$CVE" \
-        --jq '.[0].ghsa_id // ""' 2>/dev/null || echo "")
-    fi
-
-    # If we have a GHSA, get full details
-    if [ -n "$GHSA_ID" ]; then
-      local ADVISORY
-      ADVISORY=$(gh api "advisories/$GHSA_ID" 2>/dev/null || echo '{}')
-      SEVERITY=$(echo "$ADVISORY" | jq -r '.severity // "unknown"' 2>/dev/null || echo "unknown")
-      SUMMARY=$(echo "$ADVISORY" | jq -r '.summary // ""' 2>/dev/null | head -c 200 || echo "")
-      FIXED_VER=$(echo "$ADVISORY" | jq -r '.vulnerabilities[0].patched_versions // ""' 2>/dev/null | head -c 50 || echo "")
-      AFFECTED_PKG=$(echo "$ADVISORY" | jq -r '.vulnerabilities[0].package.name // ""' 2>/dev/null || echo "")
-    fi
-
-    # Try NVD-style severity lookup if no GHSA
-    if [ "$SEVERITY" = "unknown" ] && [ -z "$GHSA_ID" ]; then
-      # Attempt to get severity from the advisory search
-      local SEARCH_RESULT
-      SEARCH_RESULT=$(gh api "advisories?type=reviewed&cve_id=$CVE" 2>/dev/null || echo "[]")
-      if [ "$SEARCH_RESULT" != "[]" ]; then
-        SEVERITY=$(echo "$SEARCH_RESULT" | jq -r '.[0].severity // "unknown"' 2>/dev/null || echo "unknown")
-        GHSA_ID=$(echo "$SEARCH_RESULT" | jq -r '.[0].ghsa_id // ""' 2>/dev/null || echo "")
-        SUMMARY=$(echo "$SEARCH_RESULT" | jq -r '.[0].summary // ""' 2>/dev/null | head -c 200 || echo "")
-      fi
-    fi
+    echo "  => $SEVERITY ${GHSA_ID:-(no GHSA)} ${SUMMARY:-(no summary)}"
 
     ALL_VULNS=$(echo "$ALL_VULNS" | jq \
       --arg cve "$CVE" \
@@ -216,7 +188,7 @@ $EXTRA_CVES"
       --arg fix "$FIXED_VER" \
       --arg pkg "$AFFECTED_PKG" \
       '. + [{"cve": $cve, "ghsa": $ghsa, "severity": $sev, "summary": $sum, "fixVersion": $fix, "package": $pkg}]')
-  done <<< "$UNIQUE_CVES"
+  done <<< "$CVES_TO_CHECK"
   echo "::endgroup::"
 
   # ── Classify vulnerabilities ──

@@ -362,8 +362,8 @@ All 4 repos below are on GitHub under `bbvinet` org. Access via `BBVINET_TOKEN`.
 
 | Repo | Role | Current Version | Stack | CI |
 |------|------|-----------------|-------|----|
-| [`bbvinet/psc-sre-automacao-controller`](https://github.com/bbvinet/psc-sre-automacao-controller) | Controller — orchestrates automations, dispatches to agents, manages execution logs | 3.7.0 | Node 22, TypeScript, Express, Jest | Esteira de Build NPM (corporate runner) |
-| [`bbvinet/psc-sre-automacao-agent`](https://github.com/bbvinet/psc-sre-automacao-agent) | Agent — executes automations on clusters, receives cronjob callbacks, pushes logs to controller | 2.3.2 | Node 22, TypeScript, Express, Jest, K8s client | Esteira de Build NPM (corporate runner) |
+| [`bbvinet/psc-sre-automacao-controller`](https://github.com/bbvinet/psc-sre-automacao-controller) | Controller — orchestrates automations, dispatches to agents, manages execution logs | 3.7.3 | Node 22, TypeScript, Express, Jest | Esteira de Build NPM (corporate runner) |
+| [`bbvinet/psc-sre-automacao-agent`](https://github.com/bbvinet/psc-sre-automacao-agent) | Agent — executes automations on clusters, receives cronjob callbacks, pushes logs to controller | 2.3.3 | Node 22, TypeScript, Express, Jest, K8s client | Esteira de Build NPM (corporate runner) |
 
 **How to work with source repos:**
 - **Read files**: `fetch-files.yml` workflow (trigger via `trigger/fetch-files.json`)
@@ -594,6 +594,7 @@ Maps errors to known patterns, generates learning report with pipeline visualiza
 | token-auto-optimize.yml | Daily token usage optimization (compact memory, archive old sessions) |
 | sync-spark-dashboard.yml | Sync workflows + HTML from autopilot references to spark-dashboard repo |
 | sync-community-resources.yml | Weekly auto-sync intelligence from anthropics/skills, awesome-claude-code, a-list-of-agents |
+| emergency-watchdog.yml | Emergency watchdog — detects critical failures, stuck states, and auto-escalates |
 
 ### Disabled Workflows (Codex/Copilot/Agent-Bridge — centralized in Claude Code)
 All Codex, Copilot, Gemini, and multi-agent bridge workflows have been **disabled** (renamed to `.yml.disabled`).
@@ -620,11 +621,16 @@ Disabled files (preserved for reference in `.github/workflows/*.yml.disabled`):
 | `trigger/promote-cap.json` | promote-cap.yml |
 | `trigger/clone-repos.json` | clone-corporate-repos.yml |
 | `trigger/ci-status.json` | ci-status-check.yml |
+| `trigger/agent-bridge.json` | agent-bridge.yml (DISABLED — legacy) |
+| `trigger/agent-sync.json` | agent-sync.yml (DISABLED — legacy) |
+| `trigger/codex-commit.json` | codex-apply.yml (DISABLED — legacy) |
+| `trigger/codex-deploy.json` | codex-deploy.yml (DISABLED — legacy) |
+| `trigger/copilot-task.json` | copilot-task-dispatch.yml (DISABLED — legacy) |
 
 ## Deploy Flow — Complete Guide (Claude Code only)
 
 This is the **official, tested, end-to-end deploy flow** for pushing code changes to corporate repos.
-Centralized in Claude Code. Last successful run: **#70 (controller 3.7.0)**. Run #71 (agent 2.3.2) in progress.
+Centralized in Claude Code. Last successful run: **#81 (controller 3.7.3)**. Agent 2.3.3 deployed.
 
 ### Phase 1: Prepare
 ```

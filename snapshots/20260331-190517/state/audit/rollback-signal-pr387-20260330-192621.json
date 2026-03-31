@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 387,
+  "branch": "claude/fix-security-vulnerabilities-JNaNu",
+  "mergeSha": "239fcba85b9d13ad683a99287e371375efa27a3e",
+  "timestamp": "2026-03-30T19:26:21Z",
+  "runId": "23763427943",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

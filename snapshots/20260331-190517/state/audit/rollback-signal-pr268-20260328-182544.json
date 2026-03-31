@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 268,
+  "branch": "claude/fix-workflows-final",
+  "mergeSha": "04658a70fa577be311da25ea07360fe421a8e825",
+  "timestamp": "2026-03-28T18:25:44Z",
+  "runId": "23691501370",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

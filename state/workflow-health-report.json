@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-03-31T08:57:11Z",
-  "lookbackSince": "2026-03-31T02:57:07Z",
+  "timestamp": "2026-03-31T10:07:55Z",
+  "lookbackSince": "2026-03-31T04:07:52Z",
   "summary": {
     "totalWorkflows": 64,
-    "totalRuns": 40,
+    "totalRuns": 45,
     "workflowsWithFailures": 2,
     "critical": 0,
     "degraded": 0,
@@ -26,7 +26,7 @@
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23786210273"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23789774973"
     },
     {
       "name": "[Core] Backup: State Snapshot",
@@ -48,15 +48,15 @@
       "path": ".github/workflows/workspace-lock-gc.yml",
       "workflow_id": 249579514,
       "status": "healthy",
-      "runs": 4,
-      "successes": 4,
+      "runs": 5,
+      "successes": 5,
       "failures": 0,
       "cancelled": 0,
       "in_progress": 0,
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23788792001"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23791562164"
     },
     {
       "name": "[Infra] Cleanup: Stale Branches",
@@ -86,7 +86,7 @@
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23782860770"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23790755412"
     },
     {
       "name": "Ops: Check Active Alerts",
@@ -108,15 +108,15 @@
       "path": ".github/workflows/spark-sync-state.yml",
       "workflow_id": 252939431,
       "status": "healthy",
-      "runs": 4,
-      "successes": 4,
+      "runs": 5,
+      "successes": 5,
       "failures": 0,
       "cancelled": 0,
       "in_progress": 0,
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23786735775"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23789687123"
     },
     {
       "name": "[Core] Auto-Merge Sweeper",
@@ -131,7 +131,7 @@
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23786760288"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23789696515"
     },
     {
       "name": "[Core] Token Auto-Optimize",
@@ -183,15 +183,15 @@
       "path": ".github/workflows/workflow-health-monitor.yml",
       "workflow_id": 253550349,
       "status": "healthy",
-      "runs": 3,
-      "successes": 2,
+      "runs": 4,
+      "successes": 3,
       "failures": 0,
       "cancelled": 0,
       "in_progress": 1,
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "unknown",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23789058596"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23791915923"
     },
     {
       "name": "[Core] Workflow Sentinel",
@@ -213,30 +213,30 @@
       "path": ".github/workflows/intelligent-orchestrator.yml",
       "workflow_id": 253555059,
       "status": "healthy",
-      "runs": 5,
-      "successes": 4,
+      "runs": 6,
+      "successes": 5,
       "failures": 1,
       "cancelled": 0,
       "in_progress": 0,
-      "failRate": 20,
+      "failRate": 16,
       "consecutiveFailures": 1,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23789012804"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23791826328"
     },
     {
       "name": "[Core] Deploy Pipeline Monitor",
       "path": ".github/workflows/deploy-pipeline-monitor.yml",
       "workflow_id": 253834792,
       "status": "healthy",
-      "runs": 4,
-      "successes": 4,
+      "runs": 5,
+      "successes": 5,
       "failures": 0,
       "cancelled": 0,
       "in_progress": 0,
       "failRate": 0,
       "consecutiveFailures": 0,
       "lastConclusion": "success",
-      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23788196486"
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23791675421"
     }
   ]
 }

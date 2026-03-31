@@ -8,14 +8,14 @@
     "promoted": true
   },
   "agent": {
-    "version": "2.3.2",
+    "version": "2.3.3",
     "status": "ci-passed",
     "ciResult": "success",
-    "promoted": false
+    "promoted": true
   },
   "pipeline": {
     "status": "idle",
-    "lastRun": 77,
+    "lastRun": 81,
     "component": "controller",
     "version": "3.7.3"
   },

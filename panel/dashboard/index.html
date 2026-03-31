@@ -786,11 +786,9 @@
         ${isDefault?computeAlerts().map(al=>`<div class="alert-bar alert-${al.type}">${alertIcon(al.type)} <div>${esc(al.msg)}</div></div>`).join(''):''}
 
         ${ctrlVer!=='—'||agentVer!=='—'?`
-        <div class="grid-4" style="margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px">
           <div class="card" style="padding:12px"><div class="card-title">Controller</div><div class="card-value" style="color:var(--${statusColor(isDefault?c.ciResult:'idle')})">${esc(ctrlVer)}</div><div class="card-sub">${isDefault?badge(c.ciResult||'?'):''} ${isDefault&&c.promoted?badge('promoted','green'):''} ${isDefault&&cc.capTag&&cc.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
           <div class="card" style="padding:12px"><div class="card-title">Agent</div><div class="card-value" style="color:var(--${statusColor(isDefault?a.ciResult:'idle')})">${esc(agentVer)}</div><div class="card-sub">${isDefault?badge(a.ciResult||'?'):''} ${isDefault&&a.promoted?badge('promoted','green'):''} ${isDefault&&ca.capTag&&ca.capTag!=='?'?'<span style="font-size:10px;color:var(--muted)">CAP</span>':''}</div></div>
-          <div class="card" style="padding:12px"><div class="card-title">Last Run</div><div class="card-value">#${isDefault?p.lastRun||0:0}</div><div class="card-sub">${badge(isDefault?p.status||'idle':'idle')}</div></div>
-          <div class="card" style="padding:12px"><div class="card-title">Pipeline</div><div class="card-value" style="color:var(--${statusColor(w.pipelineStatus||'idle')})">${esc(w.pipelineStatus||'idle')}</div></div>
         </div>`:''}
 
         ${ctx&&ctx.links.length?`
@@ -808,13 +806,6 @@
               </div>
               <div style="color:var(--muted);font-size:11px">${esc(r.desc)}</div>
             </div>`).join('')}
-          </div>
-        </div>`:''}
-
-        ${ctx?`
-        <div class="section"><h3>Infrastructure & Context</h3>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px">
-            ${Object.entries(ctx.infra).map(([k,v])=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${esc(k)}</span><br><strong>${esc(v)}</strong></div>`).join('')}
           </div>
         </div>`:''}`}
 
@@ -846,7 +837,7 @@
             <span><span style="color:var(--muted)">Controller</span> <strong style="color:var(--${statusColor(c2.ciResult||'idle')})">${esc(ctrlV)}</strong> ${badge(c2.ciResult||'idle')}</span>
             <span><span style="color:var(--muted)">Agent</span> <strong style="color:var(--${statusColor(a2.ciResult||'idle')})">${esc(agentV)}</strong> ${badge(a2.ciResult||'idle')}</span>
           </div>`:''}
-          ${isDefault?`<div style="font-size:11px;color:var(--muted)">Pipeline <strong>${esc(p2.status||'idle')}</strong> · Run #${p2.lastRun||0}</div>`:''}
+          ${''/* Pipeline info removed from list view */}
           ${alerts.length?`<div style="font-size:11px;color:var(--${alerts[0].type==='error'?'red':'yellow'});margin-top:6px">${alerts.length} alert${alerts.length>1?'s':''}: ${esc(alerts[0].msg.slice(0,60))}${alerts[0].msg.length>60?'…':''}</div>`:''}
           <div style="margin-top:8px;font-size:11px;color:var(--blue)">Click to open →</div>`}
         </div>`;

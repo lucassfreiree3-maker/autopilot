@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr233-20260327-133646",
+  "event": "post-merge-monitor",
+  "prNumber": 233,
+  "branch": "claude/document-process-commands-gu947",
+  "mergeSha": "b0eb8fc923d54c0380d430c8d02ed394fa067f9f",
+  "timestamp": "2026-03-27T13:36:46Z",
+  "runId": "23648836015",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

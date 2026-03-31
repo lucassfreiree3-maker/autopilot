@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr373-20260330-143031",
+  "event": "post-merge-monitor",
+  "prNumber": 373,
+  "branch": "claude/simplify-dashboard-workspaces-AAvYq",
+  "mergeSha": "ae8213a8a7a89e002c27417bae19912559b56373",
+  "timestamp": "2026-03-30T14:30:31Z",
+  "runId": "23750128345",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

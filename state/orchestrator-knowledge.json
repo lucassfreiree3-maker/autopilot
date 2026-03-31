@@ -21,6 +21,11 @@
       "count": 3
     },
     {
+      "workflow": "[Core] Compliance Gate",
+      "consecutiveAt": "2026-03-31T17:55:15Z",
+      "count": 3
+    },
+    {
       "workflow": "[Core] Intelligent Orchestrator",
       "consecutiveAt": "2026-03-31T01:25:03Z",
       "count": 3
@@ -44,6 +49,12 @@
       "method": "re-run"
     },
     {
+      "workflow": "[Core] Compliance Gate",
+      "action": "re-run",
+      "fixedAt": "2026-03-31T17:55:15Z",
+      "method": "re-run"
+    },
+    {
       "workflow": "[Core] Intelligent Orchestrator",
       "action": "re-run",
       "fixedAt": "2026-03-30T21:40:01Z",
@@ -56,14 +67,10 @@
       "method": "re-run"
     }
   ],
-  "lastRun": "2026-03-31T16:55:21Z",
+  "lastRun": "2026-03-31T17:55:15Z",
   "lastHealth": "degraded",
-  "runCount": 36,
+  "runCount": 37,
   "healthHistory": [
-    {
-      "ts": "2026-03-30T20:36:28Z",
-      "health": "critical"
-    },
     {
       "ts": "2026-03-30T21:02:32Z",
       "health": "critical"
@@ -138,6 +145,10 @@
     },
     {
       "ts": "2026-03-31T16:55:21Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T17:55:15Z",
       "health": "degraded"
     }
   ]

@@ -473,8 +473,8 @@ jobs:
       - name: "Aggregate results"
         id: final
         run: |
-          STATIC='${{ needs.static-analysis.outputs.violations }}'
-          STATIC_W='${{ needs.static-analysis.outputs.warnings }}'
+          STATIC='${{ needs.static-analysis.outputs.violations || '[]' }}'
+          STATIC_W='${{ needs.static-analysis.outputs.warnings || '[]' }}'
           TEST='${{ needs.pull-and-test.outputs.test_violations || '[]' }}'
           TAG='${{ needs.release-tag-check.outputs.violations || '[]' }}'
 
@@ -526,31 +526,18 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PASSED: ${{ steps.final.outputs.passed }}
+          COMP: ${{ needs.static-analysis.outputs.component }}
+          VER: ${{ needs.static-analysis.outputs.version }}
         run: |
-          PASSED="${{ steps.final.outputs.passed }}"
-          COMP="${{ needs.static-analysis.outputs.component }}"
-          VER="${{ needs.static-analysis.outputs.version }}"
-
           if [ "$PASSED" = "true" ]; then
-            BODY=$(cat <<EOFBODY
-          ## ✅ Compliance Gate: PASSED
-          **${COMP} v${VER}** — All stages passed.
-          - Static Analysis (14 rules): ✅
-          - Pull and Test (npm ci + tsc + eslint + jest): ✅
-          - Release Tag Check (duplicate + CAP): ✅
-          EOFBODY
-          )
+            BODY="## Compliance Gate: PASSED\n**${COMP} v${VER}** - All stages passed.\n- Static Analysis (14 rules): PASS\n- Pull and Test (npm ci + tsc + eslint + jest): PASS\n- Release Tag Check (duplicate + CAP): PASS"
           else
-            BODY=$(cat <<EOFBODY
-          ## ❌ Compliance Gate: FAILED
-          **${COMP} v${VER}** — Violations found. Fix before merge.
-          See workflow run for details.
-          EOFBODY
-          )
+            BODY="## Compliance Gate: FAILED\n**${COMP} v${VER}** - Violations found. Fix before merge.\nSee workflow run for details."
           fi
 
           PR=${{ github.event.pull_request.number }}
           if [ -n "$PR" ]; then
-            gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
-              --method POST -f body="$BODY" 2>/dev/null || true
+            printf '%b' "$BODY" | gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
+              --method POST -F body=@- 2>/dev/null || true
           fi

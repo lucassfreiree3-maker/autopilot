@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 246,
+  "branch": "copilot/update-copilot-session-memory",
+  "mergeSha": "235bd3a681be831f047426ed38d25f3ae9d0d70f",
+  "timestamp": "2026-03-28T13:31:09Z",
+  "runId": "23686268826",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

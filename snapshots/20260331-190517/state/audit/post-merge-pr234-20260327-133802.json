@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr234-20260327-133802",
+  "event": "post-merge-monitor",
+  "prNumber": 234,
+  "branch": "copilot/copilottest-autonomous-flow",
+  "mergeSha": "3d338c23b9629466a4dd65ff7c755c4cd2e3cdf3",
+  "timestamp": "2026-03-27T13:38:02Z",
+  "runId": "23648884096",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

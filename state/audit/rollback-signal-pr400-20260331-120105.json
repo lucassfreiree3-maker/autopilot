@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 400,
+  "branch": "claude/fix-dashboard-sync-hsKgX",
+  "mergeSha": "2030c111a7c6259e70344963249ed02b81de9342",
+  "timestamp": "2026-03-31T12:01:05Z",
+  "runId": "23796175879",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

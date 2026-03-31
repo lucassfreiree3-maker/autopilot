@@ -1,0 +1,108 @@
+name: "AI Task Request"
+description: "Structured task request for AI agents (Claude Code / Devin)"
+title: "[AI Task] "
+labels: ["ai-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## AI Task Request
+        Use this form to create a well-structured task for AI agents.
+        The more context you provide, the better the result.
+
+  - type: dropdown
+    id: agent
+    attributes:
+      label: "Target Agent"
+      description: "Which agent should handle this task?"
+      options:
+        - "Auto (let system decide)"
+        - "Claude Code (planning, review, architecture)"
+        - "Devin (implementation, execution, DevOps)"
+        - "Both (collaborative)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: "Workspace"
+      description: "Which workspace/company does this relate to?"
+      options:
+        - "ws-default (Getronics)"
+        - "ws-cit (CIT)"
+        - "Autopilot infra (no workspace)"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task_type
+    attributes:
+      label: "Task Type"
+      description: "What kind of task is this?"
+      options:
+        - "Deploy / Release"
+        - "Bug Fix"
+        - "New Feature"
+        - "CI/CD Pipeline"
+        - "Infrastructure / IaC"
+        - "Code Review"
+        - "Monitoring / Observability"
+        - "Security"
+        - "Documentation"
+        - "Diagnosis / Investigation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: "Objective"
+      description: "What should be accomplished? Be specific."
+      placeholder: "Bump controller from 3.7.5 to 3.7.6, including swagger.json fix for UTF-8 characters."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context"
+      description: "Background info, links, related PRs/issues, error messages."
+      placeholder: "CI failed on run #84 with ESLint no-nested-ternary. See workflow run https://..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "Acceptance Criteria"
+      description: "How do we know this task is done?"
+      placeholder: |
+        - [ ] Version bumped in package.json, package-lock.json, swagger.json
+        - [ ] CI passes (Esteira de Build NPM)
+        - [ ] CAP values.yaml updated
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: "Constraints & Risks"
+      description: "What should NOT be changed? Known risks?"
+      placeholder: "Do not modify auth module. Risk: swagger encoding may break if non-ASCII used."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority"
+      options:
+        - "Low"
+        - "Medium"
+        - "High"
+        - "Critical (production issue)"
+    validations:
+      required: true

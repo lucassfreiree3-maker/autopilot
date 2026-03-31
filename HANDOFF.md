@@ -261,9 +261,21 @@ sed "s|\(image: .*psc-sre-automacao-agent:\).*|\1${TAG}|"
 
 ## Contratos dos Agentes
 
-### Claude Code
+### Claude Code (Primary)
 - **Ferramentas**: claude-code-cli, mcp-server-github
-- **Foco**: Arquitetura, workflow authoring, release orchestration, CI fix
+- **Foco**: Arquitetura, workflow authoring, release orchestration, CI fix, code review, planning
+- **Branch prefix**: `claude/`
+- **Contrato**: `contracts/claude-agent-contract.json`
+- **Memoria**: `contracts/claude-session-memory.json`
+- **Instrucoes**: `CLAUDE.md`
+
+### Devin (Specialist - DevOps/SRE/Cloud)
+- **Ferramentas**: VM + browser + shell + GitHub API + MCP
+- **Foco**: Deploy execution, CI monitoring, infrastructure, Kubernetes, observability, implementation
+- **Branch prefix**: `devin/`
+- **Contrato**: `contracts/devin-agent-contract.json`
+- **Memoria**: `contracts/devin-session-memory.json`
+- **Comandos**: `@devin implement|fix|diagnose|review|status` em issues/PRs
 
 ### ChatGPT
 - **Ferramentas**: ChatGPT web, GitHub web UI, github.dev
@@ -272,6 +284,22 @@ sed "s|\(image: .*psc-sre-automacao-agent:\).*|\1${TAG}|"
 ### Codex
 - **Ferramentas**: Codex web, gh CLI, github.dev
 - **Foco**: Bulk changes, test execution, CI monitoring
+
+### Divisao de responsabilidades (Claude + Devin)
+
+| Responsabilidade | Claude Code | Devin |
+|------------------|-------------|-------|
+| Planning & decomposition | **Primary** | Support |
+| Code review | **Primary** | Support |
+| Architecture decisions | **Primary** | Support |
+| Implementation | Support | **Primary** |
+| Deploy execution | Support | **Primary** |
+| CI troubleshooting | Support | **Primary** |
+| Infrastructure/IaC | Support | **Primary** |
+| Monitoring/Observability | Support | **Primary** |
+| Risk analysis | **Primary** | Support |
+
+Either agent may switch roles if the task requires it, but every switch must be explicit in the handoff note.
 
 ### Handoffs entre agentes
 Usar `enqueue-agent-handoff.yml` para criar handoffs:
@@ -402,20 +430,32 @@ gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/agent
 
 ---
 
-## Sincronizacao Claude <-> ChatGPT/Codex
+## Sincronizacao entre Agentes
 
 1. **Handoffs**: Use `enqueue-agent-handoff.yml` para passar tarefas
 2. **State**: Sempre leia do `autopilot-state` branch (source of truth)
 3. **Locks**: Verifique locks antes de operar
 4. **Audit**: Toda mutacao gera audit entry
 5. **Contracts**: Siga o contrato do seu agente em `contracts/`
+6. **Commands**: Use `@claude` ou `@devin` em issues/PRs para acionar o agente
 
 Para que os agentes se sincronizem:
-- Claude cria handoff com `to_agent: "chatgpt"`
-- ChatGPT le handoffs pendentes no state branch
+- Claude cria handoff com `to_agent: "devin"` (ou outro agente)
+- Devin le handoffs pendentes no state branch
 - Executa a tarefa seguindo o contrato
 - Marca handoff como completed
 - Cria audit entry
+
+### Protocolo de colaboracao
+
+1. **Leia** issue/PR, instrucoes do repo, e handoffs historicos
+2. **Restale** o objetivo em linguagem tecnica precisa
+3. **Produza** plano com assumptions, constraints, arquivos, estrategia de teste, rollback
+4. **Decida** ownership: Claude (plan/review) vs Devin (implement/execute)
+5. **Escreva** handoff antes de execucao major
+6. **Execute** apenas no escopo da issue/PR
+7. **Valide** e resuma evidencias
+8. **Deixe** handoff estruturado para o proximo agente
 
 ---
 

@@ -1,0 +1,28 @@
+# ─── CODEOWNERS ─────────────────────────────────────────────────────────────
+# Defines required reviewers for critical areas of the Autopilot control plane.
+# GitHub requires review from these owners before merging PRs that touch these paths.
+# Ref: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ── Default: repo owner reviews everything ──────────────────────────────────
+* @lucassfreiree
+
+# ── Workflows: changes to CI/CD pipelines require owner review ──────────────
+.github/workflows/ @lucassfreiree
+
+# ── Contracts: agent contracts, registry, and shared rules ──────────────────
+contracts/ @lucassfreiree
+
+# ── Schemas: state validation schemas ───────────────────────────────────────
+schemas/ @lucassfreiree
+
+# ── Triggers: workflow trigger files ────────────────────────────────────────
+trigger/ @lucassfreiree
+
+# ── Governance: CODEOWNERS, branch protection, templates ────────────────────
+.github/CODEOWNERS @lucassfreiree
+.github/PULL_REQUEST_TEMPLATE.md @lucassfreiree
+.github/ISSUE_TEMPLATE/ @lucassfreiree
+
+# ── Agent instruction files ─────────────────────────────────────────────────
+CLAUDE.md @lucassfreiree
+AGENTS.md @lucassfreiree

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 285,
+  "branch": "copilot/update-cicd-orchestration",
+  "mergeSha": "bc47526abfc067de1c9601a7ac71ec4231042ef1",
+  "timestamp": "2026-03-28T19:38:27Z",
+  "runId": "23692798293",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

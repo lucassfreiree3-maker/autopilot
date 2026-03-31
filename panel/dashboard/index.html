@@ -353,25 +353,16 @@
     mn.innerHTML=PAGES.map(p=>`<div class="mobile-nav-item${p==='overview'?' active':''}" data-page="${p}" onclick="go('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</div>`).join('');
   })();
 
-  // Fetch state — try live source first (spark-dashboard), fallback to local
-  const STATE_URLS=[
-    'https://raw.githubusercontent.com/lucassfreiree/spark-dashboard/main/public/state.json',
-    'state.json'
-  ];
+  // Fetch state from local state.json (updated by spark-sync-state workflow)
   async function fetchState(){
-    let lastErr;
-    for(const url of STATE_URLS){
-      try{
-        const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now());
-        if(!r.ok)throw new Error(r.status);
-        const data=await r.json();
-        if(!data.lastSync)throw new Error('invalid state');
-        state=data;
-        renderAll();
-        return;
-      }catch(e){lastErr=e}
+    try{
+      const r=await fetch('state.json?t='+Date.now());
+      if(!r.ok)throw new Error(r.status);
+      state=await r.json();
+      renderAll();
+    }catch(e){
+      document.getElementById('alertsBanner').innerHTML=`<div class="alert-bar alert-error">Failed to load state.json: ${esc(e.message)}</div>`;
     }
-    document.getElementById('alertsBanner').innerHTML=`<div class="alert-bar alert-error">Failed to load state.json: ${esc(lastErr.message)}</div>`;
   }
 
   function scheduleRefresh(){
@@ -413,9 +404,9 @@
       else if(exp&&exp<=new Date())alerts.push({type:'info',msg:`Expired lock by ${lock.agentId} — should be cleaned up`,icon:'unlock'});
     }
 
-    // Claude active
+    // Claude active — only show if there's a real task description
     const claude=state.agents?.claude;
-    if(claude&&claude.status==='active')alerts.push({type:'info',msg:`Claude active: ${claude.task||'working'} (phase: ${claude.phase||'?'})`,icon:'bot'});
+    if(claude&&claude.status==='active'&&claude.task)alerts.push({type:'info',msg:`Claude: ${claude.task}`,icon:'bot'});
 
     // Open PRs from agents
     const prs=state.openPRs||[];

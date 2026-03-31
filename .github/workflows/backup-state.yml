@@ -28,11 +28,24 @@ jobs:
           which jq || sudo apt-get update -qq && sudo apt-get install -y -qq jq
           jq --version
 
+      - name: Verify token access
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if ! gh api "repos/${{ env.REPO }}" --jq '.name' > /dev/null 2>&1; then
+            echo "::error ::RELEASE_TOKEN cannot access repo ${{ env.REPO }}"
+            exit 1
+          fi
+          if ! gh api "repos/${{ env.REPO }}/branches/${{ env.BACKUP_BRANCH }}" --jq '.name' > /dev/null 2>&1; then
+            echo "::error ::Branch ${{ env.BACKUP_BRANCH }} not found or inaccessible"
+            exit 1
+          fi
+          echo "Token and branch OK"
+
       - name: Snapshot state to backups
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
-          set -e
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFE_NOW=$(date -u +%Y%m%d-%H%M%S)
           BACKUP_PATH="snapshots/${SAFE_NOW}"

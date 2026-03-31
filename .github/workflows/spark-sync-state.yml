@@ -114,5 +114,23 @@ jobs:
             echo "::notice ::Dashboard HTML synced to $SPARK_REPO" || \
             echo "::warning ::Failed to push dashboard HTML to $SPARK_REPO (non-critical)"
 
-      # panel/dashboard/state.json update is now done inside collect-state.sh
-      # (same process = no output size limit issues)
+      - name: Update panel/dashboard/state.json on main
+        if: steps.state.outputs.state_ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STATE_B64="${{ steps.state.outputs.state_b64 }}"
+          if [ -z "$STATE_B64" ] || [ ${#STATE_B64} -lt 100 ]; then
+            echo "::warning ::state_b64 empty — skipping panel update"
+            exit 0
+          fi
+          echo "$STATE_B64" | base64 -d > panel/dashboard/state.json
+          if git diff --quiet panel/dashboard/state.json 2>/dev/null; then
+            echo "::notice ::state.json unchanged — skip push"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add panel/dashboard/state.json
+          git commit -m "chore: sync dashboard state [skip ci]"
+          git push origin HEAD:main || echo "::warning ::Push to main failed — branch protection may block workflow token"

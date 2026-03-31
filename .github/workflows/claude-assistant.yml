@@ -1,0 +1,56 @@
+name: "[Agent] Claude Code Assistant"
+run-name: "Claude responding to @claude mention"
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  respond:
+    name: "Claude Code Response"
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body || '', '@claude'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract prompt
+        id: prompt
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body || github.event.issue.body || '' }}
+          ISSUE_TITLE: ${{ github.event.issue.title || '' }}
+        run: |
+          CLEAN=$(echo "$COMMENT_BODY" | sed 's/@claude//g' | head -c 2000)
+          echo "prompt=$CLEAN" >> "$GITHUB_OUTPUT"
+          echo "title=$ISSUE_TITLE" >> "$GITHUB_OUTPUT"
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Context: Autopilot CI/CD control plane for multi-workspace release orchestration.
+            Read CLAUDE.md for full project documentation.
+            Read contracts/claude-session-memory.json for current state.
+
+            Issue/PR title: ${{ steps.prompt.outputs.title }}
+            User request: ${{ steps.prompt.outputs.prompt }}
+
+            Execute the request autonomously. If it involves code changes, create a PR.
+            If it involves diagnosis, report findings as a comment.
+          max_turns: "25"
+          allowed_tools: "Bash,Read,Edit,Write,Grep,Glob"
+        env:
+          BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}

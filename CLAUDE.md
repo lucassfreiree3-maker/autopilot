@@ -935,3 +935,26 @@ Codex, Copilot, Gemini, and ChatGPT workflows are **disabled**. Contracts are pr
 | Codex | `contracts/codex-agent-contract.json` | DISABLED | Workflows disabled (.yml.disabled) |
 | ChatGPT | `contracts/chatgpt-agent-contract.json` | DISABLED | No active workflows |
 | Copilot | `contracts/copilot-agent-contract.json` | DISABLED | Workflows disabled (.yml.disabled) |
+
+### Custom Subagents (`.claude/agents/`)
+Specialized agents that Claude Code can delegate to for focused tasks:
+
+| Agent | File | Model | Purpose |
+|-------|------|-------|---------|
+| **deploy-agent** | `.claude/agents/deploy-agent.md` | Opus | Full deploy pipeline execution (10-step autonomous) |
+| **ci-debugger** | `.claude/agents/ci-debugger.md` | Sonnet | CI failure diagnosis and auto-fix |
+| **dashboard-monitor** | `.claude/agents/dashboard-monitor.md` | Sonnet | Dashboard sync validation and repair |
+| **workspace-ops** | `.claude/agents/workspace-ops.md` | Sonnet | Health checks, locks, state management |
+
+### Custom Skills (`.claude/skills/`)
+| Skill | File | Purpose |
+|-------|------|---------|
+| DevOps/SRE/Cloud | `.claude/skills/devops-sre-cloud.md` | K8s, Terraform, CI/CD, cloud platforms |
+| Observability | `.claude/skills/observability.md` | Metrics, logs, traces, alerting, SLOs |
+| Security Expert | `.claude/skills/security-expert.md` | OWASP, container security, secrets |
+| Deploy Monitor | `.claude/skills/deploy-monitor.md` | Monitor active deploy pipeline status |
+| CI Fix | `.claude/skills/ci-fix.md` | Auto-diagnose and repair CI failures |
+
+### GitHub `@claude` Integration
+Workflow `claude-assistant.yml` responds to `@claude` mentions in Issues and PRs.
+Requires `ANTHROPIC_API_KEY` secret. Runs `anthropics/claude-code-action@v1`.

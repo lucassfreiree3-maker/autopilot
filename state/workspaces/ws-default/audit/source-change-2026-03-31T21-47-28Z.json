@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-31T21:47:28Z",
+  "runId": "23820428738",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23820428738",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "chore(release): bump controller version to 3.7.5",
+  "commitSha": "308f5335568808846d7dec215a33cfea2f3f787e",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

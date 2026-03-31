@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 423,
+  "branch": "claude/automate-task-autonomy-v3NLB",
+  "mergeSha": "1385e6396934bccc869b47a6dac626c7c5fe47a0",
+  "timestamp": "2026-03-31T18:02:29Z",
+  "runId": "23812138486",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

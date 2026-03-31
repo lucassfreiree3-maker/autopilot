@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 368,
+  "branch": "claude/ci-diagnose-agent-2.3.3-run73",
+  "mergeSha": "a7b1df306707e29e0b32e9a014925ce6457b764d",
+  "timestamp": "2026-03-30T13:37:54Z",
+  "runId": "23747634436",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

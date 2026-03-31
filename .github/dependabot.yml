@@ -33,15 +33,15 @@ updates:
       prefix: "deps"
       include: "scope"
 
-  # npm (n8n integration)
-  - package-ecosystem: "npm"
+  # Docker (n8n integration — docker-compose.yml)
+  - package-ecosystem: "docker-compose"
     directory: "/integrations/n8n"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
     labels:
       - "dependencies"
-      - "npm"
+      - "docker"
     commit-message:
       prefix: "deps"
       include: "scope"

@@ -156,9 +156,10 @@ jobs:
                   add_issue "medium" "$F" "Silent error suppression (|| true without logging): $((SILENT_COUNT - LOGGED_COUNT)) occurrences" "true"
                 fi
               fi
-              # Check for heredoc in run blocks (causes exit 127 in GHA)
-              if grep -qE 'cat <<|<<EOF|<<BODY|<<ISSUE' "$F" 2>/dev/null; then
-                add_issue "critical" "$F" "Heredoc (cat <<EOF) in run: block causes exit 127 in GHA" "false"
+              # Check for command-substitution heredoc in run blocks (causes exit 127 in GHA)
+              # Pattern: $(cat <<EOF) is dangerous. cat >> file <<EOF is safe (direct redirect).
+              if grep -qE '\$\(cat <<|BODY=\$\(cat <<|ISSUE_BODY=\$\(cat <<' "$F" 2>/dev/null; then
+                add_issue "critical" "$F" "Command-substitution heredoc causes exit 127 in GHA. Use inline string." "false"
               fi
               # Check for missing set -e
               if grep -q 'run: |' "$F" && ! grep -q 'set -e' "$F"; then

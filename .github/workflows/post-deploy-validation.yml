@@ -207,19 +207,16 @@ jobs:
           COMP="${{ steps.info.outputs.component }}"
           VER="${{ steps.info.outputs.version }}"
 
-          BODY=$(cat <<EOFBODY
-          ## Post-Deploy Validation Failed
-          - Source version: ${{ steps.source.outputs.result }} (${{ steps.source.outputs.real }})
-          - CAP tag: ${{ steps.cap.outputs.result }} (${{ steps.cap.outputs.tag }})
-          - Autopilot state: ${{ steps.state.outputs.result }}
-          - Corporate CI: ${{ steps.ci.outputs.outcome }}
+          SRC_RESULT="${{ steps.source.outputs.result }}"
+          SRC_REAL="${{ steps.source.outputs.real }}"
+          CAP_RESULT="${{ steps.cap.outputs.result }}"
+          CAP_TAG="${{ steps.cap.outputs.tag }}"
+          STATE_RESULT="${{ steps.state.outputs.result }}"
+          CI_OUTCOME="${{ steps.ci.outputs.outcome }}"
+          BODY="## Post-Deploy Validation Failed\n- Source version: ${SRC_RESULT} (${SRC_REAL})\n- CAP tag: ${CAP_RESULT} (${CAP_TAG})\n- Autopilot state: ${STATE_RESULT}\n- Corporate CI: ${CI_OUTCOME}\n\nDeploy of ${COMP} v${VER} has issues. Investigate immediately."
 
-          Deploy of **${COMP} v${VER}** has issues. Investigate immediately.
-          EOFBODY
-          )
-
-          gh api "repos/${{ github.repository }}/issues" \
+          printf '%b' "$BODY" | gh api "repos/${{ github.repository }}/issues" \
             --method POST \
             -f title="[Alert] Post-deploy validation failed: $COMP v$VER" \
-            -f body="$BODY" \
+            -F body=@- \
             -f "labels[]=bug" -f "labels[]=deploy" 2>/dev/null || echo "::warning ::Failed to create issue"

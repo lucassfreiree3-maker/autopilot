@@ -269,64 +269,6 @@
     "description": "Historico completo de tudo que foi executado. Futuras sessoes DEVEM consultar antes de repetir qualquer operacao.",
     "sessions": [
       {
-        "id": "session_setup_cit_multicompany",
-        "date": "2026-03-24",
-        "summary": "Setup multi-company model: CIT workspace (DevOps) + Getronics isolation + workspace schema v3",
-        "stepsExecuted": [
-          {
-            "step": 1,
-            "action": "Evoluiu workspace schema para v3 com suporte multi-empresa",
-            "how": "Adicionou campos company (id, name, machine, dataClassification), stack (primary, tools, platforms), credentials (tokenSecretName), repos[] (array generico), allowedAgents",
-            "filesChanged": [
-              "schemas/workspace.schema.json"
-            ],
-            "lesson": "Schema antigo (v2) mantido como campos legacy (controller, agent) para backward compatibility com ws-default. Novos workspaces usam repos[]."
-          },
-          {
-            "step": 2,
-            "action": "Criou workspace ws-cit para CIT (DevOps)",
-            "how": "state/workspaces/ws-cit/workspace.json com company.id=cit, stack DevOps, CIT_TOKEN",
-            "filesCreated": [
-              "state/workspaces/ws-cit/workspace.json"
-            ],
-            "lesson": "Workspace CIT começa sem repos — serão adicionados conforme demanda."
-          },
-          {
-            "step": 3,
-            "action": "Atualizou ws-default com metadados Getronics",
-            "how": "Adicionou company (id=getronics), stack, credentials ao workspace.json existente. Schema v2→v3",
-            "filesChanged": [
-              "state/workspaces/ws-default/workspace.json"
-            ],
-            "lesson": "Campos legacy (controller, agent) mantidos intactos. Workflows existentes nao precisam de alteracao."
-          },
-          {
-            "step": 4,
-            "action": "Atualizou CLAUDE.md com modelo multi-empresa",
-            "how": "Reescreveu Context Separation para multi-company. Adicionou CIT na tabela de workspaces. Adicionou CIT_TOKEN na tabela de secrets.",
-            "filesChanged": [
-              "CLAUDE.md"
-            ]
-          },
-          {
-            "step": 5,
-            "action": "Atualizou session memory com multiCompanyModel",
-            "how": "Adicionou bloco multiCompanyModel com companies (getronics + cit), goldenRules. Expandiu contextSeparation para incluir CIT.",
-            "filesChanged": [
-              "contracts/claude-session-memory.json"
-            ],
-            "lesson": "Memoria agora rastreia estado de cada empresa separadamente."
-          }
-        ],
-        "mistakesMade": [],
-        "keyDecisions": [
-          "Nenhum workflow alterado — esteira Getronics permanece intacta",
-          "Schema v3 backward-compatible: campos legacy mantidos",
-          "CIT começa em modo setup — repos adicionados sob demanda",
-          "Isolamento por design: cada empresa com token, workspace e estado proprios"
-        ]
-      },
-      {
         "id": "session_01WNCzT7nhQbajAjtvmqDgvK",
         "date": "2026-03-23",
         "summary": "Fix multi-file support in apply-source-change workflow + re-trigger run 29",
@@ -1515,7 +1457,7 @@
     "_ref": "contracts/archive/static-reference.json#deployCompliancePipeline",
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
-  "lastOptimized": "2026-03-29T19:46:51Z",
+  "lastOptimized": "2026-03-31T07:22:55Z",
   "costReductionMandate": {
     "priority": "MAXIMUM",
     "directive": "Owner mandate: ALWAYS prioritize cost reduction across all resources (tokens, API calls, compute, storage, time) without sacrificing performance. Use cheapest model that achieves the result. Batch operations. Skip unnecessary reads. Compact memory. Prevent waste through quality (fix it right first time). Every optimization must be measurable.",

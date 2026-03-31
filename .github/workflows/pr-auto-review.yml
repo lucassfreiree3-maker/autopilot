@@ -27,33 +27,44 @@ jobs:
 
       - name: "1. Analyze changed files"
         id: analyze
+        shell: bash {0}
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
 
-          # Get list of changed files (fallback to GitHub API if git diff fails)
-          CHANGED=$(git diff --name-only "$BASE".."$HEAD" 2>/dev/null || \
-            gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" \
-              --jq '.[].filename' 2>/dev/null || echo "")
+          # Get list of changed files via GitHub API (most reliable for PRs)
+          CHANGED=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" \
+            --jq '.[].filename' 2>/dev/null || echo "")
 
-          CHANGED_COUNT=$(echo "$CHANGED" | grep -c '.' 2>/dev/null || echo "0")
+          # Fallback to git diff if API fails
+          if [ -z "$CHANGED" ]; then
+            CHANGED=$(git diff --name-only "$BASE".."$HEAD" 2>/dev/null || echo "")
+          fi
+
+          if [ -z "$CHANGED" ]; then
+            CHANGED_COUNT=0
+          else
+            CHANGED_COUNT=$(echo "$CHANGED" | wc -l)
+          fi
           echo "Changed files: $CHANGED_COUNT"
           echo "$CHANGED"
 
           # Categorize changes
-          WF_COUNT=$(echo "$CHANGED" | grep -c '\.github/workflows/' 2>/dev/null || echo "0")
-          PATCH_COUNT=$(echo "$CHANGED" | grep -c '^patches/' 2>/dev/null || echo "0")
-          TRIGGER_COUNT=$(echo "$CHANGED" | grep -c '^trigger/' 2>/dev/null || echo "0")
-          SKILL_COUNT=$(echo "$CHANGED" | grep -c '\.claude/' 2>/dev/null || echo "0")
+          WF_COUNT=$(echo "$CHANGED" | grep -c '\.github/workflows/' || true)
+          PATCH_COUNT=$(echo "$CHANGED" | grep -c '^patches/' || true)
+          TRIGGER_COUNT=$(echo "$CHANGED" | grep -c '^trigger/' || true)
+          SKILL_COUNT=$(echo "$CHANGED" | grep -c '\.claude/' || true)
 
           echo "changed_count=$CHANGED_COUNT" >> "$GITHUB_OUTPUT"
           echo "wf_count=$WF_COUNT" >> "$GITHUB_OUTPUT"
           echo "patch_count=$PATCH_COUNT" >> "$GITHUB_OUTPUT"
           echo "trigger_count=$TRIGGER_COUNT" >> "$GITHUB_OUTPUT"
           echo "changed_b64=$(echo "$CHANGED" | base64 -w0)" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: "2. Security checks"
         id: security
+        shell: bash {0}
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
@@ -99,9 +110,11 @@ jobs:
           else
             echo "security_issues_b64=$(echo 'None' | base64 -w0)" >> "$GITHUB_OUTPUT"
           fi
+          exit 0
 
       - name: "3. Workflow quality checks"
         id: quality
+        shell: bash {0}
         run: |
           CHANGED_B64="${{ steps.analyze.outputs.changed_b64 }}"
           if [ -z "$CHANGED_B64" ]; then
@@ -160,6 +173,7 @@ jobs:
 
       - name: "4. Post review comment"
         if: always()
+        shell: bash {0}
         env:
           PR_NUM: ${{ github.event.pull_request.number }}
           SEC_FAIL: ${{ steps.security.outputs.security_fail }}

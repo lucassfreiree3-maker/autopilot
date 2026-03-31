@@ -1,0 +1,14 @@
+{
+  "operation": "bootstrap",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-21T21:41:00Z",
+  "runId": "manual-via-mcp",
+  "steps": {
+    "validateInputs": "success",
+    "validateSecrets": "success",
+    "initState": "success",
+    "initBackup": "success",
+    "seedWorkspace": "success",
+    "validateStructure": "success"
+  }
+}

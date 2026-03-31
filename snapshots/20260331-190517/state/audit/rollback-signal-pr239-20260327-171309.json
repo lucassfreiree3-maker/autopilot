@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 239,
+  "branch": "copilot/create-copilot-post-deploy-sync-workflow",
+  "mergeSha": "5934c71556d22a12a922d45eafb7ca68f3ac37dc",
+  "timestamp": "2026-03-27T17:13:09Z",
+  "runId": "23658473918",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

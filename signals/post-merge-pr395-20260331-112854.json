@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 395,
+  "branch": "claude/fix-dashboard-sync-hsKgX",
+  "timestamp": "2026-03-31T11:28:54Z",
+  "runId": "23794958231",
+  "healthStatus": "degraded"
+}

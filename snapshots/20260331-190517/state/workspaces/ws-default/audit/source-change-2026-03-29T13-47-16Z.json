@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-29T13:47:16Z",
+  "runId": "23710166816",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23710166816",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "chore(controller): version bump 3.7.0 — e2e validation test",
+  "commitSha": "d4187eb87e44e4c920d00d5551030c81aeb11db2",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

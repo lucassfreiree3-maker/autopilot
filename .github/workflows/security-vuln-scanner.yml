@@ -22,12 +22,13 @@ on:
         type: boolean
         default: true
   workflow_run:
-    workflows: ["[Corp] Apply Source Change"]
+    workflows: ["[Corp] Apply Source Change", "[Corp] CI Monitor Loop"]
     types: [completed]
   push:
     branches: [main]
     paths:
       - '.github/workflows/security-vuln-scanner.yml'
+      - 'scripts/security/**'
 
 concurrency:
   group: security-vuln-scanner-${{ inputs.component || 'controller' }}
@@ -46,10 +47,10 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'push'
     outputs:
-      has_critical: ${{ steps.analyze.outputs.has_critical }}
-      has_high: ${{ steps.analyze.outputs.has_high }}
-      npm_fixable: ${{ steps.analyze.outputs.npm_fixable }}
-      report_json: ${{ steps.analyze.outputs.report_json }}
+      has_critical: ${{ steps.scan.outputs.has_critical }}
+      has_high: ${{ steps.scan.outputs.has_high }}
+      npm_fixable: ${{ steps.scan.outputs.npm_fixable }}
+      total_cves: ${{ steps.scan.outputs.total_cves }}
       component: ${{ steps.setup.outputs.component }}
       version: ${{ steps.setup.outputs.version }}
     steps:
@@ -61,16 +62,9 @@ jobs:
         run: |
           COMPONENT="${{ inputs.component || 'controller' }}"
           VERSION="${{ inputs.version || '' }}"
+          CI_RUN_ID="${{ inputs.ci_run_id || '' }}"
 
-          # If triggered by workflow_run, read from release state
-          if [ -z "$VERSION" ]; then
-            STATE_FILE="state/workspaces/ws-default/${COMPONENT}-release-state.json"
-            if [ -f "$STATE_FILE" ]; then
-              VERSION=$(jq -r '.lastTag // ""' "$STATE_FILE" 2>/dev/null || echo "")
-            fi
-          fi
-
-          # Fallback: read from autopilot-state branch
+          # If triggered by workflow_run, read from release state on autopilot-state
           if [ -z "$VERSION" ]; then
             VERSION=$(gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/${COMPONENT}-release-state.json?ref=autopilot-state" \
               --jq '.content' 2>/dev/null | base64 -d 2>/dev/null | jq -r '.lastTag // ""' 2>/dev/null || echo "unknown")
@@ -85,186 +79,30 @@ jobs:
           echo "component=$COMPONENT" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "corp_repo=$CORP_REPO" >> "$GITHUB_OUTPUT"
+          echo "ci_run_id=$CI_RUN_ID" >> "$GITHUB_OUTPUT"
           echo "::notice ::Scanning $COMPONENT v$VERSION from $CORP_REPO"
 
-      - name: "Fetch corporate CI run summary"
-        id: fetch_ci
-        shell: bash {0}
-        env:
-          CORP_REPO: ${{ steps.setup.outputs.corp_repo }}
-          CI_RUN_ID: ${{ inputs.ci_run_id || '' }}
-        run: |
-          if [ -z "$BBVINET_TOKEN" ]; then
-            echo "::warning ::BBVINET_TOKEN not available — cannot scan corporate CI"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Find the latest successful CI run
-          if [ -n "$CI_RUN_ID" ]; then
-            RUN_ID="$CI_RUN_ID"
-          else
-            # Get latest workflow runs from corporate repo
-            RUN_ID=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/actions/runs?status=completed&per_page=5" \
-              --jq '.workflow_runs[0].id' 2>/dev/null || echo "")
-          fi
-
-          if [ -z "$RUN_ID" ]; then
-            echo "::warning ::No CI run found for $CORP_REPO"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "::notice ::Found CI run: $RUN_ID"
-
-          # Fetch job summaries (xRay, Checkmarx, Motor de Liberacao)
-          JOBS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/actions/runs/$RUN_ID/jobs?per_page=30" 2>/dev/null || echo '{"jobs":[]}')
-          echo "$JOBS" > /tmp/ci-jobs.json
-
-          # Extract job names and conclusions
-          echo "$JOBS" | jq -r '.jobs[] | "\(.name): \(.conclusion // "unknown")"' 2>/dev/null || true
-
-          # Try to get annotations (vulnerability findings appear here)
-          ANNOTATIONS=$(GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/check-runs?head_sha=$(echo "$JOBS" | jq -r '.jobs[0].head_sha // ""')&per_page=50" \
-            --jq '.check_runs[] | select(.output.annotations_count > 0) | {name: .name, annotations: .output.annotations_count}' 2>/dev/null || echo "")
-          echo "Annotations: $ANNOTATIONS"
-
-      - name: "Fetch CI logs for vulnerability data"
-        id: fetch_logs
-        if: steps.fetch_ci.outputs.skip != 'true'
-        shell: bash {0}
-        env:
-          CORP_REPO: ${{ steps.setup.outputs.corp_repo }}
-          RUN_ID: ${{ steps.fetch_ci.outputs.run_id }}
-          COMPONENT: ${{ steps.setup.outputs.component }}
-        run: |
-          # Also check autopilot-state for ci-logs
-          echo "::group::Fetching CI logs from autopilot-state"
-          CI_LOGS=$(gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default?ref=autopilot-state" \
-            --jq '[.[] | select(.name | test("ci-logs-'$COMPONENT'-"))] | sort_by(.name) | reverse | .[0].name // ""' 2>/dev/null || echo "")
-
-          if [ -n "$CI_LOGS" ]; then
-            echo "::notice ::Latest CI log: $CI_LOGS"
-            gh api "repos/lucassfreiree/autopilot/contents/state/workspaces/ws-default/$CI_LOGS?ref=autopilot-state" \
-              --jq '.content' 2>/dev/null | base64 -d 2>/dev/null > /tmp/ci-log.txt || true
-          fi
-          echo "::endgroup::"
-
-          # Fetch package.json and package-lock.json from corporate repo for dependency analysis
-          echo "::group::Fetching dependency files"
-          GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/contents/package.json" \
-            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null > /tmp/corp-package.json || true
-          GH_TOKEN="$BBVINET_TOKEN" gh api "repos/$CORP_REPO/contents/package-lock.json" \
-            --jq '.content' 2>/dev/null | base64 -d 2>/dev/null > /tmp/corp-package-lock.json || true
-          echo "::endgroup::"
-
-      - name: "Analyze vulnerabilities"
-        id: analyze
+      - name: "Run vulnerability scan"
+        id: scan
         shell: bash {0}
         env:
           COMPONENT: ${{ steps.setup.outputs.component }}
           VERSION: ${{ steps.setup.outputs.version }}
+          CORP_REPO: ${{ steps.setup.outputs.corp_repo }}
+          CI_RUN_ID: ${{ steps.setup.outputs.ci_run_id }}
+          OUTPUT_FILE: /tmp/vuln-report.json
         run: |
-          REPORT='{"component":"'"$COMPONENT"'","version":"'"$VERSION"'","scannedAt":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","vulnerabilities":[],"npmFixable":[],"summary":{}}'
-
-          # ── Parse known CVEs from CI logs and XRay ──
-          VULNS="[]"
-
-          # Known vulnerability patterns from XRay (parsed from CI summary)
-          # These are the common patterns found in the corporate pipeline
-          KNOWN_NPM_VULNS='[
-            {"package":"ejs","currentVersion":"3.1.10","cve":"CVE-2023-29827","severity":"critical","ghsa":"GHSA-j5pp-6f4w-r5r6","fixVersion":"3.1.11","type":"npm"},
-            {"package":"braces","currentVersion":"3.0.2","cve":"CVE-2024-4068","severity":"high","ghsa":"GHSA-grv7-fg5c-xmjg","fixVersion":"3.0.3","type":"npm"}
-          ]'
-
-          # ── Check GitHub Advisory Database for each CVE ──
-          echo "::group::Consulting GitHub Advisory Database"
-          ADVISORY_RESULTS="[]"
-          for GHSA in $(echo "$KNOWN_NPM_VULNS" | jq -r '.[].ghsa'); do
-            echo "Checking advisory: $GHSA"
-            ADVISORY=$(gh api "repos/advisories/$GHSA" 2>/dev/null || \
-                       gh api "advisories/$GHSA" 2>/dev/null || echo '{}')
-            if [ -n "$ADVISORY" ] && [ "$ADVISORY" != "{}" ]; then
-              SEVERITY=$(echo "$ADVISORY" | jq -r '.severity // "unknown"' 2>/dev/null || echo "unknown")
-              SUMMARY=$(echo "$ADVISORY" | jq -r '.summary // ""' 2>/dev/null || echo "")
-              echo "  Severity: $SEVERITY — $SUMMARY"
-              ADVISORY_RESULTS=$(echo "$ADVISORY_RESULTS" | jq --arg g "$GHSA" --arg s "$SEVERITY" --arg sum "$SUMMARY" \
-                '. + [{"ghsa": $g, "severity": $s, "summary": $sum}]')
-            fi
-          done
-          echo "::endgroup::"
-
-          # ── Scan package.json for vulnerable versions ──
-          echo "::group::Scanning dependencies"
-          NPM_FIXABLE="[]"
-          if [ -f /tmp/corp-package.json ]; then
-            # Check each known vulnerable package
-            for row in $(echo "$KNOWN_NPM_VULNS" | jq -c '.[]'); do
-              PKG=$(echo "$row" | jq -r '.package')
-              CURRENT=$(echo "$row" | jq -r '.currentVersion')
-              FIX=$(echo "$row" | jq -r '.fixVersion')
-              CVE=$(echo "$row" | jq -r '.cve')
-              SEV=$(echo "$row" | jq -r '.severity')
-
-              # Check if package exists in dependencies
-              DEP_VER=$(jq -r ".dependencies.\"$PKG\" // .devDependencies.\"$PKG\" // \"\"" /tmp/corp-package.json 2>/dev/null || echo "")
-              if [ -n "$DEP_VER" ]; then
-                echo "  Found $PKG@$DEP_VER (vulnerable: $CURRENT, fix: $FIX) — $CVE ($SEV)"
-                NPM_FIXABLE=$(echo "$NPM_FIXABLE" | jq --arg p "$PKG" --arg c "$CURRENT" --arg f "$FIX" --arg cve "$CVE" --arg sev "$SEV" \
-                  '. + [{"package": $p, "current": $c, "fix": $f, "cve": $cve, "severity": $sev, "isDirect": true}]')
-              else
-                # Check if it's a transitive dependency in package-lock
-                if [ -f /tmp/corp-package-lock.json ]; then
-                  LOCK_VER=$(jq -r ".packages.\"node_modules/$PKG\".version // .dependencies.\"$PKG\".version // \"\"" /tmp/corp-package-lock.json 2>/dev/null || echo "")
-                  if [ -n "$LOCK_VER" ]; then
-                    echo "  Found $PKG@$LOCK_VER (transitive, vulnerable: $CURRENT, fix: $FIX) — $CVE ($SEV)"
-                    NPM_FIXABLE=$(echo "$NPM_FIXABLE" | jq --arg p "$PKG" --arg c "$LOCK_VER" --arg f "$FIX" --arg cve "$CVE" --arg sev "$SEV" \
-                      '. + [{"package": $p, "current": $c, "fix": $f, "cve": $cve, "severity": $sev, "isDirect": false}]')
-                  fi
-                fi
-              fi
-            done
-          fi
-          echo "::endgroup::"
-
-          # ── Build final report ──
-          CRITICAL_COUNT=$(echo "$KNOWN_NPM_VULNS" | jq '[.[] | select(.severity == "critical")] | length')
-          HIGH_COUNT=$(echo "$KNOWN_NPM_VULNS" | jq '[.[] | select(.severity == "high")] | length')
-          FIXABLE_COUNT=$(echo "$NPM_FIXABLE" | jq 'length')
-
-          REPORT=$(echo "$REPORT" | jq \
-            --argjson vulns "$KNOWN_NPM_VULNS" \
-            --argjson fixable "$NPM_FIXABLE" \
-            --argjson advisories "$ADVISORY_RESULTS" \
-            --argjson cc "$CRITICAL_COUNT" \
-            --argjson hc "$HIGH_COUNT" \
-            --argjson fc "$FIXABLE_COUNT" \
-            '.vulnerabilities = $vulns | .npmFixable = $fixable | .advisories = $advisories | .summary = {critical: $cc, high: $hc, fixable: $fc}')
-
-          echo "$REPORT" | jq . > /tmp/vuln-report.json
-          cat /tmp/vuln-report.json
-
-          # Outputs
-          HAS_CRITICAL="false"
-          HAS_HIGH="false"
-          [ "$CRITICAL_COUNT" -gt 0 ] && HAS_CRITICAL="true"
-          [ "$HIGH_COUNT" -gt 0 ] && HAS_HIGH="true"
-
-          echo "has_critical=$HAS_CRITICAL" >> "$GITHUB_OUTPUT"
-          echo "has_high=$HAS_HIGH" >> "$GITHUB_OUTPUT"
-          echo "npm_fixable=$FIXABLE_COUNT" >> "$GITHUB_OUTPUT"
-          REPORT_B64=$(echo "$REPORT" | jq -c . | base64 -w0)
-          echo "report_json=$REPORT_B64" >> "$GITHUB_OUTPUT"
+          chmod +x scripts/security/scan-corporate-vulns.sh
+          bash scripts/security/scan-corporate-vulns.sh
 
       - name: "Save report to autopilot-state"
+        if: always()
         shell: bash {0}
         env:
           COMPONENT: ${{ steps.setup.outputs.component }}
           VERSION: ${{ steps.setup.outputs.version }}
         run: |
-          if [ ! -f /tmp/vuln-report.json ]; then
+          if [ ! -f /tmp/vuln-report.json ] || [ ! -s /tmp/vuln-report.json ]; then
             echo "::warning ::No report to save"
             exit 0
           fi
@@ -272,7 +110,6 @@ jobs:
           REPORT_B64=$(base64 -w0 /tmp/vuln-report.json)
           DEST="state/workspaces/ws-default/security-scan-${COMPONENT}-${VERSION}.json"
 
-          # Check if file exists on autopilot-state
           EXISTING_SHA=$(gh api "repos/lucassfreiree/autopilot/contents/$DEST?ref=autopilot-state" \
             --jq '.sha' 2>/dev/null || echo "")
 
@@ -289,6 +126,14 @@ jobs:
               -f branch="autopilot-state" 2>/dev/null || echo "::warning ::Failed to save report"
           fi
 
+      - name: "Upload report artifact"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vuln-report-${{ steps.setup.outputs.component }}-${{ steps.setup.outputs.version }}
+          path: /tmp/vuln-report.json
+          retention-days: 30
+
   # ═══════════════════════════════════════════
   # Auto-fix npm vulnerabilities
   # ═══════════════════════════════════════════
@@ -298,22 +143,32 @@ jobs:
     needs: scan-vulnerabilities
     if: >-
       needs.scan-vulnerabilities.outputs.npm_fixable != '0' &&
-      (inputs.auto_fix == true || github.event_name == 'workflow_run')
+      needs.scan-vulnerabilities.outputs.npm_fixable != '' &&
+      (inputs.auto_fix != false || github.event_name == 'workflow_run')
     steps:
       - uses: actions/checkout@v4
 
-      - name: "Generate npm audit fix recommendation"
+      - name: "Download vulnerability report"
+        uses: actions/download-artifact@v4
+        with:
+          name: vuln-report-${{ needs.scan-vulnerabilities.outputs.component }}-${{ needs.scan-vulnerabilities.outputs.version }}
+          path: /tmp/
+
+      - name: "Generate fix recommendations"
         id: fix
         shell: bash {0}
         env:
           COMPONENT: ${{ needs.scan-vulnerabilities.outputs.component }}
           VERSION: ${{ needs.scan-vulnerabilities.outputs.version }}
-          REPORT_B64: ${{ needs.scan-vulnerabilities.outputs.report_json }}
         run: |
-          REPORT=$(echo "$REPORT_B64" | base64 -d 2>/dev/null || echo '{}')
-          FIXABLE=$(echo "$REPORT" | jq -c '.npmFixable // []')
-          COUNT=$(echo "$FIXABLE" | jq 'length')
+          if [ ! -f /tmp/vuln-report.json ]; then
+            echo "::warning ::No report found"
+            echo "action=none" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
+          FIXABLE=$(jq -c '.npmFixable // []' /tmp/vuln-report.json)
+          COUNT=$(echo "$FIXABLE" | jq 'length')
           echo "::notice ::Found $COUNT fixable npm vulnerabilities"
 
           if [ "$COUNT" -eq 0 ]; then
@@ -321,30 +176,17 @@ jobs:
             exit 0
           fi
 
-          # Generate fix summary
-          echo "## NPM Vulnerability Fixes Available" > /tmp/fix-summary.md
-          echo "" >> /tmp/fix-summary.md
-          echo "| Package | Current | Fix | CVE | Severity | Direct? |" >> /tmp/fix-summary.md
-          echo "|---------|---------|-----|-----|----------|---------|" >> /tmp/fix-summary.md
-          echo "$FIXABLE" | jq -r '.[] | "| \(.package) | \(.current) | \(.fix) | \(.cve) | \(.severity) | \(.isDirect) |"' >> /tmp/fix-summary.md
-          echo "" >> /tmp/fix-summary.md
-          echo "### Recommended Actions" >> /tmp/fix-summary.md
+          # Log each fixable vulnerability
+          echo "$FIXABLE" | jq -r '.[] | "  FIX: \(.package) — \(.cve) — upgrade to \(.fixVersion)"' 2>/dev/null || true
 
-          # For direct dependencies: update package.json
-          DIRECT=$(echo "$FIXABLE" | jq '[.[] | select(.isDirect == true)]')
-          TRANSITIVE=$(echo "$FIXABLE" | jq '[.[] | select(.isDirect == false)]')
+          # Save fix plan for potential auto-deploy
+          echo "$FIXABLE" | jq '{
+            component: env.COMPONENT,
+            version: env.VERSION,
+            fixes: .,
+            generatedAt: (now | todate)
+          }' > /tmp/fix-plan.json 2>/dev/null || true
 
-          if [ "$(echo "$DIRECT" | jq 'length')" -gt 0 ]; then
-            echo "#### Direct Dependencies (update package.json)" >> /tmp/fix-summary.md
-            echo "$DIRECT" | jq -r '.[] | "- `\(.package)`: \(.current) → \(.fix) (\(.cve))"' >> /tmp/fix-summary.md
-          fi
-
-          if [ "$(echo "$TRANSITIVE" | jq 'length')" -gt 0 ]; then
-            echo "#### Transitive Dependencies (npm audit fix / overrides)" >> /tmp/fix-summary.md
-            echo "$TRANSITIVE" | jq -r '.[] | "- `\(.package)`: \(.current) → \(.fix) (\(.cve)) — add to `overrides` in package.json"' >> /tmp/fix-summary.md
-          fi
-
-          cat /tmp/fix-summary.md
           echo "action=fix" >> "$GITHUB_OUTPUT"
 
   # ═══════════════════════════════════════════
@@ -356,73 +198,85 @@ jobs:
     needs: [scan-vulnerabilities, auto-fix]
     if: >-
       always() &&
+      needs.scan-vulnerabilities.result == 'success' &&
       (needs.scan-vulnerabilities.outputs.has_critical == 'true' ||
        needs.scan-vulnerabilities.outputs.has_high == 'true')
     steps:
-      - name: "Create tracking issue"
+      - name: "Download vulnerability report"
+        uses: actions/download-artifact@v4
+        with:
+          name: vuln-report-${{ needs.scan-vulnerabilities.outputs.component }}-${{ needs.scan-vulnerabilities.outputs.version }}
+          path: /tmp/
+
+      - name: "Create or update tracking issue"
         shell: bash {0}
         env:
           COMPONENT: ${{ needs.scan-vulnerabilities.outputs.component }}
           VERSION: ${{ needs.scan-vulnerabilities.outputs.version }}
-          HAS_CRITICAL: ${{ needs.scan-vulnerabilities.outputs.has_critical }}
-          NPM_FIXABLE: ${{ needs.scan-vulnerabilities.outputs.npm_fixable }}
-          REPORT_B64: ${{ needs.scan-vulnerabilities.outputs.report_json }}
+          TOTAL_CVES: ${{ needs.scan-vulnerabilities.outputs.total_cves }}
         run: |
-          REPORT=$(echo "$REPORT_B64" | base64 -d 2>/dev/null || echo '{}')
-          CRITICAL=$(echo "$REPORT" | jq '.summary.critical // 0')
-          HIGH=$(echo "$REPORT" | jq '.summary.high // 0')
+          if [ ! -f /tmp/vuln-report.json ]; then
+            echo "::warning ::No report to create issue from"
+            exit 0
+          fi
 
-          # Check if issue already exists for this version
+          CRITICAL=$(jq '.summary.critical // 0' /tmp/vuln-report.json)
+          HIGH=$(jq '.summary.high // 0' /tmp/vuln-report.json)
+          MEDIUM=$(jq '.summary.medium // 0' /tmp/vuln-report.json)
+          NPM_FIX=$(jq '.summary.npmFixable // 0' /tmp/vuln-report.json)
+          SCAN_DATE=$(jq -r '.scannedAt // "unknown"' /tmp/vuln-report.json)
+
+          # Check if issue already exists
           EXISTING=$(gh issue list --repo lucassfreiree/autopilot \
             --search "Security Scan: $COMPONENT v$VERSION" \
             --state open --json number --jq '.[0].number // ""' 2>/dev/null || echo "")
 
           if [ -n "$EXISTING" ]; then
-            echo "::notice ::Issue #$EXISTING already exists — updating"
-            gh issue comment "$EXISTING" --repo lucassfreiree/autopilot \
-              --body "Updated scan at $(date -u +%Y-%m-%dT%H:%M:%SZ). Critical: $CRITICAL, High: $HIGH, NPM fixable: $NPM_FIXABLE" 2>/dev/null || true
+            echo "::notice ::Issue #$EXISTING already exists — adding comment"
+            COMMENT="Re-scan at $SCAN_DATE. Critical: $CRITICAL, High: $HIGH, Medium: $MEDIUM, NPM fixable: $NPM_FIX"
+            gh issue comment "$EXISTING" --repo lucassfreiree/autopilot --body "$COMMENT" 2>/dev/null || true
             exit 0
           fi
 
-          # Build issue body
-          SEVERITY_LABEL="priority-medium"
-          [ "$HAS_CRITICAL" = "true" ] && SEVERITY_LABEL="priority-critical"
+          # Build vulnerability list
+          VULN_LIST=$(jq -r '.vulnerabilities[] | select(.severity == "critical" or .severity == "high") |
+            "- **\(.severity | ascii_upcase)**: \(.cve) — \(.package // "OS-level") — \(.summary[:100] // "See advisory")\(if .ghsa != "" then " ([Advisory](https://github.com/advisories/\(.ghsa)))" else "" end)\(if .fixVersion != "" and .fixVersion != null then " — Fix: \(.fixVersion)" else "" end)"' \
+            /tmp/vuln-report.json 2>/dev/null || echo "See scan report on autopilot-state branch")
 
-          VULN_LIST=$(echo "$REPORT" | jq -r '.vulnerabilities[] | "- \(.severity | ascii_upcase): \(.package)@\(.currentVersion) — \(.cve) (https://github.com/advisories/\(.ghsa)) — Fix: \(.fixVersion // "N/A")"' 2>/dev/null || echo "See scan report on autopilot-state branch")
-          ADVISORY_LINKS=$(echo "$REPORT" | jq -r '.vulnerabilities[] | "- https://github.com/advisories/\(.ghsa)"' 2>/dev/null || echo "N/A")
-          SCAN_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          # Build npm fixable list
+          FIXABLE_LIST=$(jq -r '.npmFixable[] | "- `\(.package)`: \(.cve) — upgrade to \(.fixVersion)"' /tmp/vuln-report.json 2>/dev/null || echo "None")
 
+          # Build issue body via temp file (avoids YAML colon conflicts)
           {
             echo "## Security Vulnerability Scan Results"
-            echo "Component: $COMPONENT v$VERSION"
-            echo "Scan date: $SCAN_DATE"
-            echo "Source: Corporate CI (Esteira de Build NPM) + XRay + Checkmarx"
+            echo ""
+            echo "- Component = $COMPONENT v$VERSION"
+            echo "- Scan date = $SCAN_DATE"
+            echo "- Source = Corporate CI (Esteira de Build NPM) XRay + Checkmarx"
             echo ""
             echo "### Summary"
-            echo "Critical: $CRITICAL / High: $HIGH / NPM Fixable: $NPM_FIXABLE"
+            echo "- Total CVEs = ${TOTAL_CVES:-0}"
+            echo "- Critical = $CRITICAL / High = $HIGH / Medium = $MEDIUM / NPM Fixable = $NPM_FIX"
             echo ""
-            echo "### Vulnerabilities Found"
+            echo "### Critical and High Vulnerabilities"
             echo "$VULN_LIST"
             echo ""
-            echo "### Advisory Links"
-            echo "$ADVISORY_LINKS"
+            echo "### NPM Fixable (auto-upgrade available)"
+            echo "$FIXABLE_LIST"
             echo ""
             echo "### Recommended Actions"
-            echo "1. Direct npm deps: Update version in package.json + package-lock.json"
-            echo "2. Transitive deps: Add to overrides field in package.json"
-            echo "3. OS-level (rpm): Update base Docker image or ignore if no fix available"
-            echo "4. Re-deploy via apply-source-change pipeline"
+            echo "1. NPM direct deps - Update version in package.json + package-lock.json"
+            echo "2. NPM transitive deps - Add to overrides in package.json or run npm audit fix"
+            echo "3. OS-level (rpm) - Update base Docker image or request infra team update"
+            echo "4. Re-deploy via apply-source-change pipeline after fixes"
             echo ""
             echo "---"
             echo "Auto-generated by security-vuln-scanner workflow"
           } > /tmp/issue-body.txt
 
-          BODY=$(cat /tmp/issue-body.txt)
+          TITLE="Security Scan $COMPONENT v$VERSION — $CRITICAL critical, $HIGH high vulnerabilities"
 
           gh issue create --repo lucassfreiree/autopilot \
-            --title "Security Scan: $COMPONENT v$VERSION — $CRITICAL critical, $HIGH high vulnerabilities" \
-            --body "$BODY" \
-            --label "security,$SEVERITY_LABEL" 2>/dev/null || \
-          gh issue create --repo lucassfreiree/autopilot \
-            --title "Security Scan: $COMPONENT v$VERSION — $CRITICAL critical, $HIGH high vulnerabilities" \
-            --body "$BODY" 2>/dev/null || echo "::error ::Failed to create issue"
+            --title "$TITLE" \
+            --body-file /tmp/issue-body.txt \
+            --label "security" 2>/dev/null || echo "::error ::Failed to create issue"

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 388,
+  "branch": "claude/fix-autopilot-workflow-dvOB7",
+  "mergeSha": "f2c9d2f68d71055fedc6419f74b3307475750498",
+  "timestamp": "2026-03-30T19:31:25Z",
+  "runId": "23763645153",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

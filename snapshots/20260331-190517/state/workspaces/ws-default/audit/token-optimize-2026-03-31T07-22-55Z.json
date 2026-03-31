@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "type": "token-optimization",
+  "timestamp": "2026-03-31T07:22:55Z",
+  "agent": "github-actions",
+  "before_bytes": 87863,
+  "after_bytes": 84991,
+  "saved_bytes": 2872,
+  "saved_pct": "3%",
+  "changes": "Archived 1 old sessions (kept 5)"
+}

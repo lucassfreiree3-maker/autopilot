@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 231,
+  "branch": "copilot/add-direct-merge-workflow",
+  "mergeSha": "cbe49e7165861deaa7546d8363abdbd8904d9509",
+  "timestamp": "2026-03-27T13:20:37Z",
+  "runId": "23648170545",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

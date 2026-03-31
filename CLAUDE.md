@@ -586,6 +586,7 @@ Maps errors to known patterns, generates learning report with pipeline visualiza
 | auto-merge-sweeper.yml | Sweep and auto-merge eligible agent PRs |
 | repo-cleanup.yml | Clean up unused files and branches |
 | promote-cap.yml | Manual CAP promotion (trigger via `trigger/promote-cap.json`) |
+| security-vuln-scanner.yml | Post-deploy vulnerability scanner — scans XRay/Checkmarx results, consults GitHub Advisory DB, auto-fixes npm CVEs, creates tracking Issues |
 | spark-sync-state.yml | Sync state.json to Spark dashboard repo (every 5/15 min) |
 | post-merge-monitor.yml | Monitor workflows after PR merge |
 | dashboard-auto-improve.yml | Daily dashboard data accuracy validation |

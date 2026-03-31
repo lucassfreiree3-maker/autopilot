@@ -424,29 +424,9 @@ STATE_B64=$(base64 -w0 /tmp/state.json)
 echo "state_b64=$STATE_B64" >> "$GITHUB_OUTPUT"
 echo "state_ready=true" >> "$GITHUB_OUTPUT"
 
-# ── Update panel/dashboard/state.json directly (same step = same process) ──
-REPO="$GITHUB_REPOSITORY"
-FILE_PATH="panel/dashboard/state.json"
-
-if [ -n "$STATE_B64" ] && [ ${#STATE_B64} -gt 100 ]; then
-  for attempt in 1 2 3; do
-    EXISTING_SHA=$(gh api "repos/$REPO/contents/$FILE_PATH" --jq '.sha' 2>/dev/null || echo "")
-
-    PAYLOAD=$(jq -n \
-      --arg content "$STATE_B64" \
-      --arg sha "$EXISTING_SHA" \
-      --arg message "chore: sync dashboard state [auto]" \
-      '{message: $message, content: $content} + (if $sha != "" then {sha: $sha} else {} end)')
-
-    gh api "repos/$REPO/contents/$FILE_PATH" \
-      --method PUT --input - <<< "$PAYLOAD" > /dev/null 2>&1 && {
-      echo "::notice ::State synced to $FILE_PATH (attempt $attempt)"
-      break
-    } || {
-      echo "::warning ::Attempt $attempt failed"
-      [ "$attempt" -lt 3 ] && sleep 2
-    }
-  done
-else
-  echo "::warning ::state_b64 empty or too small — skipping panel update"
-fi
+# ── panel/dashboard/state.json update REMOVED ──
+# Branch protection blocks gh api PUT to main (403).
+# Dashboard now fetches state.json directly from spark-dashboard repo
+# (lucassfreiree/spark-dashboard/public/state.json) which IS updated
+# successfully by the "Push state to Spark repo" step above.
+echo "::notice ::Panel reads state from spark-dashboard repo (no local update needed)"

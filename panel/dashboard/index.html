@@ -353,16 +353,25 @@
     mn.innerHTML=PAGES.map(p=>`<div class="mobile-nav-item${p==='overview'?' active':''}" data-page="${p}" onclick="go('${p}')">${p.charAt(0).toUpperCase()+p.slice(1)}</div>`).join('');
   })();
 
-  // Fetch state
+  // Fetch state — try live source first (spark-dashboard), fallback to local
+  const STATE_URLS=[
+    'https://raw.githubusercontent.com/lucassfreiree/spark-dashboard/main/public/state.json',
+    'state.json'
+  ];
   async function fetchState(){
-    try{
-      const r=await fetch('state.json?t='+Date.now());
-      if(!r.ok)throw new Error(r.status);
-      state=await r.json();
-      renderAll();
-    }catch(e){
-      document.getElementById('alertsBanner').innerHTML=`<div class="alert-bar alert-error">Failed to load state.json: ${esc(e.message)}</div>`;
+    let lastErr;
+    for(const url of STATE_URLS){
+      try{
+        const r=await fetch(url+(url.includes('?')?'&':'?')+'t='+Date.now());
+        if(!r.ok)throw new Error(r.status);
+        const data=await r.json();
+        if(!data.lastSync)throw new Error('invalid state');
+        state=data;
+        renderAll();
+        return;
+      }catch(e){lastErr=e}
     }
+    document.getElementById('alertsBanner').innerHTML=`<div class="alert-bar alert-error">Failed to load state.json: ${esc(lastErr.message)}</div>`;
   }
 
   function scheduleRefresh(){

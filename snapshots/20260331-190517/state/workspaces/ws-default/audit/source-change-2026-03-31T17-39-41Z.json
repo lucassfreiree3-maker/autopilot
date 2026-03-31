@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-31T17:39:41Z",
+  "runId": "23810562081",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23810562081",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): bound pickPreferredSnapshot loop to prevent Checkmarx Server_DoS_by_Loop",
+  "commitSha": "7c29355b986fb3fa9b4095da7fec776f54e13cfe",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 372,
+  "branch": "claude/session-memory-update",
+  "mergeSha": "754651a47213021c211c21c8e1896dc86a106c4e",
+  "timestamp": "2026-03-30T13:57:12Z",
+  "runId": "23748536631",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

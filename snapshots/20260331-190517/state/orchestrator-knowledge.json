@@ -1,0 +1,155 @@
+{
+  "patterns": [
+    {
+      "workflow": ".github/workflows/auto-dispatch-task.yml",
+      "consecutiveAt": "2026-03-30T04:25:02Z",
+      "count": 5
+    },
+    {
+      "workflow": ".github/workflows/emergency-watchdog.yml",
+      "consecutiveAt": "2026-03-30T04:25:02Z",
+      "count": 5
+    },
+    {
+      "workflow": "[Core] Autonomous Direct Merge",
+      "consecutiveAt": "2026-03-30T20:05:34Z",
+      "count": 3
+    },
+    {
+      "workflow": "[Core] Backup: State Snapshot",
+      "consecutiveAt": "2026-03-31T08:56:20Z",
+      "count": 3
+    },
+    {
+      "workflow": "[Core] Compliance Gate",
+      "consecutiveAt": "2026-03-31T17:55:15Z",
+      "count": 3
+    },
+    {
+      "workflow": "[Core] Intelligent Orchestrator",
+      "consecutiveAt": "2026-03-31T01:25:03Z",
+      "count": 3
+    },
+    {
+      "workflow": "[Core] PR Auto-Review",
+      "consecutiveAt": "2026-03-31T13:14:22Z",
+      "count": 3
+    },
+    {
+      "workflow": "[Core] Workflow Auto-Repair",
+      "consecutiveAt": "2026-03-30T21:02:32Z",
+      "count": 3
+    }
+  ],
+  "fixes": [
+    {
+      "workflow": "[Core] Backup: State Snapshot",
+      "action": "re-run",
+      "fixedAt": "2026-03-31T07:51:20Z",
+      "method": "re-run"
+    },
+    {
+      "workflow": "[Core] Compliance Gate",
+      "action": "re-run",
+      "fixedAt": "2026-03-31T17:55:15Z",
+      "method": "re-run"
+    },
+    {
+      "workflow": "[Core] Intelligent Orchestrator",
+      "action": "re-run",
+      "fixedAt": "2026-03-30T21:40:01Z",
+      "method": "re-run"
+    },
+    {
+      "workflow": "[Core] Workflow Auto-Repair",
+      "action": "re-run",
+      "fixedAt": "2026-03-30T21:02:32Z",
+      "method": "re-run"
+    }
+  ],
+  "lastRun": "2026-03-31T19:00:07Z",
+  "lastHealth": "degraded",
+  "runCount": 38,
+  "healthHistory": [
+    {
+      "ts": "2026-03-30T21:40:01Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-30T21:40:30Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-30T22:33:14Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-30T23:32:50Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-31T01:25:03Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-31T02:07:13Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-31T04:58:24Z",
+      "health": "critical"
+    },
+    {
+      "ts": "2026-03-31T05:41:23Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T06:18:15Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T07:51:20Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T08:56:20Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T10:05:59Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T11:26:51Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T11:47:36Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T13:14:22Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T14:44:50Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T15:53:34Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T16:55:21Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T17:55:15Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T19:00:07Z",
+      "health": "degraded"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T20:21:49Z",
+  "runId": "23411513443",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23411513443",
+  "component": "agent",
+  "changeType": "modify-file",
+  "targetPath": "package.json",
+  "commitMessage": "chore: bump version 2.2.2 → 2.2.3",
+  "commitSha": "7e20cc0ec9dfdf0949cdf8978dbfcf782f7a628c",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

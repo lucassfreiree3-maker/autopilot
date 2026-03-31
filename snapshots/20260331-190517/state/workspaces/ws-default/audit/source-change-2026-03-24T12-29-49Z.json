@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-24T12:29:49Z",
+  "runId": "23489314366",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23489314366",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: generic 401 error messages to prevent auth implementation leakage (3.5.7)",
+  "commitSha": "94099261d50bee66d73fef76d69a6675726c761a",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

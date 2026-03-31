@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr379-20260330-182633",
+  "event": "post-merge-monitor",
+  "prNumber": 379,
+  "branch": "claude/fix-auto-repair-word-split",
+  "mergeSha": "f3d80b49e7a08e4eb017a060a8ab5a3cded766a3",
+  "timestamp": "2026-03-30T18:26:33Z",
+  "runId": "23760862911",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

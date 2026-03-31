@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-03-31T17:49:26Z",
+  "source": "workflow-health-monitor",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23811601041",
+  "repairs": [
+    {
+      "type": "clear-lock",
+      "lock_path": "state/workspaces/ws-default/locks/session-lock.json",
+      "workflow_name": "session-lock",
+      "reason": "Lock expired at 2026-03-31T17:39:40Z (held by none)",
+      "action": "Delete expired lock"
+    },
+    {
+      "type": "alert-only",
+      "workflow_id": 252407274,
+      "workflow_name": "[Core] Autonomous Direct Merge",
+      "reason": "5 consecutive failures",
+      "action": "Needs manual investigation",
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23810815729"
+    }
+  ]
+}

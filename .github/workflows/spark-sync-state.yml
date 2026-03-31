@@ -20,6 +20,7 @@ on:
       - 'contracts/claude-live-status.json'
       - 'contracts/copilot-session-memory.json'
       - 'contracts/codex-session-memory.json'
+      - 'contracts/devin-session-memory.json'
       - 'trigger/source-change.json'
       - 'references/spark-dashboard/**'
   workflow_dispatch: {}

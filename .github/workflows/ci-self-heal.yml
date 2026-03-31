@@ -71,7 +71,7 @@ jobs:
           fi
 
           # ── Only heal autonomous agent branches ──────────────────────────
-          if [[ ! "$BRANCH" =~ ^(copilot|codex|claude)/ ]]; then
+          if [[ ! "$BRANCH" =~ ^(copilot|codex|claude|devin)/ ]]; then
             echo "eligible=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Branch $BRANCH is not an agent branch; skipping."
             exit 0

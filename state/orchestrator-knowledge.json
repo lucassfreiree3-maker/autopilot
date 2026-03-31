@@ -16,6 +16,11 @@
       "count": 3
     },
     {
+      "workflow": "[Core] Backup: State Snapshot",
+      "consecutiveAt": "2026-03-31T08:56:20Z",
+      "count": 3
+    },
+    {
       "workflow": "[Core] Intelligent Orchestrator",
       "consecutiveAt": "2026-03-31T01:25:03Z",
       "count": 3
@@ -46,14 +51,10 @@
       "method": "re-run"
     }
   ],
-  "lastRun": "2026-03-31T07:51:20Z",
+  "lastRun": "2026-03-31T08:56:20Z",
   "lastHealth": "degraded",
-  "runCount": 28,
+  "runCount": 29,
   "healthHistory": [
-    {
-      "ts": "2026-03-30T13:14:52Z",
-      "health": "healthy"
-    },
     {
       "ts": "2026-03-30T14:46:43Z",
       "health": "degraded"
@@ -128,6 +129,10 @@
     },
     {
       "ts": "2026-03-31T07:51:20Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T08:56:20Z",
       "health": "degraded"
     }
   ]

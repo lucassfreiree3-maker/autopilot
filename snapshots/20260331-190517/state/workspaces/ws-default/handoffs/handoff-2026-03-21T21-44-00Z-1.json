@@ -1,0 +1,20 @@
+{
+  "handoffId": "handoff-2026-03-21T21-44-00Z-1",
+  "workspaceId": "ws-default",
+  "fromAgent": "claude",
+  "toAgent": "codex",
+  "createdAt": "2026-03-21T21:44:00Z",
+  "status": "pending",
+  "context": {
+    "summary": "Bootstrap completo. Configurar workspace.json com repos corporativos reais.",
+    "component": "general",
+    "nextSteps": [
+      "Editar workspace.json com sourceRepo, deployRepo, capRepo",
+      "Instalar release-agent.yml no repo corporativo do agent",
+      "Instalar release-controller.yml no repo corporativo do controller"
+    ],
+    "files": ["state/workspaces/ws-default/workspace.json"],
+    "blockers": []
+  },
+  "priority": "high"
+}

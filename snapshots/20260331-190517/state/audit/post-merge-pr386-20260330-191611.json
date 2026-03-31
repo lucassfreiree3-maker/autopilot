@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr386-20260330-191611",
+  "event": "post-merge-monitor",
+  "prNumber": 386,
+  "branch": "claude/deploy-success-state",
+  "mergeSha": "12c6970fa09065eeaaf4a7c9ef4db319f31317e1",
+  "timestamp": "2026-03-30T19:16:11Z",
+  "runId": "23763003629",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

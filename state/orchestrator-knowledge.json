@@ -67,14 +67,10 @@
       "method": "re-run"
     }
   ],
-  "lastRun": "2026-03-31T19:57:55Z",
+  "lastRun": "2026-03-31T20:49:57Z",
   "lastHealth": "degraded",
-  "runCount": 39,
+  "runCount": 40,
   "healthHistory": [
-    {
-      "ts": "2026-03-30T21:40:30Z",
-      "health": "critical"
-    },
     {
       "ts": "2026-03-30T22:33:14Z",
       "health": "critical"
@@ -149,6 +145,10 @@
     },
     {
       "ts": "2026-03-31T19:57:55Z",
+      "health": "degraded"
+    },
+    {
+      "ts": "2026-03-31T20:49:57Z",
       "health": "degraded"
     }
   ]

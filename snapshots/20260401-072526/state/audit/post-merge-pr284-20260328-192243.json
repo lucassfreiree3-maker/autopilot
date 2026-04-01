@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr284-20260328-192243",
+  "event": "post-merge-monitor",
+  "prNumber": 284,
+  "branch": "claude/lock-workflows",
+  "mergeSha": "4e12207df03f002fbb59dadf22cd2d871a5319e0",
+  "timestamp": "2026-03-28T19:22:43Z",
+  "runId": "23692522145",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

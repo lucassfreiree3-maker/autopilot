@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr369-20260330-134649",
+  "event": "post-merge-monitor",
+  "prNumber": 369,
+  "branch": "claude/autonomous-pipeline-fixes",
+  "mergeSha": "5d9734f52ce25f4906ae83cb204e65e5616139e4",
+  "timestamp": "2026-03-30T13:46:49Z",
+  "runId": "23748050252",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

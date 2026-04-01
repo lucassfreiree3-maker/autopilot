@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 251,
+  "branch": "claude/copilot-hooks",
+  "mergeSha": "f8aaa4e7fb9f7806b077da9c25e0c27df551e716",
+  "timestamp": "2026-03-28T13:35:12Z",
+  "runId": "23686335782",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

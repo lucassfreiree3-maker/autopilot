@@ -1,0 +1,339 @@
+{
+  "component": "controller",
+  "version": "3.7.4",
+  "scannedAt": "2026-03-31T19:20:15Z",
+  "ciRunId": "23810579473",
+  "summary": {
+    "total": 64,
+    "critical": 2,
+    "high": 10,
+    "medium": 7,
+    "low": 1,
+    "npmFixable": 0
+  },
+  "vulnerabilities": [
+    {
+      "cve": "CVE-2005-2541",
+      "ghsa": "GHSA-vwpx-f983-qg79",
+      "severity": "high",
+      "summary": "Tar 1.15.1 does not properly warn the user when extracting setuid or setgid files, which may...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2022-25883",
+      "ghsa": "GHSA-c2qf-rxjj-qqgw",
+      "severity": "high",
+      "summary": "semver vulnerable to Regular Expression Denial of Service",
+      "fixVersion": "",
+      "package": "semver"
+    },
+    {
+      "cve": "CVE-2022-3219",
+      "ghsa": "GHSA-pf7g-97vv-qmrr",
+      "severity": "medium",
+      "summary": "GnuPG can be made to spin on a relatively small input by (for example) crafting a public key with...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2022-41409",
+      "ghsa": "GHSA-4qfx-v7wh-3q4j",
+      "severity": "high",
+      "summary": "Integer overflow vulnerability in pcre2test before 10.41 allows attackers to cause a denial of...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-2251",
+      "ghsa": "GHSA-f9xv-q969-pqx4",
+      "severity": "high",
+      "summary": "Uncaught Exception in yaml",
+      "fixVersion": "",
+      "package": "yaml"
+    },
+    {
+      "cve": "CVE-2023-2953",
+      "ghsa": "GHSA-26fx-c7cw-5jh4",
+      "severity": "high",
+      "summary": "A vulnerability was found in openldap. This security flaw causes a null pointer dereference in...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-29827",
+      "ghsa": "GHSA-j5pp-6f4w-r5r6",
+      "severity": "critical",
+      "summary": "ejs v3.1.9 is vulnerable to server-side template injection. If the ejs file is controllable,...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-30571",
+      "ghsa": "GHSA-cw7x-3mv7-w6xm",
+      "severity": "medium",
+      "summary": "Libarchive through 3.6.2 can cause directories to have world-writable permissions. The umask()...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-32636",
+      "ghsa": "GHSA-79g9-vx8c-xfmq",
+      "severity": "high",
+      "summary": "A flaw was found in glib, where the gvariant deserialization code is vulnerable to a denial of...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-39804",
+      "ghsa": "GHSA-5pvw-wf9w-xx8v",
+      "severity": "medium",
+      "summary": "In GNU tar before 1.35, mishandled extension attributes in a PAX archive can lead to an...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-4156",
+      "ghsa": "GHSA-8p8g-pp68-479w",
+      "severity": "high",
+      "summary": "A heap out-of-bounds read flaw was found in builtin.c in the gawk package. This issue may lead to...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2023-45322",
+      "ghsa": "GHSA-vqpg-m25j-7558",
+      "severity": "medium",
+      "summary": "** DISPUTED ** libxml2 through 2.11.5 has a use-after-free that can only occur after a certain...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-12133",
+      "ghsa": "GHSA-j3qr-8f3v-fgjj",
+      "severity": "medium",
+      "summary": "A flaw in libtasn1 causes inefficient handling of specific certificate data. When processing a...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-12243",
+      "ghsa": "GHSA-cqj4-fp95-jqxq",
+      "severity": "medium",
+      "summary": "A flaw was found in GnuTLS, which relies on libtasn1 for ASN.1 data processing. Due to an...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-13176",
+      "ghsa": "GHSA-r9fv-h47r-823f",
+      "severity": "medium",
+      "summary": "Issue summary: A timing side-channel which could potentially allow recovering\nthe private key...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-34459",
+      "ghsa": "GHSA-vv62-jfwq-693v",
+      "severity": "high",
+      "summary": "An issue was discovered in xmllint (from libxml2) before 2.11.8 and 2.12.x before 2.12.7....",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-4068",
+      "ghsa": "GHSA-grv7-fg5c-xmjg",
+      "severity": "high",
+      "summary": "Uncontrolled resource consumption in braces",
+      "fixVersion": "",
+      "package": "braces"
+    },
+    {
+      "cve": "CVE-2024-41996",
+      "ghsa": "GHSA-h964-f4gx-gw3x",
+      "severity": "high",
+      "summary": "Validating the order of the public keys in the Diffie-Hellman Key Agreement Protocol, when an...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-52533",
+      "ghsa": "GHSA-5rq6-q8gw-qqpr",
+      "severity": "critical",
+      "summary": "gio/gsocks4aproxy.c in GNOME GLib before 2.82.1 has an off-by-one error and resultant buffer...",
+      "fixVersion": "",
+      "package": ""
+    },
+    {
+      "cve": "CVE-2024-56433",
+      "ghsa": "GHSA-7683-vm2j-m4cc",
+      "severity": "low",
+      "summary": "shadow-utils (aka shadow) 4.4 through 4.17.0 establishes a default /etc/subuid behavior (e.g.,...",
+      "fixVersion": "",
+      "package": ""
+    }
+  ],
+  "npmPackages": [
+    {
+      "package": "babel-plugin-istanbul",
+      "version": "6.1.1"
+    },
+    {
+      "package": "brace-expansion",
+      "version": "1.1.11"
+    },
+    {
+      "package": "brace-expansion",
+      "version": "2.0.1"
+    },
+    {
+      "package": "braces",
+      "version": "3.0.2"
+    },
+    {
+      "package": "ejs",
+      "version": "3.1.10"
+    },
+    {
+      "package": "eslint-config-airbnb-base",
+      "version": "15.0.0"
+    },
+    {
+      "package": "eslint-plugin-import",
+      "version": "2.29.1"
+    },
+    {
+      "package": "fast-redact",
+      "version": "3.5.0"
+    },
+    {
+      "package": "nodemon",
+      "version": "3.0.1"
+    },
+    {
+      "package": "npm",
+      "version": "10.9.2"
+    },
+    {
+      "package": "semver",
+      "version": "6.3.1"
+    },
+    {
+      "package": "yaml",
+      "version": "2.0.0"
+    }
+  ],
+  "rpmPackages": [
+    {
+      "package": "curl-minimal",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "gawk",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "glib2",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "glibc",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "glibc-common",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "glibc-minimal-langpack",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "gnupg2",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "gnutls",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "libarchive",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "libcurl-minimal",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "libtasn1",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "libxml2",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "lz4-libs",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "nodejs",
+      "version": "22",
+      "type": "rpm"
+    },
+    {
+      "package": "openldap",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "openssl",
+      "version": "1",
+      "type": "rpm"
+    },
+    {
+      "package": "openssl-libs",
+      "version": "1",
+      "type": "rpm"
+    },
+    {
+      "package": "pcre2",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "shadow-utils",
+      "version": "2",
+      "type": "rpm"
+    },
+    {
+      "package": "sqlite-libs",
+      "version": "0",
+      "type": "rpm"
+    },
+    {
+      "package": "tar",
+      "version": "2",
+      "type": "rpm"
+    },
+    {
+      "package": "zlib",
+      "version": "0",
+      "type": "rpm"
+    }
+  ],
+  "npmFixable": []
+}

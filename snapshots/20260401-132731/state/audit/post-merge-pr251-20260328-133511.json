@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr251-20260328-133511",
+  "event": "post-merge-monitor",
+  "prNumber": 251,
+  "branch": "claude/copilot-hooks",
+  "mergeSha": "f8aaa4e7fb9f7806b077da9c25e0c27df551e716",
+  "timestamp": "2026-03-28T13:35:11Z",
+  "runId": "23686335782",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

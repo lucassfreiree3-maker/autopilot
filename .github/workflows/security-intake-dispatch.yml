@@ -1,0 +1,98 @@
+name: "[Core] Security Intake Dispatch"
+run-name: "${{ github.workflow }} • Issue #${{ github.event.issue.number }}"
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-intake-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: "Classify security issue and dispatch"
+    if: |
+      contains(github.event.issue.labels.*.name, 'security') ||
+      contains(github.event.issue.labels.*.name, 'vulnerability') ||
+      contains(github.event.issue.title, '[security]')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Classify issue and avoid duplicate dispatch"
+        id: classify
+        run: |
+          set -euo pipefail
+
+          ISSUE="${{ github.event.issue.number }}"
+          TITLE="${{ github.event.issue.title }}"
+          BODY=$(gh issue view "$ISSUE" --json body --jq '.body' 2>/dev/null || echo "")
+          LABELS=$(gh issue view "$ISSUE" --json labels --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+          EXISTING=$(gh issue view "$ISSUE" --json comments --jq '[.comments[].body | select(contains("Auto-Security-Dispatch"))] | length' 2>/dev/null || echo "0")
+
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "already_dispatched=true" >> "$GITHUB_OUTPUT"
+            echo "::notice ::Issue already dispatched to Claude"
+            exit 0
+          fi
+
+          WS="ws-default"
+          if echo "$LABELS $TITLE $BODY" | grep -qi "ws-cit\| cit "; then
+            WS="ws-cit"
+          elif echo "$LABELS $TITLE $BODY" | grep -qi "autopilot control plane\|autopilot\b"; then
+            WS="autopilot"
+          fi
+
+          COMP="controller"
+          if echo "$TITLE $BODY" | grep -qi "both\|ambos"; then
+            COMP="both"
+          elif echo "$TITLE $BODY" | grep -qi "agent"; then
+            COMP="agent"
+          elif echo "$TITLE $BODY" | grep -qi "workflow\|pipeline\|autopilot"; then
+            COMP="workflow"
+          fi
+
+          echo "already_dispatched=false" >> "$GITHUB_OUTPUT"
+          echo "workspace=$WS" >> "$GITHUB_OUTPUT"
+          echo "component=$COMP" >> "$GITHUB_OUTPUT"
+
+      - name: "Stamp labels"
+        if: steps.classify.outputs.already_dispatched == 'false'
+        run: |
+          gh issue edit "${{ github.event.issue.number }}" \
+            --add-label "processing" \
+            --add-label "needs-claude" \
+            --add-label "automated" \
+            --add-label "task" 2>/dev/null || true
+
+      - name: "Dispatch to Claude via issue comment"
+        if: steps.classify.outputs.already_dispatched == 'false'
+        env:
+          WS: ${{ steps.classify.outputs.workspace }}
+          COMP: ${{ steps.classify.outputs.component }}
+        run: |
+          set -euo pipefail
+
+          ISSUE="${{ github.event.issue.number }}"
+          BODY=$(gh issue view "$ISSUE" --json body --jq '.body' 2>/dev/null || echo "")
+
+          COMMENT=$(printf '%s\n\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s\n\n%s' \
+            "Auto-Security-Dispatch" \
+            "@claude execute this security remediation autonomously using the GitHub-native flow." \
+            "- Workspace: $WS" \
+            "- Component: $COMP" \
+            "- Source of truth: use the issue body as the vulnerability report" \
+            "- Preferred path: branch/PR in autopilot -> patches/trigger -> compliance gate -> apply-source-change -> promote -> state/audit" \
+            "- Do not rely on this local machine; keep execution in GitHub Actions wherever possible" \
+            "Issue body:" \
+            "$BODY")
+
+          gh issue comment "$ISSUE" --body "$COMMENT"
+          echo "::notice ::Security issue #$ISSUE dispatched to Claude"

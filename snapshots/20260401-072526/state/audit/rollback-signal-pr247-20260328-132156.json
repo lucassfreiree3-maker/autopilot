@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 247,
+  "branch": "claude/embed-memory",
+  "mergeSha": "13477f00e0cbdc908d0e54ff503e09e7462a68e1",
+  "timestamp": "2026-03-28T13:21:56Z",
+  "runId": "23686113401",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

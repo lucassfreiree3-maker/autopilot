@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-04-01T13:52:52Z",
+  "runId": "23851391714",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23851391714",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): address Checkmarx vulnerabilities — XSS sanitize output, SSRF block metadata hosts, DoS validate execId, silent log drop (v3.7.7)",
+  "commitSha": "5683c88c10b33a41910be6d41e5a0713010f23e5",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

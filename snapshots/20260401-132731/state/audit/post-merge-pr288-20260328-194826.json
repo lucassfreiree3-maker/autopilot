@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr288-20260328-194826",
+  "event": "post-merge-monitor",
+  "prNumber": 288,
+  "branch": "copilot/improve-documentation-artifacts",
+  "mergeSha": "287aef9b5f11ca3de61972b24db3ebf7399d91cc",
+  "timestamp": "2026-03-28T19:48:26Z",
+  "runId": "23692974272",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

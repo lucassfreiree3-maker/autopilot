@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 392,
+  "branch": "claude/security-update-refresh-g4TL2",
+  "mergeSha": "012260f82e76b98020f669483ccdc90d4aa93480",
+  "timestamp": "2026-03-30T19:53:18Z",
+  "runId": "23764591360",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

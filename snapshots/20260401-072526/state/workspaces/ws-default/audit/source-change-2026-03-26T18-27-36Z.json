@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-26T18:27:36Z",
+  "runId": "23611169727",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23611169727",
+  "component": "agent",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "feat(agent): cronjob callback endpoint + forward to controller (2.2.7) #930217",
+  "commitSha": "fbf8b7050d8dc93be411a17c66ffdcd8f187af29",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

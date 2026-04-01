@@ -1,0 +1,20 @@
+{
+  "lastSync": "2026-03-30T19:43:49Z",
+  "sources": [
+    {
+      "name": "anthropics/skills",
+      "lastCommit": "98669c11ca63e9c81c11501e1437e5c47b556621",
+      "lastCommitDate": "2026-03-25T15:10:46Z"
+    },
+    {
+      "name": "hesreallyhim/awesome-claude-code",
+      "lastCommit": "4b3c275e3f46f701fea230da4402f3fe2cda7ab7",
+      "lastCommitDate": "2026-03-30T18:24:23Z"
+    },
+    {
+      "name": "hesreallyhim/a-list-of-claude-code-agents",
+      "lastCommit": "6f5a4726793ac8a11c94b269e0a4cff2e2acab09",
+      "lastCommitDate": "2025-11-10T17:14:34Z"
+    }
+  ]
+}

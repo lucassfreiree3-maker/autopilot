@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr230-20260327-132307",
+  "event": "post-merge-monitor",
+  "prNumber": 230,
+  "branch": "autopilot-state",
+  "mergeSha": "4d77ca8e43ffc60ce4b696aa25179f9dd2a7c11d",
+  "timestamp": "2026-03-27T13:23:07Z",
+  "runId": "23648273023",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

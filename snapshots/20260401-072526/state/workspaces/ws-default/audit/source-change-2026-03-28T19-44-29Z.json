@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-28T19:44:29Z",
+  "runId": "23692688609",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23692688609",
+  "component": "agent",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(agent): resolve no-nested-ternary in cronjob-callback + version 2.3.1",
+  "commitSha": "d280e244b4fe8b5cc913b5e827e1357cf12c3af6",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

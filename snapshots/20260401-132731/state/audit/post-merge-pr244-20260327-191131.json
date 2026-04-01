@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr244-20260327-191131",
+  "event": "post-merge-monitor",
+  "prNumber": 244,
+  "branch": "claude/mega-prompt",
+  "mergeSha": "6bd9c52289c21c4db1126354a5e639b7931206b9",
+  "timestamp": "2026-03-27T19:11:31Z",
+  "runId": "23663173296",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

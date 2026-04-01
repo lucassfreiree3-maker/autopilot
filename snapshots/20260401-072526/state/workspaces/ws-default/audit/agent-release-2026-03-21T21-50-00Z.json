@@ -1,0 +1,12 @@
+{
+  "operation": "agent-release",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-21T21:50:00Z",
+  "runId": "e2e-sim-001",
+  "tag": "1.1.0-d6e1476",
+  "sha": "d6e1476e621e1d451cfe8d79bef95a818c0cdbbc",
+  "deployPushed": true,
+  "capPushed": true,
+  "deployRepo": "lucassfreiree/autopilot (sim-deploy)",
+  "capRepo": "lucassfreiree/autopilot (sim-cap)"
+}

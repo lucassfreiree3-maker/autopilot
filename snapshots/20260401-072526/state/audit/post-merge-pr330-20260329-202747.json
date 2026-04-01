@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr330-20260329-202747",
+  "event": "post-merge-monitor",
+  "prNumber": 330,
+  "branch": "claude/autonomous-engineering-agent-3uMYx",
+  "mergeSha": "4d7c9b264a986150d5f2691674ebafc647bc3fd8",
+  "timestamp": "2026-03-29T20:27:47Z",
+  "runId": "23718335522",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

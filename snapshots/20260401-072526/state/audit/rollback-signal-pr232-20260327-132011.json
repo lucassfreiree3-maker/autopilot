@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 232,
+  "branch": "copilot/fix-invalid-workflow-yaml",
+  "mergeSha": "4922aa5c13173cb72d12481047784c937327c921",
+  "timestamp": "2026-03-27T13:20:11Z",
+  "runId": "23648154560",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

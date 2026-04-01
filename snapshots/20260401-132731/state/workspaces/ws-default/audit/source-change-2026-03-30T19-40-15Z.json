@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T19:40:15Z",
+  "runId": "23763428003",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23763428003",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): harden XSS sanitization, SSRF validation and DoS loop bounds",
+  "commitSha": "4df95ad9ef069fdb36f857ab23795f5e7e8c9b75",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

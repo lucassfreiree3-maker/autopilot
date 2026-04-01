@@ -1,0 +1,11 @@
+{
+  "operation": "e2e-release",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T00:16:35Z",
+  "runId": "23391866400",
+  "dryRun": false,
+  "ci": "failure",
+  "promoted": false,
+  "version": "2.0.11",
+  "tag": ""
+}

@@ -1,0 +1,21 @@
+{
+  "workspaceId": "ws-socnew",
+  "date": "2026-03-26",
+  "collectedAt": "2026-03-26T05:50:55Z",
+  "controller": {
+    "version": "",
+    "status": "idle",
+    "ciResult": "unknown"
+  },
+  "agent": {
+    "version": "",
+    "status": "idle",
+    "ciResult": "unknown"
+  },
+  "totalAuditEntries": 1,
+  "runsLast24h": 216,
+  "failuresLast24h": 71,
+  "frozen": false,
+  "health": "degraded",
+  "runId": "23579672846"
+}

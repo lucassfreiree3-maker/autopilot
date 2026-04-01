@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr371-20260330-135334",
+  "event": "post-merge-monitor",
+  "prNumber": 371,
+  "branch": "claude/deploy-pipeline-observability",
+  "mergeSha": "df96db4fe5cc313939ca1f73dff0feca37fa15d1",
+  "timestamp": "2026-03-30T13:53:34Z",
+  "runId": "23748370012",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -1,0 +1,109 @@
+name: Security Remediation
+description: Abrir uma correcao de vulnerabilidade diretamente pela web e despachar de forma autonoma para a esteira GitHub-native
+title: "[security] <component> - <summary>"
+labels: [security, automated, task]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Security Remediation
+
+        Use este template para vulnerabilidades que devem seguir o fluxo web-only:
+
+        Issue -> auto-dispatch -> @claude -> PR no autopilot -> compliance gate -> apply-source-change -> promote -> state/audit
+
+        Nao inclua segredos. Cole apenas achados, evidencias e o comportamento esperado.
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Workspace afetado
+      options:
+        - ws-default (Getronics)
+        - ws-cit (CIT)
+        - Autopilot control plane
+        - Desconhecido
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Componente afetado
+      options:
+        - controller
+        - agent
+        - both
+        - autopilot
+        - workflow
+        - desconhecido
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoria principal
+      options:
+        - Reflected XSS
+        - SSRF
+        - Server DoS / Loop
+        - Auth / Exposure
+        - Secret handling
+        - CI / Compliance regression
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: findings
+    attributes:
+      label: Achados
+      description: Cole o texto do scanner ou descreva claramente o fluxo vulneravel
+      placeholder: |
+        The method callAgent embeds untrusted data ...
+        Similarity ID: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected_files
+    attributes:
+      label: Arquivos afetados
+      placeholder: |
+        src/controllers/oas-sre-controller.controller.ts
+        src/controllers/oas-execute.controller.ts
+        src/controllers/execute.controller.ts
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencias e links
+      description: Runs, logs, auditoria, PRs, tickets, screenshots ou diffs relevantes
+      placeholder: |
+        - Run: https://github.com/<org>/<repo>/actions/runs/...
+        - PR: https://github.com/<org>/<repo>/pull/...
+        - Audit entry: state/workspaces/<ws_id>/audit/...
+
+  - type: textarea
+    id: expected_outcome
+    attributes:
+      label: Resultado esperado
+      value: |
+        - Corrigir a vulnerabilidade no componente afetado
+        - Preservar isolamento por workspace
+        - Passar no compliance gate e na esteira real
+        - Promover e registrar estado/auditoria sem depender desta maquina local
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: Confirmo que nao inclui segredos ou tokens no ticket
+          required: true
+        - label: Quero que a automacao atue de forma autonoma via GitHub Actions
+          required: true

@@ -13,6 +13,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
   respond:
@@ -33,12 +34,17 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title || '' }}
         run: |
           CLEAN=$(echo "$COMMENT_BODY" | sed 's/@claude//g' | head -c 2000)
-          echo "prompt=$CLEAN" >> "$GITHUB_OUTPUT"
+          {
+            echo "prompt<<EOF"
+            echo "$CLEAN"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
           echo "title=$ISSUE_TITLE" >> "$GITHUB_OUTPUT"
 
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.RELEASE_TOKEN || github.token }}
           prompt: |
             Context: Autopilot CI/CD control plane for multi-workspace release orchestration.
             Read CLAUDE.md for full project documentation.
@@ -49,8 +55,6 @@ jobs:
 
             Execute the request autonomously. If it involves code changes, create a PR.
             If it involves diagnosis, report findings as a comment.
-          max_turns: "25"
-          allowed_tools: "Bash,Read,Edit,Write,Grep,Glob"
         env:
           BBVINET_TOKEN: ${{ secrets.BBVINET_TOKEN }}
           RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 385,
+  "branch": "claude/add-live-monitoring-rule",
+  "mergeSha": "590a1f036b040818861a9ad4bef2b844ace8dc28",
+  "timestamp": "2026-03-30T19:13:01Z",
+  "runId": "23762875126",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

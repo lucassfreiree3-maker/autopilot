@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr229-20260327-124551",
+  "event": "post-merge-monitor",
+  "prNumber": 229,
+  "branch": "copilot/create-autonomous-pr-lane-workflow",
+  "mergeSha": "3ae865267255856a82ef984043b2fd2543d9a162",
+  "timestamp": "2026-03-27T12:45:51Z",
+  "runId": "23646832808",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

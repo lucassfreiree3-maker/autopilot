@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr305-20260329-124648",
+  "event": "post-merge-monitor",
+  "prNumber": 305,
+  "branch": "claude/inject-project-context-GOeq7",
+  "mergeSha": "ba0aab163e8683df40a8682f2cb28e9481d07b80",
+  "timestamp": "2026-03-29T12:46:48Z",
+  "runId": "23709362793",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

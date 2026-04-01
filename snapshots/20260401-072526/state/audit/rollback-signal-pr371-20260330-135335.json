@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 371,
+  "branch": "claude/deploy-pipeline-observability",
+  "mergeSha": "df96db4fe5cc313939ca1f73dff0feca37fa15d1",
+  "timestamp": "2026-03-30T13:53:35Z",
+  "runId": "23748370012",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

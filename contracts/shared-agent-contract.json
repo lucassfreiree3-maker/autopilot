@@ -11,6 +11,55 @@
     "repo": "lucassfreiree/autopilot",
     "branch": "autopilot-backups"
   },
+  "operatingDoctrine": {
+    "priority": "cloud-first, github-first, local-last",
+    "objective": "Operate Autopilot with maximum autonomy, reliability, traceability, security, observability, and continuity while minimizing local-machine dependency.",
+    "sourceOfTruth": {
+      "project": "GitHub repository lucassfreiree/autopilot",
+      "runtimeState": "autopilot-state branch",
+      "backups": "autopilot-backups branch",
+      "handoffCanonicalDoc": "HANDOFF.md"
+    },
+    "localMachineRole": "Control terminal only. Never the canonical source of memory, state, scheduling, logs, backups, or critical automation.",
+    "mandatoryPrinciples": [
+      "Prefer cloud execution, scheduling, storage, logs, automation, and integrations whenever viable",
+      "Persist structural knowledge in GitHub, not in ephemeral local context",
+      "Treat local-only dependency as an exception that must be documented, justified, and reduced over time",
+      "Every important automation must be observable, auditable, and debuggable",
+      "Every meaningful change must consider rollback, retry, timeout, validation, and evidence of success",
+      "Every useful lesson must be institutionalized as documentation, workflow, template, contract, runbook, or explicit memory"
+    ],
+    "analysisOrder": [
+      "Understand current state",
+      "Locate existing workflows, docs, automation, and conventions",
+      "Identify local dependencies and fragility points",
+      "Identify what can move to cloud/GitHub",
+      "Assess risks, security, rollback, and observability",
+      "Apply the minimum safe evolution",
+      "Record traceability and persistent memory",
+      "Suggest the next automation layer"
+    ],
+    "operationalLayers": [
+      "execution",
+      "observability",
+      "validation",
+      "governance",
+      "memory-and-learning",
+      "self-improvement"
+    ],
+    "qualityGate": [
+      "Reduce local dependency",
+      "Increase standardization",
+      "Improve traceability",
+      "Improve observability",
+      "Improve maintainability and troubleshooting",
+      "Improve reuse in future sessions",
+      "Persist the result in GitHub",
+      "Preserve compatibility with the current flow",
+      "Provide a reversal or rollback path",
+      "Leave the project more autonomous than before"
+    ]
+  },
   "schemas": {
     "workspace": "schemas/workspace.schema.json",
     "releaseState": "schemas/release-state.schema.json",
@@ -105,6 +154,7 @@
     "separationGuide": "ops/docs/workspace-separation.md"
   },
   "rules": [
+    "Cloud First, GitHub First, Local Last",
     "NEVER assume a default workspace — always identify from conversation context or ask the user",
     "Never store corporate secrets in the autopilot repo",
     "Never store corporate code in the autopilot repo",
@@ -115,6 +165,8 @@
     "Never use regex to edit YAML - use structured tooling",
     "Never hardcode branch names - read from workspace.json",
     "State is the source of truth, not agent memory",
+    "GitHub is the primary source of truth for project structure, workflows, docs, handoffs, and reusable operational knowledge",
+    "Never leave critical knowledge only on the local machine or only in session context",
     "Always validate jq output with fallbacks (2>/dev/null || echo fallback)",
     "Use base64 encoding when passing content between workflow jobs",
     "Never silently swallow errors - always log before continuing",
@@ -127,6 +179,12 @@
     "auditWrite": "Retry once if audit write fails, then log error"
   },
   "governance": {
+    "changeRequirements": [
+      "Document relevant operational changes in GitHub",
+      "Keep auditability and rollback in mind for every risky change",
+      "Prefer reusable workflows, templates, and runbooks over ad-hoc manual steps",
+      "Never introduce critical local-only automation if a GitHub/cloud path exists"
+    ],
     "personalRepo": {
       "allowed": ["state", "audit", "schemas", "contracts", "templates", "docs", "workflows", "panel", "trigger", "compliance"],
       "forbidden": ["corporate-code", "secrets", "kubeconfig", "internal-urls", "customer-data"]

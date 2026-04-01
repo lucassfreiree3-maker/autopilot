@@ -27,6 +27,22 @@ Este repositório centraliza:
 4. `ops/docs/agent-operational-parity.md` — checklist prático para operar com o mesmo fluxo do Claude
    - inclui o loop de estabilização de PR (checks/builds/correções até verde) e template de reporte final
 
+## GitHub MCP no Codex local
+
+O operador local do Codex pode expor o servidor MCP oficial do GitHub para ampliar a autonomia em tarefas repo-native do `autopilot`.
+
+- Registro global do Codex: `~/.codex/config.toml` em `[mcp_servers.github]`
+- Launcher local: `~/.local/bin/codex-github-mcp`
+- Autenticacao: reutiliza o token do `gh auth` local, evitando PAT hardcoded no repo
+- Uso ideal: triagem de repositorio, leitura de PR/issues, metadados de workflows e outras operacoes GitHub nativas
+- Limite real: permissao continua vindo da conta/token autenticado; MCP nao concede write onde a conta nao tem acesso
+
+Validacao feita em 2026-04-01:
+
+- `codex exec ... --json` mostrou `mcp_tool_call` no servidor `github`
+- ferramentas observadas no runtime: `search_repositories`, `list_pull_requests`, `search_pull_requests`
+- resposta curta validada: `SOURCE=github:lucassfreiree/autopilot default=main lang=TypeScript updated=2026-04-01T17:54:00Z`
+
 ## Segurança e isolamento
 
 - Nunca misturar contextos entre workspaces.

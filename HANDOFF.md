@@ -37,6 +37,61 @@ Zero dependencias locais. 100% GitHub-native. Operavel por Claude, ChatGPT e Cod
 
 ---
 
+## Doutrina operacional canonica
+
+Diretriz obrigatoria para operacao, evolucao e automacao do projeto:
+
+**CLOUD FIRST, GITHUB FIRST, LOCAL LAST**
+
+### Interpretacao pratica
+
+1. **Cloud first**
+   - Priorizar execucao, storage, estado, logs, schedules, artefatos, filas, runners e automacoes em cloud.
+   - Evitar depender desta maquina para memoria operacional, estado persistente, execucao continua, backups e segredos.
+2. **GitHub first**
+   - GitHub e a fonte principal de verdade do projeto.
+   - Tudo que for estruturalmente relevante deve ser refletido em codigo, docs, workflows, issues, PRs, handoffs, runbooks, checklists, changelogs ou trilhas de auditoria no proprio GitHub.
+3. **Local last**
+   - A maquina local e apenas terminal de controle, desenvolvimento eventual ou ponto temporario de operacao.
+   - Conhecimento critico, automacao critica e estado critico nao podem ficar presos ao ambiente local.
+
+### Regras obrigatorias desta doutrina
+
+- Toda mudanca relevante deve deixar rastro versionado, auditavel e reutilizavel no GitHub.
+- Se uma dependencia local for inevitavel, tratar como excecao: documentar, justificar, reduzir impacto, criar fallback e planejar migracao para cloud.
+- Toda automacao importante deve nascer com observabilidade minima: logs, status, sinais de erro, diagnostico e evidencia de sucesso.
+- Toda entrega deve considerar rollback, retry, timeout, validacao pos-acao e trilha de troubleshooting.
+- Todo aprendizado util deve virar ativo persistente do projeto: runbook, contrato, doc, workflow, template, issue comentada, handoff ou memoria operacional explicita.
+- Antes de criar algo novo, entender e fortalecer o fluxo existente; evitar duplicacao e preservar compatibilidade.
+
+### Ordem de analise e execucao
+
+1. Entender o estado atual
+2. Localizar workflows, automacoes, docs e padroes existentes
+3. Identificar dependencias locais e pontos de fragilidade
+4. Identificar o que pode ser movido para cloud/GitHub
+5. Avaliar riscos, seguranca, rollback e observabilidade
+6. Aplicar a evolucao minima segura
+7. Registrar rastreabilidade e memoria persistente
+8. Sugerir o proximo nivel de automacao
+
+### Gate minimo de qualidade
+
+Uma entrega so e considerada boa se:
+
+- reduz dependencia local
+- aumenta padronizacao
+- melhora rastreabilidade
+- melhora observabilidade
+- melhora manutencao e troubleshooting
+- aumenta reutilizacao em sessoes futuras
+- fica registrada no GitHub
+- nao quebra o fluxo atual
+- possui caminho de reversao
+- deixa o projeto mais autonomo do que antes
+
+---
+
 ## Estrutura de Arquivos
 
 ```

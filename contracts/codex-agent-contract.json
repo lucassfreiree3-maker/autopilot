@@ -10,6 +10,7 @@
     "bulk-changes",
     "test-execution",
     "ci-monitoring",
+    "github-mcp-repo-ops",
     "handoff-consumption",
     "pre-deploy-validation",
     "security-patching",
@@ -17,12 +18,35 @@
   ],
   "tools": {
     "primary": "codex-web",
-    "github": "gh-cli",
+    "github": "github-mcp + gh-cli",
+    "mcp": "GitHub MCP server `github` via /home/jfreire/.local/bin/codex-github-mcp",
     "editor": "github.dev",
     "api": "GitHub REST API via gh api or curl with GITHUB_TOKEN"
   },
   "githubConnection": {
     "description": "Como Codex se conecta ao GitHub para operacoes do autopilot",
+    "mcp": {
+      "description": "Canal MCP local para operacoes GitHub dentro do runtime do Codex",
+      "serverName": "github",
+      "launcher": "/home/jfreire/.local/bin/codex-github-mcp",
+      "authSource": "Token herdado do gh auth local (~/.config/gh/hosts.yml) ou GITHUB_PERSONAL_ACCESS_TOKEN",
+      "validatedAt": "2026-04-01T18:00:24Z",
+      "validatedBy": [
+        "codex exec com mcp_tool_call search_repositories em lucassfreiree/autopilot",
+        "codex exec com mcp_tool_call list_pull_requests/search_pull_requests em lucassfreiree/autopilot"
+      ],
+      "bestFor": [
+        "triagem de repositorio",
+        "leitura de PR/issues",
+        "metadados de workflows e repos",
+        "operacoes GitHub nativas sem depender de checkout local"
+      ],
+      "limits": [
+        "Permissoes continuam vindo da conta/token autenticado",
+        "Write ops so funcionam onde a conta tiver permissao real",
+        "gh CLI continua como fallback e para fluxos nao cobertos pelo MCP"
+      ]
+    },
     "authentication": {
       "autopilotRepo": "GITHUB_TOKEN (disponivel automaticamente no Codex quando rodando no repo lucassfreiree/autopilot)",
       "corporateRepo": "BBVINET_TOKEN (secret do repo — so acessivel dentro de workflows GitHub Actions, NAO diretamente pelo Codex)",
@@ -144,7 +168,7 @@
   "collaborationWithClaude": {
     "description": "Como Codex e Claude trabalham juntos",
     "sessionMemory": "contracts/claude-session-memory.json — ler SEMPRE no inicio da sessao. Contem estado atual, versoes, licoes aprendidas.",
-    "handoffProtocol": "Se precisa de algo que nao consegue fazer (ex: acesso MCP GitHub, WebFetch): criar handoff para Claude via enqueue-agent-handoff.yml",
+    "handoffProtocol": "Se precisa de algo que nao consegue fazer localmente (ex: credencial ausente, sistema externo sem token, bloqueio de permissao): criar handoff para Claude via enqueue-agent-handoff.yml",
     "sharedState": "autopilot-state branch e a fonte de verdade. Ambos leem/escrevem la.",
     "lockProtocol": "Se Claude tem session lock: NAO forcar. Criar handoff e esperar.",
     "prReview": "Codex pode revisar PRs do Claude e vice-versa via gh pr review"

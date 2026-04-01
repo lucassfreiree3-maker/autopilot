@@ -1,1 +1,84 @@
-{"schemaVersion":1,"lastUpdated":"2026-03-29T12:50:00Z","sessionCount":5,"currentState":{"controllerVersion":"3.6.6","agentVersion":"2.2.9","lastTriggerRun":69,"lastSuccessfulRun":66,"workspace":"ws-default","pipelineStatus":"success"},"sessionsLog":[],"decisions":[],"lessonsLearned":[],"errorPatterns":{}}
+{
+  "schemaVersion": 1,
+  "lastUpdated": "2026-04-01T18:00:24Z",
+  "sessionCount": 7,
+  "currentState": {
+    "controllerVersion": "3.6.6",
+    "agentVersion": "2.2.9",
+    "lastTriggerRun": 69,
+    "lastSuccessfulRun": 66,
+    "workspace": "ws-default",
+    "pipelineStatus": "success",
+    "githubMcp": "configured and validated locally via server github on 2026-04-01",
+    "operatingDoctrine": "cloud-first, github-first, local-last persisted in HANDOFF.md and shared-agent-contract.json"
+  },
+  "sessionsLog": [
+    {
+      "date": "2026-04-01",
+      "summary": "Diretriz operacional do proprietario institucionalizada no Autopilot: Cloud First, GitHub First, Local Last. HANDOFF.md passou a carregar a doutrina canonica, shared-agent-contract.json passou a exigir source-of-truth em GitHub, observabilidade, memoria persistente e gate minimo de qualidade.",
+      "actions": [
+        "persisted-operating-doctrine-in-handoff",
+        "persisted-operating-doctrine-in-shared-contract",
+        "updated-codex-memory-with-doctrine"
+      ],
+      "triggeredBy": "Lucas — definiu a diretriz oficial de operacao do projeto",
+      "lessonsLearned": [
+        "Diretrizes estruturais do projeto nao podem ficar apenas na conversa; devem virar contrato e handoff canonico",
+        "HANDOFF.md e o documento principal para continuidade operacional entre sessoes e agentes",
+        "A maquina local deve ser tratada como terminal temporario, nunca como fonte primaria de verdade"
+      ]
+    },
+    {
+      "date": "2026-04-01",
+      "summary": "GitHub MCP oficial configurado no Codex via launcher local reutilizando gh auth. Validado em runtime com mcp_tool_call no servidor github para search_repositories, list_pull_requests e search_pull_requests no repo lucassfreiree/autopilot.",
+      "actions": [
+        "configured-github-mcp-launcher",
+        "validated-codex-exec-mcp-repo-metadata",
+        "validated-codex-exec-mcp-open-prs",
+        "mapped-github-mcp-in-autopilot-docs-and-contract"
+      ],
+      "triggeredBy": "Lucas — pediu para configurar o MCP do GitHub e mapear a capacidade no autopilot",
+      "lessonsLearned": [
+        "Codex local consegue usar o servidor MCP oficial do GitHub quando ele esta registrado em [mcp_servers.github] e apontando para um launcher stdio",
+        "O launcher pode reutilizar o token do gh auth local, evitando PAT hardcoded no config.toml",
+        "Validacao real deve observar eventos mcp_tool_call no codex exec; smoke test de stdio isolado nao prova integracao completa com o runtime",
+        "Escopo e permissao continuam limitando write ops; MCP aumenta cobertura operacional, nao privilegios"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "date": "2026-04-01",
+      "decision": "Operar o projeto segundo a doutrina Cloud First, GitHub First, Local Last",
+      "context": "Diretriz explicita do proprietario. Toda entrega deve reduzir dependencia local e aumentar automacao, auditabilidade, memoria persistente e continuidade operacional no GitHub/cloud."
+    },
+    {
+      "date": "2026-04-01",
+      "decision": "GitHub MCP passa a ser caminho de primeira classe para triagem repo/PR/issues no autopilot quando disponivel localmente",
+      "context": "Teste real do codex exec mostrou mcp_tool_call no servidor github com search_repositories, list_pull_requests e search_pull_requests"
+    }
+  ],
+  "lessonsLearned": [
+    {
+      "lesson": "GitHub MCP oficial do Codex foi validado em runtime no repo lucassfreiree/autopilot",
+      "source": "session 2026-04-01",
+      "fix": "Usar servidor github para leituras de repo/PR/issues e manter gh CLI como fallback ou para fluxos fora do MCP"
+    },
+    {
+      "lesson": "O token pode ser herdado do gh auth local por um launcher stdio sem gravar segredo no config.toml",
+      "source": "session 2026-04-01",
+      "fix": "Manter ~/.local/bin/codex-github-mcp lendo ~/.config/gh/hosts.yml ou GITHUB_PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "lesson": "Permissao do repo continua sendo o limitador real de autonomia",
+      "source": "session 2026-04-01",
+      "fix": "Para write real no repo alvo, garantir que a conta/token autenticado tenha permissao de escrita"
+    },
+    {
+      "lesson": "Toda regra operacional relevante deve ser persistida no GitHub do projeto, preferencialmente em HANDOFF.md ou contratos compartilhados",
+      "source": "session 2026-04-01",
+      "fix": "Registrar novas doutrinas, runbooks e padroes como ativos canonicos do Autopilot em vez de depender de memoria conversacional"
+    }
+  ],
+  "errorPatterns": {}
+}

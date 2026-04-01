@@ -1,0 +1,11 @@
+{
+  "operation": "agent-sync",
+  "workspaceId": "ws-default",
+  "task": "ci-fix",
+  "timestamp": "2026-03-22T01:49:09Z",
+  "runId": "23393302192",
+  "model": "gpt-4o",
+  "usage": "n/a",
+  "applied": "n/a",
+  "remainingErrors": "n/a"
+}

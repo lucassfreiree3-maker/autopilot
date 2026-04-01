@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 3,
+  "workspaceId": "ws-default",
+  "displayName": "Getronics Workspace",
+  "createdAt": "2026-03-21T21:41:00Z",
+  "updatedAt": "2026-03-26T18:20:00Z",
+  "company": {
+    "id": "getronics",
+    "name": "Getronics",
+    "machine": "getronics-workstation",
+    "dataClassification": "confidential"
+  },
+  "stack": {
+    "primary": "node",
+    "tools": ["typescript", "nestjs", "jest", "eslint", "docker", "kubernetes"],
+    "platforms": ["openshift", "kubernetes"]
+  },
+  "credentials": {
+    "tokenSecretName": "BBVINET_TOKEN",
+    "additionalSecrets": [
+      { "name": "RELEASE_TOKEN", "purpose": "Release operations and autopilot checkout" }
+    ]
+  },
+  "controller": {
+    "sourceRepo": "bbvinet/psc-sre-automacao-controller",
+    "deployRepo": "",
+    "deployBranch": "main",
+    "deployValuesPath": "",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-controller",
+    "capBranch": "main",
+    "capValuesPath": "releases/openshift/hml/deploy/values.yaml",
+    "ciWorkflowName": "Esteira de Build NPM",
+    "imagePattern": "image: .*psc-sre-automacao-controller:",
+    "note": "Controller CAP now on GitHub. Auto-promote enabled after corporate CI passes."
+  },
+  "agent": {
+    "sourceRepo": "bbvinet/psc-sre-automacao-agent",
+    "deployRepo": "",
+    "deployBranch": "main",
+    "deployValuesPath": "",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-agent",
+    "capBranch": "main",
+    "capValuesPath": "releases/openshift/hml/deploy/values.yaml",
+    "ciWorkflowName": "Esteira de Build NPM",
+    "imagePattern": "image: .*psc-sre-automacao-agent:"
+  },
+  "settings": {
+    "promotionTarget": "cap",
+    "autoRelease": true,
+    "lockTimeoutMinutes": 30,
+    "healthCheckEnabled": true
+  }
+}

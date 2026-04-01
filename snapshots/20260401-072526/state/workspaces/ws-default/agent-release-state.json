@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "workspaceId": "ws-default",
+  "component": "agent",
+  "lastReleasedSha": "9a4821239b127c042565ed97b03d40f246c4a76d",
+  "lastTag": "source-change",
+  "updatedAt": "2026-03-30T16:42:43Z",
+  "runId": "23755765756",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23755765756",
+  "ciResult": "success",
+  "status": "ci-passed",
+  "changeType": "source-code",
+  "commitMessage": "fix(agent): fix body-parser strict mode in test (#930188)",
+  "promoted": false,
+  "preExistingFailure": false,
+  "gateDecision": "pass"
+}

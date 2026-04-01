@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr291-20260328-201227",
+  "event": "post-merge-monitor",
+  "prNumber": 291,
+  "branch": "copilot/autonomia-operacional-implementacao",
+  "mergeSha": "fe9c5795e487c0db38b19e48a91aaefd49140fb3",
+  "timestamp": "2026-03-28T20:12:27Z",
+  "runId": "23693397128",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

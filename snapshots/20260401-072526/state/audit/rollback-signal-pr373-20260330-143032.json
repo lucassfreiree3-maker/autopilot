@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 373,
+  "branch": "claude/simplify-dashboard-workspaces-AAvYq",
+  "mergeSha": "ae8213a8a7a89e002c27417bae19912559b56373",
+  "timestamp": "2026-03-30T14:30:32Z",
+  "runId": "23750128345",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

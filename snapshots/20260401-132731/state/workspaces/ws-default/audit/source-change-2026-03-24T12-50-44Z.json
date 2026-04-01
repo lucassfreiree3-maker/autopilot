@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-24T12:50:44Z",
+  "runId": "23490145869",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23490145869",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: generic 401 error messages + update test assertions (3.5.7)",
+  "commitSha": "d932d7c35dbbe81120096d274be324198b6d3ffe",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

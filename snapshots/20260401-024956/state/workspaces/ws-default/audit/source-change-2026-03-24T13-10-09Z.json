@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-24T13:10:09Z",
+  "runId": "23490954152",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23490954152",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: update all test assertions for generic 401 messages (3.5.8)",
+  "commitSha": "c90133b40674703d2dfc7d8c064ac4a024017788",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

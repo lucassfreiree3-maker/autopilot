@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr289-20260328-193953",
+  "event": "post-merge-monitor",
+  "prNumber": 289,
+  "branch": "claude/sweeper-1min",
+  "mergeSha": "9b61406586af7b4396f8ea1e4108266e05680dd5",
+  "timestamp": "2026-03-28T19:39:53Z",
+  "runId": "23692822370",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

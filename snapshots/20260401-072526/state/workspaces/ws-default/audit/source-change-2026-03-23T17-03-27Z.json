@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T17:03:27Z",
+  "runId": "23449738631",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23449738631",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/controllers/execute.controller.ts",
+  "commitMessage": "fix: include execId in 504 and 500 error responses",
+  "commitSha": "",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "skipped",
+    "promote": "success",
+    "state": "skipped"
+  }
+}

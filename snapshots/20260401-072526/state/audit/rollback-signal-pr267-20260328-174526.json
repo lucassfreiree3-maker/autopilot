@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 267,
+  "branch": "copilot/test-end-to-end-controller-agent",
+  "mergeSha": "b97eb745d03bcef8dcb386c94294e218ca6fb119",
+  "timestamp": "2026-03-28T17:45:26Z",
+  "runId": "23690762136",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

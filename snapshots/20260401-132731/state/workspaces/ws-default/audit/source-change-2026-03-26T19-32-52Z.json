@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-26T19:32:52Z",
+  "runId": "23613461570",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23613461570",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "feat(controller): add cronjob routes to swagger + version 3.6.6",
+  "commitSha": "897cbc044a492af096c7acee5f31a175da8a98b4",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

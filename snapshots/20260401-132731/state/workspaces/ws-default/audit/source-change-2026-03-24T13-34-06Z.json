@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-24T13:34:06Z",
+  "runId": "23491999594",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23491999594",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix: generic 401 in jwt.ts AND jwt-callback.ts + all test assertions (3.5.9)",
+  "commitSha": "6ef629a9c09f1773e5d9ad23dc4badd7beec6082",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

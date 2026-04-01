@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 279,
+  "branch": "copilot/fix-autonomous-merge-timeout",
+  "mergeSha": "8488c7315592adb8644b3404ae66e68e4a9e6cfb",
+  "timestamp": "2026-03-28T19:11:55Z",
+  "runId": "23692329879",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

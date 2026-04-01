@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr411-20260331-192021",
+  "event": "post-merge-monitor",
+  "prNumber": 411,
+  "branch": "dependabot/github_actions/actions/upload-artifact-7",
+  "mergeSha": "bdbc3f53750e0f0c0f7e24c9e423c3ea91d770fc",
+  "timestamp": "2026-03-31T19:20:21Z",
+  "runId": "23815218779",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

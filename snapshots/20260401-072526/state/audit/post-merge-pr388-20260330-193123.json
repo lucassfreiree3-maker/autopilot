@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr388-20260330-193123",
+  "event": "post-merge-monitor",
+  "prNumber": 388,
+  "branch": "claude/fix-autopilot-workflow-dvOB7",
+  "mergeSha": "f2c9d2f68d71055fedc6419f74b3307475750498",
+  "timestamp": "2026-03-30T19:31:23Z",
+  "runId": "23763645153",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

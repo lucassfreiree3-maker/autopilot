@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T17:08:54Z",
+  "runId": "23756819116",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23756819116",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "feat(controller): add cronjob result endpoint (#930188)",
+  "commitSha": "f3e74015ea2a47170a304fe921a50cf9828dead8",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

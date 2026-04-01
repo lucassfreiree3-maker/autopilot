@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr372-20260330-135710",
+  "event": "post-merge-monitor",
+  "prNumber": 372,
+  "branch": "claude/session-memory-update",
+  "mergeSha": "754651a47213021c211c21c8e1896dc86a106c4e",
+  "timestamp": "2026-03-30T13:57:10Z",
+  "runId": "23748536631",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

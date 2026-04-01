@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T21:12:20Z",
+  "runId": "23564278191",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23564278191",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(controller): ajuste timeout padrão de chamada do agent (3.6.4)",
+  "commitSha": "c3e41c22805f68e7da8b761a32e2d02b60963eb0",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "cancelled",
+    "promote": "success",
+    "state": "success"
+  }
+}

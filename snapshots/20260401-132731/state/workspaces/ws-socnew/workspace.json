@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "workspaceId": "ws-socnew",
+  "displayName": "SocNew - Matheus",
+  "createdAt": "2026-03-22T17:15:00Z",
+  "updatedAt": "2026-03-22T17:15:00Z",
+  "controller": {
+    "sourceRepo": "matheusvlogsite-art/socnew",
+    "deployRepo": "",
+    "deployBranch": "main",
+    "deployValuesPath": "",
+    "ciWorkflowName": "",
+    "imagePattern": "",
+    "note": "Social network project managed by Matheus"
+  },
+  "agent": {
+    "sourceRepo": "",
+    "deployRepo": "",
+    "deployBranch": "main",
+    "deployValuesPath": "",
+    "capRepo": "",
+    "capBranch": "main",
+    "capValuesPath": "",
+    "ciWorkflowName": "",
+    "imagePattern": ""
+  },
+  "settings": {
+    "promotionTarget": "none",
+    "autoRelease": false,
+    "lockTimeoutMinutes": 30,
+    "healthCheckEnabled": true
+  }
+}

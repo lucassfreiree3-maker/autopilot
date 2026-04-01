@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 3,
+  "workspaceId": "ws-cit",
+  "displayName": "CIT Workspace",
+  "createdAt": "2026-03-24T12:00:00Z",
+  "updatedAt": "2026-03-24T12:00:00Z",
+  "company": {
+    "id": "cit",
+    "name": "CIT",
+    "machine": "cit-workstation",
+    "dataClassification": "internal"
+  },
+  "stack": {
+    "primary": "devops",
+    "tools": [
+      "docker",
+      "kubernetes",
+      "terraform",
+      "ansible",
+      "helm",
+      "argocd",
+      "prometheus",
+      "grafana",
+      "jenkins",
+      "gitlab-ci",
+      "github-actions",
+      "bash",
+      "python"
+    ],
+    "platforms": [
+      "kubernetes",
+      "docker",
+      "linux"
+    ]
+  },
+  "credentials": {
+    "tokenSecretName": "CIT_TOKEN",
+    "additionalSecrets": []
+  },
+  "repos": [],
+  "settings": {
+    "promotionTarget": "none",
+    "autoRelease": false,
+    "lockTimeoutMinutes": 30,
+    "healthCheckEnabled": true,
+    "allowedAgents": ["claude-code"]
+  }
+}

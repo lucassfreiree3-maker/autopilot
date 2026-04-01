@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-03-31T12:55:32Z",
+  "source": "manual",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23798391625",
+  "repairs": [
+    {
+      "type": "alert-only",
+      "workflow_id": 254330198,
+      "workflow_name": "[Core] PR Auto-Review",
+      "reason": "8 consecutive failures",
+      "action": "Needs manual investigation",
+      "lastUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23798344115"
+    }
+  ]
+}

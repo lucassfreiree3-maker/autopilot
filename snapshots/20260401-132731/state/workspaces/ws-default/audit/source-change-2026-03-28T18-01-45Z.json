@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-28T18:01:45Z",
+  "runId": "23690762213",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23690762213",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "chore: version bump v3.6.9",
+  "commitSha": "5ba9e6cb3741619fc8d1db5b3c80b588445a1e05",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

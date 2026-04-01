@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr383-20260330-193450",
+  "event": "post-merge-monitor",
+  "prNumber": 383,
+  "branch": "claude/security-update-refresh-g4TL2",
+  "mergeSha": "40c94b5535ae654385c0cc495986aee9be2c64e9",
+  "timestamp": "2026-03-30T19:34:50Z",
+  "runId": "23763794065",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

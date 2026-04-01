@@ -1,5 +1,5 @@
 {
-  "lastSync": "2026-04-01T17:53:53Z",
+  "lastSync": "2026-04-01T18:06:10Z",
   "syncSource": "autopilot/spark-sync-state.yml",
   "controller": {
     "version": "3.7.7",
@@ -92,7 +92,7 @@
   "health": {
     "schemaVersion": 2,
     "workspaceId": "ws-default",
-    "checkedAt": "2026-04-01T17:08:58Z",
+    "checkedAt": "2026-04-01T18:01:50Z",
     "overall": "degraded",
     "checks": {
       "workspace": {
@@ -102,12 +102,12 @@
       "controllerRelease": {
         "status": "pass",
         "message": "Tag: 3.7.7",
-        "detail": "Age: 3h"
+        "detail": "Age: 4h"
       },
       "agentRelease": {
         "status": "pass",
         "message": "Tag: source-change",
-        "detail": "Age: 48h"
+        "detail": "Age: 49h"
       },
       "stuckRuns": {
         "status": "pass",
@@ -122,7 +122,7 @@
         "message": "? commits ahead"
       }
     },
-    "summary": "degraded at 2026-04-01T17:08:58Z"
+    "summary": "degraded at 2026-04-01T18:01:50Z"
   },
   "ciMonitor": {
     "workspaceId": "ws-default",
@@ -202,22 +202,62 @@
   "recentWorkflows": [
     {
       "conclusion": null,
+      "created": "2026-04-01T18:05:57Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
+      "run_number": 180,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23863416527"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T18:03:15Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Intelligent Orchestrator • brain — observe, decide, act, learn",
+      "run_number": 55,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23863303377"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T18:01:41Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Health Check • schedule • ws=n/a • ref=main",
+      "run_number": 144,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23863236005"
+    },
+    {
+      "conclusion": "skipped",
+      "created": "2026-04-01T17:55:08Z",
+      "event": "pull_request_review_comment",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "Claude responding to @claude mention",
+      "run_number": 77,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862954070"
+    },
+    {
+      "conclusion": "success",
       "created": "2026-04-01T17:53:40Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Sync Spark Dashboard Repo • push workflows + HTML to spark-dashboard",
       "run_number": 3,
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862891643"
     },
     {
-      "conclusion": null,
+      "conclusion": "success",
       "created": "2026-04-01T17:53:39Z",
       "event": "push",
       "head_branch": "main",
       "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
       "run_number": 179,
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862891604"
     },
     {
@@ -359,46 +399,6 @@
       "run_number": 111,
       "status": "completed",
       "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861976285"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-04-01T17:31:57Z",
-      "event": "schedule",
-      "head_branch": "main",
-      "name": "[Core] Deploy Pipeline Monitor • schedule • scheduled",
-      "run_number": 44,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861956488"
-    },
-    {
-      "conclusion": "success",
-      "created": "2026-04-01T17:27:23Z",
-      "event": "schedule",
-      "head_branch": "main",
-      "name": "[Corp] Drift Correction • schedule • ws=n/a • ref=main",
-      "run_number": 54,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861761704"
-    },
-    {
-      "conclusion": "skipped",
-      "created": "2026-04-01T17:25:28Z",
-      "event": "pull_request_review_comment",
-      "head_branch": "codex/fix-spark-sync-empty-state-upstream",
-      "name": "Claude responding to @claude mention",
-      "run_number": 75,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861682135"
-    },
-    {
-      "conclusion": "skipped",
-      "created": "2026-04-01T17:19:58Z",
-      "event": "issue_comment",
-      "head_branch": "main",
-      "name": "Claude responding to @claude mention",
-      "run_number": 74,
-      "status": "completed",
-      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861447623"
     }
   ],
   "openPRs": [
@@ -1033,7 +1033,7 @@
       "drift": true,
       "driftDetail": "autopilot=source-change real=2.3.3"
     },
-    "lastChecked": "2026-04-01T17:53:53Z"
+    "lastChecked": "2026-04-01T18:06:10Z"
   },
   "corporateActivity": {
     "description": "Real-time activity from corporate repos — branches, PRs, external commits by other devs",

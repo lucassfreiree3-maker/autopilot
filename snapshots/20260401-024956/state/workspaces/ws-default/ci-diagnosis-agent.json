@@ -1,0 +1,19 @@
+{
+  "workspaceId": "ws-default",
+  "component": "agent",
+  "sourceRepo": "bbvinet/psc-sre-automacao-agent",
+  "commitSha": "169879ad0c92221c699974e99ea1e955c605bf98",
+  "commitMessage": "fix(agent): move test to unit dir, correct import paths (#930188)",
+  "commitAuthor": "github-actions",
+  "diagnosedAt": "2026-03-30T14:47:08Z",
+  "runId": "23750864465",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23750864465",
+  "reproduction": {
+    "scripts": "  build: tsc && tsoa spec\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  dev: tsc && tsoa spec && nodemon\n  test: jest\n  test:watch: jest --watch\n  test:coverage: jest --coverage\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --forceExit --passWithNoTests\n",
+    "lintErrors": [],
+    "buildSuccess": false,
+    "buildLog": "\n> psc-sre-automacao-agent@2.3.3 build\n> tsc && tsoa spec\n\ntsconfig.json(17,5): error TS5011: The common source directory of 'tsconfig.json' is './src'. The 'rootDir' setting must be explicitly set to this or another path to adjust your output's file layout.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(48,25): error TS5107: Option 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\ntsconfig.json(50,5): error TS5101: Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n",
+    "testSuccess": true,
+    "testLog": "\n> psc-sre-automacao-agent@2.3.3 test\n> jest\n\nsh: 1: jest: not found\n"
+  }
+}

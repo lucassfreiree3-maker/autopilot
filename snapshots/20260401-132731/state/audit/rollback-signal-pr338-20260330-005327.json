@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 338,
+  "branch": "claude/fix-builds-monitoring-9FrG1",
+  "mergeSha": "f340fca4c4e6f7c5d3f0e6639924c68d6ac94835",
+  "timestamp": "2026-03-30T00:53:27Z",
+  "runId": "23723297158",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

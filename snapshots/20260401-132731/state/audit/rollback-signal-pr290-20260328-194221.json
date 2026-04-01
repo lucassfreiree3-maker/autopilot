@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 290,
+  "branch": "claude/never-ask-user",
+  "mergeSha": "0538d03f10e1d814f8d9d0df67a13940e878e01f",
+  "timestamp": "2026-03-28T19:42:21Z",
+  "runId": "23692865717",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 278,
+  "branch": "copilot/update-spark-dashboard-data",
+  "mergeSha": "81fabcd77668f5478d5f99a990646a84b8c69071",
+  "timestamp": "2026-03-28T19:10:04Z",
+  "runId": "23692297089",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

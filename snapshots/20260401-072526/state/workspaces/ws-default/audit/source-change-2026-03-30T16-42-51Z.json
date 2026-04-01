@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T16:42:51Z",
+  "runId": "23755765756",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23755765756",
+  "component": "agent",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(agent): fix body-parser strict mode in test (#930188)",
+  "commitSha": "9a4821239b127c042565ed97b03d40f246c4a76d",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

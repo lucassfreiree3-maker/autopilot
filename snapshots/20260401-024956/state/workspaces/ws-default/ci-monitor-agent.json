@@ -1,0 +1,10 @@
+{
+  "workspaceId": "ws-default",
+  "component": "agent",
+  "commitSha": "9a4821239b127c042565ed97b03d40f246c4a76d",
+  "version": "",
+  "monitoredAt": "2026-03-30T16:43:07Z",
+  "ciOutcome": "success",
+  "monitorRunId": "23756312746",
+  "failedRunUrl": ""
+}

@@ -1,0 +1,60 @@
+{
+  "component": "controller",
+  "version": "3.6.6",
+  "scannedAt": "2026-03-31T17:31:52Z",
+  "vulnerabilities": [
+    {
+      "package": "ejs",
+      "currentVersion": "3.1.10",
+      "cve": "CVE-2023-29827",
+      "severity": "critical",
+      "ghsa": "GHSA-j5pp-6f4w-r5r6",
+      "fixVersion": "3.1.11",
+      "type": "npm"
+    },
+    {
+      "package": "braces",
+      "currentVersion": "3.0.2",
+      "cve": "CVE-2024-4068",
+      "severity": "high",
+      "ghsa": "GHSA-grv7-fg5c-xmjg",
+      "fixVersion": "3.0.3",
+      "type": "npm"
+    }
+  ],
+  "npmFixable": [
+    {
+      "package": "ejs",
+      "current": "3.1.10",
+      "fix": "3.1.11",
+      "cve": "CVE-2023-29827",
+      "severity": "critical",
+      "isDirect": false
+    },
+    {
+      "package": "braces",
+      "current": "3.0.3",
+      "fix": "3.0.3",
+      "cve": "CVE-2024-4068",
+      "severity": "high",
+      "isDirect": false
+    }
+  ],
+  "summary": {
+    "critical": 1,
+    "high": 1,
+    "fixable": 2
+  },
+  "advisories": [
+    {
+      "ghsa": "GHSA-j5pp-6f4w-r5r6",
+      "severity": "unknown\ncritical",
+      "summary": "\nejs v3.1.9 is vulnerable to server-side template injection. If the ejs file is controllable, temp..."
+    },
+    {
+      "ghsa": "GHSA-grv7-fg5c-xmjg",
+      "severity": "unknown\nhigh",
+      "summary": "\nUncontrolled resource consumption in braces"
+    }
+  ]
+}

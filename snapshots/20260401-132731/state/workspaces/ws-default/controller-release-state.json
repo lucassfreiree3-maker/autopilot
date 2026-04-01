@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "workspaceId": "ws-default",
+  "component": "controller",
+  "lastReleasedSha": "635bbc08c91f9aa3593a9864a5b661540b5914f3",
+  "lastTag": "3.7.6",
+  "updatedAt": "2026-04-01T12:01:31Z",
+  "runId": "23846956951",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23846956951",
+  "ciResult": "success",
+  "status": "promoted",
+  "changeType": "source-code",
+  "commitMessage": "fix(security): sanitize clustersNames, authMode and missingTargets to prevent Checkmarx Reflected_XSS (Similarity ID -1420982817)",
+  "promoted": true,
+  "preExistingFailure": false,
+  "gateDecision": "pass"
+}

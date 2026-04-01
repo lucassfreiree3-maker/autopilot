@@ -1,38 +1,1243 @@
 {
-  "lastSync": "2026-03-31T12:05:00Z",
-  "syncSource": "autopilot/claude-code",
+  "lastSync": "2026-04-01T17:53:53Z",
+  "syncSource": "autopilot/spark-sync-state.yml",
   "controller": {
-    "version": "3.7.3",
+    "version": "3.7.7",
     "status": "promoted",
     "ciResult": "success",
-    "promoted": true
+    "promoted": true,
+    "lastSha": "5683c88c10b33a41910be6d41e5a0713010f23e5",
+    "updatedAt": "2026-04-01T13:52:42Z",
+    "repo": "bbvinet/psc-sre-automacao-controller",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-controller",
+    "stack": "Node 22, TypeScript, Express, Jest, SQLite, S3"
   },
   "agent": {
     "version": "2.3.3",
     "status": "ci-passed",
     "ciResult": "success",
-    "promoted": true
+    "promoted": false,
+    "lastSha": "9a4821239b127c042565ed97b03d40f246c4a76d",
+    "updatedAt": "2026-03-30T16:42:43Z",
+    "repo": "bbvinet/psc-sre-automacao-agent",
+    "capRepo": "bbvinet/psc_releases_cap_sre-aut-agent",
+    "stack": "Node 22, TypeScript, Express, Jest, K8s client"
   },
   "pipeline": {
-    "status": "idle",
-    "lastRun": 81,
+    "status": "success",
+    "lastRun": 85,
     "component": "controller",
-    "version": "3.7.3"
+    "version": "3.7.7",
+    "promote": true,
+    "workspace": "GETRONICS | ws-default | BBVINET_TOKEN",
+    "changeType": "multi-file",
+    "commitMessage": "fix(security): address Checkmarx vulnerabilities — XSS sanitize output, SSRF block metadata hosts, DoS validate execId, silent log drop (v3.7.7)",
+    "changesCount": 7
   },
   "agents": {
-    "claude": { "status": "active" },
-    "copilot": { "sessionCount": 0 },
-    "codex": { "sessionCount": 0 }
+    "claude": {
+      "status": "active",
+      "task": "Fix dashboard sync + UI cleanup",
+      "phase": "monitoring",
+      "lastUpdated": "2026-03-31T12:00:00Z",
+      "lastAction": "fix-dashboard-sync-git-push"
+    },
+    "copilot": {
+      "sessionCount": 5,
+      "lastSession": "Absorbed: post-deploy monitoring is 100% AUTOMATIC via ci-monitor-loop.yml. Self-merge rule enforced: Copilot MUST call merge_pull_request immediately after create_pull_request without waiting for sweeper or user.",
+      "lessonsCount": 39,
+      "lastUpdated": "2026-03-28T19:18:00Z",
+      "sessions": [
+        {
+          "date": "2026-03-28",
+          "summary": "Conhecimento do Coding Agent absorvido. Aprendido: Coding Agent roda em background via issue assignment, Custom Agents em .github/agents/, Skills em .github/skills/, Hooks em .github/hooks/ auto-aprovam tools, copilot-setup-steps.yml roda antes do agent.",
+          "actions": 4
+        },
+        {
+          "date": "2026-03-27",
+          "summary": "Mega prompt absorvido. Gravados em memoria: boot sequence, deploy flow completo (10 fases), 20 regras de ouro, tooling (push_files obrigatorio), erros conhecidos, isolamento, progresso com checkboxes.",
+          "actions": 5
+        },
+        {
+          "date": "2026-03-28",
+          "summary": "Full autonomy learning session. Diagnosed copilot-post-deploy-sync.yml failure (git push to protected main = 403). Confirmed claude-live-status.json does not exist (only Claude creates it). Verified all .github agents/skills/hooks structure. Created PR #252 to fix sync workflow. Absorbed complete operational knowledge for future sessions.",
+          "actions": 6
+        },
+        {
+          "date": "2026-03-28",
+          "summary": "Test auto-merge sweeper validation. Created branch copilot/copilottest-sweeper, updated session memory, opened non-draft PR targeting main. Goal: confirm sweeper auto-merges agent PRs within ~5 minutes.",
+          "actions": 5
+        },
+        {
+          "date": "2026-03-28",
+          "summary": "Absorbed: post-deploy monitoring is 100% AUTOMATIC via ci-monitor-loop.yml. Self-merge rule enforced: Copilot MUST call merge_pull_request immediately after create_pull_request without waiting for sweeper or user.",
+          "actions": 3
+        }
+      ]
+    },
+    "codex": {
+      "sessionCount": 5,
+      "lastSession": "none",
+      "lessonsCount": 0,
+      "lastUpdated": "2026-03-29T12:50:00Z",
+      "sessions": []
+    }
+  },
+  "sessionLock": {
+    "agentId": "none",
+    "expiresAt": null,
+    "acquiredAt": null,
+    "operation": null
+  },
+  "health": {
+    "schemaVersion": 2,
+    "workspaceId": "ws-default",
+    "checkedAt": "2026-04-01T17:08:58Z",
+    "overall": "degraded",
+    "checks": {
+      "workspace": {
+        "status": "pass",
+        "message": "OK"
+      },
+      "controllerRelease": {
+        "status": "pass",
+        "message": "Tag: 3.7.7",
+        "detail": "Age: 3h"
+      },
+      "agentRelease": {
+        "status": "pass",
+        "message": "Tag: source-change",
+        "detail": "Age: 48h"
+      },
+      "stuckRuns": {
+        "status": "pass",
+        "message": "None"
+      },
+      "locks": {
+        "status": "warn",
+        "message": "1 active locks"
+      },
+      "drift": {
+        "status": "warn",
+        "message": "? commits ahead"
+      }
+    },
+    "summary": "degraded at 2026-04-01T17:08:58Z"
+  },
+  "ciMonitor": {
+    "workspaceId": "ws-default",
+    "component": "controller",
+    "commitSha": "5683c88c10b33a41910be6d41e5a0713010f23e5",
+    "version": "",
+    "monitoredAt": "2026-04-01T13:53:12Z",
+    "ciOutcome": "success",
+    "monitorRunId": "23852177413",
+    "failedRunUrl": ""
+  },
+  "pipelineStatus": {
+    "updatedAt": "2026-04-01T17:32:04Z",
+    "workspaceId": "ws-default",
+    "overallHealth": "ok",
+    "monitorRunId": "23861956488",
+    "triggerEvent": "schedule",
+    "autoDispatched": "",
+    "components": {
+      "agent": {
+        "version": "source-change",
+        "deployedAt": "2026-03-30T16:42:43Z",
+        "deployRunId": "23755765756",
+        "ciGateResult": "success",
+        "gateDecision": "pass",
+        "ciMonitorResult": "success",
+        "ciMonitorAt": "2026-03-30T16:43:07Z",
+        "stage": "idle",
+        "health": "ok",
+        "actionTaken": "none",
+        "deployAge": "2929min"
+      },
+      "controller": {
+        "version": "3.7.7",
+        "deployedAt": "2026-04-01T13:52:42Z",
+        "deployRunId": "23851391714",
+        "ciGateResult": "success",
+        "gateDecision": "pass",
+        "ciMonitorResult": "success",
+        "ciMonitorAt": "2026-04-01T13:53:12Z",
+        "stage": "idle",
+        "health": "ok",
+        "actionTaken": "none",
+        "deployAge": "219min"
+      }
+    }
   },
   "workspaces": [
-    { "id": "ws-default", "company": "Getronics", "status": "active", "stack": "Node/TypeScript (NestJS, Jest, ESLint)" },
-    { "id": "ws-cit", "company": "CIT", "status": "setup", "stack": "DevOps" }
+    {
+      "id": "ws-default",
+      "company": "Getronics",
+      "status": "active",
+      "stack": "Node/TypeScript (NestJS, Jest, ESLint)",
+      "token": "BBVINET_TOKEN",
+      "controllerVersion": "3.7.7",
+      "agentVersion": "2.3.3",
+      "pipelineStatus": "success",
+      "repos": [
+        "psc-sre-automacao-controller",
+        "psc-sre-automacao-agent",
+        "psc_releases_cap_sre-aut-controller",
+        "psc_releases_cap_sre-aut-agent"
+      ]
+    },
+    {
+      "id": "ws-cit",
+      "company": "CIT",
+      "status": "setup",
+      "stack": "DevOps (K8s, Docker, Terraform, Helm, ArgoCD)",
+      "token": "CIT_TOKEN",
+      "controllerVersion": null,
+      "agentVersion": null,
+      "pipelineStatus": "not-configured",
+      "repos": []
+    }
   ],
-  "recentWorkflows": [],
-  "openPRs": [],
+  "recentWorkflows": [
+    {
+      "conclusion": null,
+      "created": "2026-04-01T17:53:40Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Sync Spark Dashboard Repo • push workflows + HTML to spark-dashboard",
+      "run_number": 3,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862891643"
+    },
+    {
+      "conclusion": null,
+      "created": "2026-04-01T17:53:39Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
+      "run_number": 179,
+      "status": "in_progress",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862891604"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:52:47Z",
+      "event": "pull_request",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "[Infra] Cleanup: Stale Branches • pull_request • ws=n/a • ref=main",
+      "run_number": 362,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862854233"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:52:47Z",
+      "event": "pull_request_target",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "[Core] Post-Merge Monitor • PR #439 • codex/fix-spark-state-collector-upstream",
+      "run_number": 189,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862854222"
+    },
+    {
+      "conclusion": "skipped",
+      "created": "2026-04-01T17:51:30Z",
+      "event": "issue_comment",
+      "head_branch": "main",
+      "name": "Claude responding to @claude mention",
+      "run_number": 76,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862800196"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:51:21Z",
+      "event": "pull_request_target",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "[Core] Autonomous Direct Merge • PR #439 • codex/fix-spark-state-collector-upstream → main",
+      "run_number": 253,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862792917"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:51:21Z",
+      "event": "pull_request",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "[Core] PR Auto-Review • PR #439",
+      "run_number": 37,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862792861"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:51:21Z",
+      "event": "pull_request_target",
+      "head_branch": "codex/fix-spark-state-collector-upstream",
+      "name": "[Core] Auto-Merge Sweeper • sweep open agent PRs",
+      "run_number": 275,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862792832"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:45:53Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Sync Spark Dashboard Repo • push workflows + HTML to spark-dashboard",
+      "run_number": 2,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862557710"
+    },
+    {
+      "conclusion": "failure",
+      "created": "2026-04-01T17:45:53Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Infra] Spark Dashboard Sync • sync state to Spark dashboard",
+      "run_number": 178,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862557676"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:44:12Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Lock GC • schedule • ws=n/a • ref=main",
+      "run_number": 185,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862486128"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:42:15Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Workflow Health Monitor • monitor all workflows",
+      "run_number": 44,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862398746"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:36:41Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Auto-Merge Sweeper • sweep open agent PRs",
+      "run_number": 274,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23862162896"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:32:27Z",
+      "event": "pull_request",
+      "head_branch": "codex/fix-spark-sync-empty-state-upstream",
+      "name": "[Infra] Cleanup: Stale Branches • pull_request • ws=n/a • ref=main",
+      "run_number": 361,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861977630"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:32:27Z",
+      "event": "pull_request_target",
+      "head_branch": "codex/fix-spark-sync-empty-state-upstream",
+      "name": "[Core] Post-Merge Monitor • PR #438 • codex/fix-spark-sync-empty-state-upstream",
+      "run_number": 188,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861977629"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:32:25Z",
+      "event": "push",
+      "head_branch": "main",
+      "name": "[Core] Builds Validation Gate • validate all workflows",
+      "run_number": 111,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861976285"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:31:57Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Core] Deploy Pipeline Monitor • schedule • scheduled",
+      "run_number": 44,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861956488"
+    },
+    {
+      "conclusion": "success",
+      "created": "2026-04-01T17:27:23Z",
+      "event": "schedule",
+      "head_branch": "main",
+      "name": "[Corp] Drift Correction • schedule • ws=n/a • ref=main",
+      "run_number": 54,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861761704"
+    },
+    {
+      "conclusion": "skipped",
+      "created": "2026-04-01T17:25:28Z",
+      "event": "pull_request_review_comment",
+      "head_branch": "codex/fix-spark-sync-empty-state-upstream",
+      "name": "Claude responding to @claude mention",
+      "run_number": 75,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861682135"
+    },
+    {
+      "conclusion": "skipped",
+      "created": "2026-04-01T17:19:58Z",
+      "event": "issue_comment",
+      "head_branch": "main",
+      "name": "Claude responding to @claude mention",
+      "run_number": 74,
+      "status": "completed",
+      "url": "https://github.com/lucassfreiree/autopilot/actions/runs/23861447623"
+    }
+  ],
+  "openPRs": [
+    {
+      "author": "lucassfreiree3-maker",
+      "branch": "codex/security-intake-web",
+      "created": "2026-04-01T15:40:06Z",
+      "draft": false,
+      "number": 433,
+      "title": "[codex] feat: add web-only security remediation intake"
+    },
+    {
+      "author": "devin-ai-integration[bot]",
+      "branch": "agent/devin-bootstrap",
+      "created": "2026-03-31T22:14:13Z",
+      "draft": false,
+      "number": 429,
+      "title": "feat(agent+governance): bootstrap Devin agent registration + governance infrastructure"
+    },
+    {
+      "author": "devin-ai-integration[bot]",
+      "branch": "devin/1774994631-governance-and-commands",
+      "created": "2026-03-31T22:05:58Z",
+      "draft": false,
+      "number": 428,
+      "title": "feat(governance): CODEOWNERS, AI task form, @devin command, collaboration protocol"
+    },
+    {
+      "author": "dependabot[bot]",
+      "branch": "dependabot/github_actions/hashicorp/setup-terraform-4",
+      "created": "2026-03-31T12:49:27Z",
+      "draft": false,
+      "number": 414,
+      "title": "ci(deps): bump hashicorp/setup-terraform from 3 to 4"
+    },
+    {
+      "author": "dependabot[bot]",
+      "branch": "dependabot/github_actions/actions/github-script-8",
+      "created": "2026-03-31T12:49:24Z",
+      "draft": false,
+      "number": 413,
+      "title": "ci(deps): bump actions/github-script from 7 to 8"
+    },
+    {
+      "author": "dependabot[bot]",
+      "branch": "dependabot/github_actions/google-github-actions/auth-3",
+      "created": "2026-03-31T12:49:18Z",
+      "draft": false,
+      "number": 412,
+      "title": "ci(deps): bump google-github-actions/auth from 2 to 3"
+    },
+    {
+      "author": "dependabot[bot]",
+      "branch": "dependabot/github_actions/actions/setup-python-6",
+      "created": "2026-03-31T12:49:02Z",
+      "draft": false,
+      "number": 410,
+      "title": "ci(deps): bump actions/setup-python from 5 to 6"
+    }
+  ],
+  "deployHistory": [
+    "state/workspaces/ws-default/audit/source-change-2026-04-01T13-52-52Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-04-01T12-01-38Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-31T21-47-28Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-31T17-39-41Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T19-40-15Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T19-03-30Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T18-35-14Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T18-26-50Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T17-08-54Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T16-42-51Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T14-45-16Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T14-33-49Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T13-30-52Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-30T13-10-52Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-29T14-00-40Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-29T13-47-16Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-28T19-44-29Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-28T19-06-17Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-28T18-01-45Z.json",
+    "state/workspaces/ws-default/audit/source-change-2026-03-27T15-53-33Z.json"
+  ],
+  "lessonsLearned": {
+    "total": 39,
+    "copilot": 39,
+    "codex": 0,
+    "copilotLessons": [
+      {
+        "lesson": "NUNCA usar validateTrustedUrl dentro de fetch/postJson — quebra testes mock",
+        "fix": "Validar URL no input (parseSafeIdentifier), nao no fetch",
+        "source": "runs 3.6.1-3.6.2 failures"
+      },
+      {
+        "lesson": "CI Gate pre-existing detection esta QUEBRADO — nao confiar no resultado",
+        "fix": "Para resultado REAL: ler ci-logs-controller-*.txt do autopilot-state",
+        "source": "run 43"
+      },
+      {
+        "lesson": "apply-source-change SUCCESS != deploy completo — esteira corporativa roda depois",
+        "fix": "SEMPRE monitorar esteira corporativa apos workflow do autopilot",
+        "source": "multiple sessions"
+      },
+      {
+        "lesson": "SEMPRE partir da base corporativa ATUAL — nunca de patches antigos",
+        "fix": "Fetch arquivos via fetch-files.yml antes de criar patches",
+        "source": "session security_fixes"
+      },
+      {
+        "lesson": "NUNCA push direto para main — retorna 403",
+        "fix": "Sempre branch copilot/* → PR → squash merge",
+        "source": "branch protection"
+      },
+      {
+        "lesson": "COPILOT NUNCA modifica arquivos do Claude — isolamento total",
+        "fix": "Todos workflows do Copilot tem lista de arquivos permitidos. Se nao esta na lista, NAO TOCA.",
+        "source": "session 2026-03-27 — regra do Lucas"
+      },
+      {
+        "lesson": "Sync pos-deploy DEVE ser automatico — copilot-post-deploy-sync.yml",
+        "fix": "Workflow roda automatico apos apply-source-change. Atualiza values.yaml + copilot memory.",
+        "source": "session 2026-03-27 — regra do Lucas"
+      },
+      {
+        "lesson": "references/controller-cap/values.yaml DEVE refletir versao real deployada",
+        "fix": "copilot-post-deploy-sync.yml atualiza automaticamente apos cada deploy",
+        "source": "session 2026-03-27 — drift detectado (3.6.3 header, 3.6.6 image, 3.6.8 real)"
+      },
+      {
+        "lesson": "SEMPRE usar push_files para TODAS as operacoes de arquivo — NUNCA create_or_update_file. push_files faz N arquivos em 1 chamada = 1 confirmacao",
+        "fix": "Substituir qualquer uso de create_or_update_file por push_files com array de files",
+        "source": "contracts/copilot-mega-prompt.md — Secao 5 e Regra de Ouro #2"
+      },
+      {
+        "lesson": "Fluxo ideal de deploy = 3 tool calls: push_files → create_pull_request → merge_pull_request",
+        "fix": "Planejar todas as alteracoes antecipadamente para fazer push_files com todos os arquivos de uma vez",
+        "source": "contracts/copilot-mega-prompt.md — Secao 3.2 e Secao 5"
+      },
+      {
+        "lesson": "NUNCA pedir ao usuario para fazer algo manualmente — usar API para tudo",
+        "fix": "Se precisar marcar PR como ready: usar update_pull_request(draft: false). Se precisar mergear: usar merge_pull_request.",
+        "source": "contracts/copilot-mega-prompt.md — Regra de Ouro #1 e #12"
+      },
+      {
+        "lesson": "NUNCA dizer 'clique em Ready for Review' — usar update_pull_request(draft: false) ou GraphQL markPullRequestReadyForReview",
+        "fix": "update_pull_request(owner, repo, pullNumber, draft: false)",
+        "source": "contracts/copilot-mega-prompt.md — Secao 5.6"
+      },
+      {
+        "lesson": "SEMPRE mostrar progresso com checkboxes [x] concluido, [~] em andamento, [ ] pendente",
+        "fix": "Usar formato: [x] passo 1, [~] passo 2 em andamento, [ ] passo 3",
+        "source": "contracts/copilot-mega-prompt.md — Secao 6"
+      },
+      {
+        "lesson": "Boot sequence OBRIGATORIO: ler copilot-session-memory → claude-live-status → claude-session-memory antes de QUALQUER acao",
+        "fix": "Executar os 4 passos da boot sequence no inicio de cada sessao",
+        "source": "contracts/copilot-mega-prompt.md — Secao 2"
+      },
+      {
+        "lesson": "Se erro em deploy: diagnosticar + corrigir + re-deploy AUTOMATICAMENTE sem perguntar ao usuario",
+        "fix": "1. Identificar erro nos logs. 2. Corrigir patch. 3. Bumpar versao. 4. Incrementar run. 5. Novo push_files → PR → merge → monitorar.",
+        "source": "contracts/copilot-mega-prompt.md — Secao 3.3 Fase 10 e Regra de Ouro #19"
+      },
+      {
+        "lesson": "Documentacao completa de deploy em ops/docs/deploy-process/ (12 fases). Nunca inventar — sempre consultar os docs.",
+        "fix": "Para cada fase do deploy, consultar o arquivo correspondente em ops/docs/deploy-process/",
+        "source": "contracts/copilot-mega-prompt.md — Secao 11"
+      },
+      {
+        "lesson": "copilot-post-deploy-sync.yml git push to main FAILS with branch protection — MUST use RELEASE_TOKEN or branch+PR flow",
+        "fix": "Use RELEASE_TOKEN for git push, or create branch copilot/auto-sync-{version} → PR → squash merge",
+        "source": "session 2026-03-28 — 4+ consecutive workflow failures observed"
+      },
+      {
+        "lesson": "claude-live-status.json may NOT exist — handle FileNotFound gracefully in boot sequence",
+        "fix": "Wrap boot step 2 in try/catch. If file missing, log warning and continue. NEVER create it (Claude's file).",
+        "source": "session 2026-03-28 — file referenced but not found in repo"
+      },
+      {
+        "lesson": ".github/copilot-instructions.md is AUTO-GENERATED — NEVER edit directly",
+        "fix": "To change Copilot instructions, edit contracts/copilot-mega-prompt.md or contracts/copilot-super-prompt.md. Workflow syncs automatically.",
+        "source": "session 2026-03-28 — generated by sync-copilot-prompt.yml from contracts/copilot-mega-prompt.md"
+      },
+      {
+        "lesson": "Before creating any PR, ALWAYS check if an identical or similar PR already exists to avoid duplicates",
+        "fix": "Use list_pull_requests or search for open PRs with matching branch/title before creating",
+        "source": "session 2026-03-28 — PR #252 already existed when attempting to create fix"
+      },
+      {
+        "lesson": "autonomous-merge-direct.yml handles ALL agent PRs automatically — no manual merge needed",
+        "fix": "After creating PR with draft:false, autonomous-merge-direct.yml waits for checks then squash merges. If direct merge fails, falls back to enablePullRequestAutoMerge.",
+        "source": "session 2026-03-28 — verified workflow handles copilot/*, claude/*, codex/* branches"
+      },
+      {
+        "lesson": "trigger/source-change.json current state: version 3.6.8, run 66, component controller, workspace ws-default",
+        "fix": "Next deploy MUST use version >= 3.6.9 (or 3.7.0 if after 3.6.9) and run >= 67",
+        "source": "session 2026-03-28 — read from file"
+      },
+      {
+        "lesson": "The Autopilot has 3 agent types: Claude (primary, has filesystem), Copilot (backup, API-only), Codex (secondary). Each has own session-memory, agent-contract, and branch prefix.",
+        "fix": "Claude: claude/*, Copilot: copilot/*, Codex: codex/*. Never cross-modify agent files.",
+        "source": "session 2026-03-28 — contracts directory analysis"
+      },
+      {
+        "lesson": "COMPLETE BOOT SEQUENCE for every session: 1) Read copilot-session-memory.json 2) Try read claude-live-status.json (may not exist) 3) Read claude-session-memory.json 4) Read trigger/source-change.json for current version/run 5) Show estado atual to user",
+        "fix": "Execute ALL steps. If any file missing, log and continue. Never skip memory read.",
+        "source": "session 2026-03-28 — consolidated from mega-prompt + experience"
+      },
+      {
+        "lesson": "NUNCA modificar autonomous-pr-lane.yml ou auto-merge-to-main.yml — estao DESABILITADOS de proposito. autonomous-merge-direct.yml e o UNICO handler de PRs de agentes. Reativar os outros causa workflows duplicados.",
+        "fix": "autonomous-pr-lane.yml tem if:false. auto-merge-to-main.yml tem skip para agent branches. NAO TOCAR.",
+        "source": "session 2026-03-28 — Claude desabilitou, Copilot reativou acidentalmente"
+      },
+      {
+        "lesson": "Monitoramento pos-deploy e 100% AUTOMATICO: ci-monitor-loop.yml dispara sozinho apos apply-source-change. Poll cada 2 min por 30 min. Se CI passou: promote-cap.yml. Se CI falhou: ci-diagnose + fix-corporate-ci. NUNCA monitorar manualmente.",
+        "fix": null,
+        "source": "issue-absorb-auto-monitor-2026-03-28"
+      },
+      {
+        "lesson": "fix-corporate-ci.yml clona repo, instala deps, corrige ESLint/TS automaticamente, push fix. Esteira roda novamente sozinha.",
+        "fix": null,
+        "source": "issue-absorb-auto-monitor-2026-03-28"
+      },
+      {
+        "lesson": "Para verificar resultado depois: ler ci-monitor-controller.json do autopilot-state (ciOutcome: success/failure)",
+        "fix": null,
+        "source": "issue-absorb-auto-monitor-2026-03-28"
+      },
+      {
+        "lesson": "O fluxo completo apos merge e: apply-source-change → ci-monitor-loop → promote-cap OU ci-diagnose+fix. ZERO intervencao.",
+        "fix": null,
+        "source": "issue-absorb-auto-monitor-2026-03-28"
+      },
+      {
+        "lesson": "VOCE faz o merge do PR imediatamente apos criar (push_files → create_pull_request → merge_pull_request). NUNCA esperar sweeper ou usuario.",
+        "fix": null,
+        "source": "issue-absorb-auto-monitor-2026-03-28"
+      }
+    ],
+    "codexLessons": []
+  },
+  "versionRules": {
+    "currentController": "3.7.7",
+    "currentAgent": "2.3.3",
+    "pattern": "After X.Y.9 next is X.(Y+1).0 — NEVER X.Y.10",
+    "lastTriggerRun": 73,
+    "lastSuccessfulRun": 73
+  },
+  "executionHistory": [
+    {
+      "id": "session_01WNCzT7nhQbajAjtvmqDgvK",
+      "date": "2026-03-23",
+      "summary": "Fix multi-file support in apply-source-change workflow + re-trigger run 29"
+    },
+    {
+      "id": "session_post_run33_success",
+      "date": "2026-03-23",
+      "summary": "Workflow apply-source-change run #33 completou com SUCESSO. Fixes intermediarios: skip per-file lint para multi-file, cancel-in-progress para desbloquear runs stuck."
+    },
+    {
+      "id": "session_01WNCzT7nhQbajAjtvmqDgvK_deploy355",
+      "date": "2026-03-23",
+      "summary": "Deploy 3.5.5 com swagger completo (18 rotas) + documentacao completa do fluxo de deploy para todos os agentes"
+    },
+    {
+      "id": "session_017Vu7y3pTKmpZxQoERQhKyN",
+      "date": "2026-03-23",
+      "summary": "Historia #868216 completa + deploy 3.5.4 + sistema de memoria"
+    },
+    {
+      "id": null,
+      "date": "2026-03-30",
+      "summary": "Security update + community sync + centralization + cost optimization"
+    }
+  ],
+  "knownErrors": [
+    {
+      "code": "403_push",
+      "desc": "Branch nao comeca com claude/copilot/codex/devin/",
+      "fix": "Renomear branch"
+    },
+    {
+      "code": "trigger_not_firing",
+      "desc": "Campo run nao incrementado",
+      "fix": "Incrementar run +1"
+    },
+    {
+      "code": "duplicate_tag",
+      "desc": "Versao ja existe no registry",
+      "fix": "Incrementar patch"
+    },
+    {
+      "code": "eslint_no_use_before_define",
+      "desc": "Funcao usada antes de definir",
+      "fix": "Mover funcao para cima"
+    },
+    {
+      "code": "eslint_no_nested_ternary",
+      "desc": "Ternario aninhado",
+      "fix": "Usar if/else"
+    },
+    {
+      "code": "ts2769_jwt_sign",
+      "desc": "expiresIn tipo errado",
+      "fix": "parseExpiresIn() com cast"
+    },
+    {
+      "code": "swagger_garbled",
+      "desc": "Acentos no swagger",
+      "fix": "ASCII puro"
+    },
+    {
+      "code": "jwt_scope_plural",
+      "desc": "scopes (plural) no JWT",
+      "fix": "Usar scope (singular)"
+    },
+    {
+      "code": "search_replace_newlines",
+      "desc": "sed nao interpreta newlines",
+      "fix": "Usar replace-file"
+    },
+    {
+      "code": "ci_gate_broken",
+      "desc": "CI Gate pre-existing detection falso",
+      "fix": "Ler ci-logs-*.txt"
+    },
+    {
+      "code": "mock_tests_broken",
+      "desc": "validateTrustedUrl em fetch/postJson",
+      "fix": "Remover do fetch"
+    },
+    {
+      "code": "pr_dirty",
+      "desc": "Conflito com main",
+      "fix": "git pull --rebase origin main"
+    }
+  ],
+  "pipelineStages": [
+    {
+      "name": "Setup",
+      "desc": "Read workspace config, resolve inputs"
+    },
+    {
+      "name": "Session Guard",
+      "desc": "Acquire multi-agent lock"
+    },
+    {
+      "name": "Apply & Push",
+      "desc": "Clone repo, apply patches, push"
+    },
+    {
+      "name": "CI Gate",
+      "desc": "Wait corporate CI (Esteira Build NPM)"
+    },
+    {
+      "name": "Promote",
+      "desc": "Update CAP values.yaml image tag"
+    },
+    {
+      "name": "Save State",
+      "desc": "Record on autopilot-state"
+    },
+    {
+      "name": "Audit",
+      "desc": "Audit trail + release lock"
+    }
+  ],
+  "corporateReal": {
+    "description": "REAL versions from corporate repos — source of truth. Other people may deploy independently.",
+    "controller": {
+      "sourceVersion": "3.7.7",
+      "capTag": "3.7.7",
+      "recentCommits": [
+        {
+          "author": "github-actions",
+          "date": "2026-04-01T13:35:53Z",
+          "message": "fix(security): address Checkmarx vulnerabilities — XSS sanitize output, SSRF blo",
+          "sha": "5683c88c"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-04-01T11:46:17Z",
+          "message": "fix(security): sanitize clustersNames, authMode and missingTargets to prevent Ch",
+          "sha": "635bbc08"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-31T21:33:05Z",
+          "message": "chore(release): bump controller version to 3.7.5",
+          "sha": "308f5335"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-31T17:24:54Z",
+          "message": "fix(security): bound pickPreferredSnapshot loop to prevent Checkmarx Server_DoS_",
+          "sha": "7c29355b"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T19:26:24Z",
+          "message": "fix(security): harden XSS sanitization, SSRF validation and DoS loop bounds",
+          "sha": "4df95ad9"
+        }
+      ],
+      "builds": [
+        {
+          "checks": [
+            {
+              "conclusion": "success",
+              "name": "CD (desenvolvimento) / autoDeploy",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / checkmarx",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / xRay",
+              "status": "completed"
+            }
+          ],
+          "sha": "5683c88c",
+          "total": 8
+        },
+        {
+          "checks": [
+            {
+              "conclusion": "success",
+              "name": "CD (desenvolvimento) / autoDeploy",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sincronizacao",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / checkmarx",
+              "status": "completed"
+            }
+          ],
+          "sha": "635bbc08",
+          "total": 8
+        },
+        {
+          "checks": [
+            {
+              "conclusion": "success",
+              "name": "CD (desenvolvimento) / autoDeploy",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / xRay",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sincronizacao",
+              "status": "completed"
+            }
+          ],
+          "sha": "308f5335",
+          "total": 8
+        }
+      ],
+      "drift": false,
+      "driftDetail": null
+    },
+    "agent": {
+      "sourceVersion": "2.3.3",
+      "capTag": "2.3.3",
+      "recentCommits": [
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T16:31:03Z",
+          "message": "fix(agent): fix body-parser strict mode in test (#930188)",
+          "sha": "9a482123"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T14:42:31Z",
+          "message": "fix(agent): move test to unit dir, correct import paths (#930188)",
+          "sha": "169879ad"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T14:30:33Z",
+          "message": "fix(agent): fix timer leak and test mock in cronjob-callback (#930188)",
+          "sha": "ad0bfca3"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T13:27:49Z",
+          "message": "fix(agent): correct test import paths for cronjob-callback (#930188)",
+          "sha": "e3834f99"
+        },
+        {
+          "author": "github-actions",
+          "date": "2026-03-30T13:08:19Z",
+          "message": "feat(agent): implement cronjob callback endpoint (#930188)",
+          "sha": "e4fb515f"
+        }
+      ],
+      "builds": [
+        {
+          "checks": [
+            {
+              "conclusion": "success",
+              "name": "CD (desenvolvimento) / autoDeploy",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sincronizacao",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / checkmarx",
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            }
+          ],
+          "sha": "9a482123",
+          "total": 8
+        },
+        {
+          "checks": [
+            {
+              "conclusion": "skipped",
+              "name": "CD (desenvolvimento)",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / checkmarx",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / xRay",
+              "status": "completed"
+            }
+          ],
+          "sha": "169879ad",
+          "total": 8
+        },
+        {
+          "checks": [
+            {
+              "conclusion": "skipped",
+              "name": "CD (desenvolvimento)",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / Análise Motor Liberação",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / sonarQube",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / xRay",
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "CI / checkmarx",
+              "status": "completed"
+            }
+          ],
+          "sha": "ad0bfca3",
+          "total": 8
+        }
+      ],
+      "drift": true,
+      "driftDetail": "autopilot=source-change real=2.3.3"
+    },
+    "lastChecked": "2026-04-01T17:53:53Z"
+  },
+  "corporateActivity": {
+    "description": "Real-time activity from corporate repos — branches, PRs, external commits by other devs",
+    "controller": {
+      "branches": [
+        {
+          "name": "27-11-backup",
+          "protected": false,
+          "sha": "9d660c54"
+        },
+        {
+          "name": "backup",
+          "protected": false,
+          "sha": "403f51bf"
+        },
+        {
+          "name": "branch-1.3.2",
+          "protected": false,
+          "sha": "372a19a0"
+        },
+        {
+          "name": "branch-2.0.1",
+          "protected": false,
+          "sha": "85928cea"
+        },
+        {
+          "name": "controller-v1",
+          "protected": false,
+          "sha": "db1d27f3"
+        },
+        {
+          "name": "develop",
+          "protected": false,
+          "sha": "8d6ff722"
+        },
+        {
+          "name": "escope_feature",
+          "protected": false,
+          "sha": "6e9c0b6b"
+        },
+        {
+          "name": "feature/oas-automations-routes",
+          "protected": false,
+          "sha": "48fb8be3"
+        },
+        {
+          "name": "feature/oas-sre-controller-techbb-origin-auth",
+          "protected": false,
+          "sha": "a06e9c7e"
+        },
+        {
+          "name": "hotfix-2.3.4",
+          "protected": false,
+          "sha": "1f8f6543"
+        },
+        {
+          "name": "jwt_escopes_feature",
+          "protected": false,
+          "sha": "3f0284b8"
+        },
+        {
+          "name": "main",
+          "protected": true,
+          "sha": "5683c88c"
+        }
+      ],
+      "branchCount": 12,
+      "featureBranches": [
+        {
+          "name": "27-11-backup",
+          "protected": false,
+          "sha": "9d660c54"
+        },
+        {
+          "name": "backup",
+          "protected": false,
+          "sha": "403f51bf"
+        },
+        {
+          "name": "branch-1.3.2",
+          "protected": false,
+          "sha": "372a19a0"
+        },
+        {
+          "name": "branch-2.0.1",
+          "protected": false,
+          "sha": "85928cea"
+        },
+        {
+          "name": "controller-v1",
+          "protected": false,
+          "sha": "db1d27f3"
+        },
+        {
+          "name": "develop",
+          "protected": false,
+          "sha": "8d6ff722"
+        },
+        {
+          "name": "escope_feature",
+          "protected": false,
+          "sha": "6e9c0b6b"
+        },
+        {
+          "name": "feature/oas-automations-routes",
+          "protected": false,
+          "sha": "48fb8be3"
+        },
+        {
+          "name": "feature/oas-sre-controller-techbb-origin-auth",
+          "protected": false,
+          "sha": "a06e9c7e"
+        },
+        {
+          "name": "hotfix-2.3.4",
+          "protected": false,
+          "sha": "1f8f6543"
+        },
+        {
+          "name": "jwt_escopes_feature",
+          "protected": false,
+          "sha": "3f0284b8"
+        }
+      ],
+      "openPRs": [],
+      "openPRCount": 0,
+      "externalCommits": [],
+      "externalCommitCount": 0,
+      "hasExternalActivity": false
+    },
+    "agent": {
+      "branches": [
+        {
+          "name": "main",
+          "protected": true,
+          "sha": "9a482123"
+        }
+      ],
+      "branchCount": 1,
+      "featureBranches": [],
+      "openPRs": [],
+      "openPRCount": 0,
+      "externalCommits": [],
+      "externalCommitCount": 0,
+      "hasExternalActivity": false
+    }
+  },
+  "improvements": {
+    "summary": {
+      "totalOptimizations": 1,
+      "totalBytesSaved": 44837,
+      "totalDeploysSuccessful": 71,
+      "totalCIFailuresAutoFixed": 8,
+      "totalLessonsLearned": 39,
+      "totalErrorPatternsDocumented": 12,
+      "systemUptime": "99.5%",
+      "avgDeployTime": "12min",
+      "firstDeploy": "2026-03-23",
+      "latestDeploy": "2026-03-29"
+    },
+    "count": 6,
+    "latest": [
+      {
+        "id": "token-optimize-001",
+        "date": "2026-03-29T20:00:00Z",
+        "type": "token-optimization",
+        "title": "Session Memory Compaction — First Run",
+        "impact": {
+          "bytesSaved": 44837,
+          "percentReduction": 40,
+          "estimatedTokensSavedPerSession": 22000,
+          "estimatedCostSavedPerSession": 0.33
+        }
+      },
+      {
+        "id": "deploy-pipeline-evolution",
+        "date": "2026-03-29T14:00:00Z",
+        "type": "pipeline-improvement",
+        "title": "Deploy Pipeline: 7-Stage with Auto-Promote + Compliance Gate",
+        "impact": {
+          "failedDeploysReduced": "from ~60% to ~5%",
+          "manualInterventionReduced": "90%",
+          "timeToDeployReduced": "from 45min to 12min avg"
+        }
+      },
+      {
+        "id": "ci-auto-diagnosis",
+        "date": "2026-03-26T22:00:00Z",
+        "type": "ci-improvement",
+        "title": "CI Failure Auto-Diagnosis: 8 Failures Auto-Fixed",
+        "impact": {
+          "patternsDocumented": 12,
+          "failuresAutoFixed": 8,
+          "knowledgeRetained": "100% — all failures recorded in session memory"
+        }
+      }
+    ]
+  },
   "metadata": {
-    "stateVersion": 6,
+    "autopilotRepo": "lucassfreiree/autopilot",
+    "sparkRepo": "lucassfreiree/spark-dashboard",
+    "totalAgents": 2,
     "totalWorkspaces": 2,
-    "degraded": false
+    "syncInterval": "5min business hours (8-17 BRT Mon-Fri) / 15min off-hours",
+    "stateVersion": 5
   }
 }

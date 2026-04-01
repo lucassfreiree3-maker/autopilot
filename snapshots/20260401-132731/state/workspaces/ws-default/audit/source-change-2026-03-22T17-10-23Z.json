@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T17:10:23Z",
+  "runId": "23408031503",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23408031503",
+  "component": "controller",
+  "changeType": "add-file",
+  "targetPath": "src/utils/controllerVersion.js",
+  "commitMessage": "feat: add controller version utility (pipeline test)",
+  "commitSha": "a102bbbb9b6d4f910d5f2607449bb427d15114c3",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

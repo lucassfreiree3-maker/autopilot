@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T19:03:30Z",
+  "runId": "23761823911",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23761823911",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(controller): security fixes + fix test count expectation (#930188)",
+  "commitSha": "bf75f01f2e796de4d7674717da6e91efdd468924",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

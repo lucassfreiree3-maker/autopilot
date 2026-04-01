@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-30T18:26:50Z",
+  "runId": "23760676766",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23760676766",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(controller): security fixes — XSS, SSRF, DoS-by-loop (#930188)",
+  "commitSha": "fab95e76df8573581d3298a3ac9e7e989127e473",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

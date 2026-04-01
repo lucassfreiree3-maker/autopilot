@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr384-20260330-190505",
+  "event": "post-merge-monitor",
+  "prNumber": 384,
+  "branch": "claude/ci-diagnose-run80",
+  "mergeSha": "97276934148b21204db52351dad6a943b9c6772a",
+  "timestamp": "2026-03-30T19:05:05Z",
+  "runId": "23762539228",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

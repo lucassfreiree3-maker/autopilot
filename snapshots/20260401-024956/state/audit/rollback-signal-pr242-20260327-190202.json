@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 242,
+  "branch": "claude/copilot-push-files",
+  "mergeSha": "418e90df04b3c82d45ff50a8f82ce7628684e17d",
+  "timestamp": "2026-03-27T19:02:02Z",
+  "runId": "23662806936",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

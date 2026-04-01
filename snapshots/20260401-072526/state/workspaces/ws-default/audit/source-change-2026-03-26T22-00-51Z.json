@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-26T22:00:51Z",
+  "runId": "23619554616",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23619554616",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "test(controller): add cronjob unit tests + version 3.6.7",
+  "commitSha": "8fd075e1e7473a9c9f07005fb54be33cdf27e48e",
+  "ciResult": "success",
+  "promoted": true,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

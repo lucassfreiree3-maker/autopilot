@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr247-20260328-132154",
+  "event": "post-merge-monitor",
+  "prNumber": 247,
+  "branch": "claude/embed-memory",
+  "mergeSha": "13477f00e0cbdc908d0e54ff503e09e7462a68e1",
+  "timestamp": "2026-03-28T13:21:54Z",
+  "runId": "23686113401",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

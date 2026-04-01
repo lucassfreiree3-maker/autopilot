@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr267-20260328-174525",
+  "event": "post-merge-monitor",
+  "prNumber": 267,
+  "branch": "copilot/test-end-to-end-controller-agent",
+  "mergeSha": "b97eb745d03bcef8dcb386c94294e218ca6fb119",
+  "timestamp": "2026-03-28T17:45:25Z",
+  "runId": "23690762136",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

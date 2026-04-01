@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 257,
+  "branch": "claude/spark-integration",
+  "mergeSha": "9734459a8ea38e64f464b8feba2503c42518fd2d",
+  "timestamp": "2026-03-28T13:48:51Z",
+  "runId": "23686570038",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 432,
+  "branch": "claude/fix-controller-vulnerabilities-5iaWt",
+  "mergeSha": "be12c8cf5a6ac6cbb28e451a17fdf49bd6a31cfa",
+  "timestamp": "2026-04-01T13:23:50Z",
+  "runId": "23850853812",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

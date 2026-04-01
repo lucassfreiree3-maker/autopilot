@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T17:11:43Z",
+  "runId": "23553456885",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23553456885",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): sanitizeForOutput XSS + remove validateTrustedUrl blocker + MAX_RESULTS DoS (3.6.3)",
+  "commitSha": "cc58fb0653e12a9f5f985e965eb053b7128fe223",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 270,
+  "branch": "copilot/add-lesson-never-modify-yml",
+  "mergeSha": "c1ff9e2ec3df11fca70dbb7a385825c6bddfe68e",
+  "timestamp": "2026-03-28T18:28:44Z",
+  "runId": "23691553159",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

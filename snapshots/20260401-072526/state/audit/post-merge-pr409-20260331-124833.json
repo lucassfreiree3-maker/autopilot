@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr409-20260331-124833",
+  "event": "post-merge-monitor",
+  "prNumber": 409,
+  "branch": "claude/automate-task-autonomy-v3NLB",
+  "mergeSha": "39f06942d22d86fef4bdbb4fa2081b15c92b9b59",
+  "timestamp": "2026-03-31T12:48:33Z",
+  "runId": "23798095719",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 233,
+  "branch": "claude/document-process-commands-gu947",
+  "mergeSha": "b0eb8fc923d54c0380d430c8d02ed394fa067f9f",
+  "timestamp": "2026-03-27T13:36:48Z",
+  "runId": "23648836015",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

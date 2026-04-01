@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T18:58:33Z",
+  "runId": "23409826363",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23409826363",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+  "commitMessage": "fix: resolve jest timeout failures in waitForFinalExecution tests",
+  "commitSha": "cab23789adaf38e102201ca33c3201c8a32021ec",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

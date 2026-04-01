@@ -1,0 +1,7 @@
+{
+  "type": "watchdog",
+  "timestamp": "2026-03-30T16:46:29Z",
+  "issues": 2,
+  "actions": "force-sync,run-health,",
+  "status": "self-healed"
+}

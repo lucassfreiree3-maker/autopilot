@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr292-20260328-201600",
+  "event": "post-merge-monitor",
+  "prNumber": 292,
+  "branch": "claude/auto-review-merge",
+  "mergeSha": "a295e19bde38ccc90b12c527912d5de88c89afc6",
+  "timestamp": "2026-03-28T20:16:00Z",
+  "runId": "23693461234",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "workspaceId": "ws-default",
+  "component": "controller",
+  "sourceRepo": "bbvinet/psc-sre-automacao-controller",
+  "commitSha": "bf75f01f2e796de4d7674717da6e91efdd468924",
+  "commitMessage": "fix(controller): security fixes + fix test count expectation (#930188)",
+  "commitAuthor": "github-actions",
+  "diagnosedAt": "2026-03-30T19:06:23Z",
+  "runId": "23762539520",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23762539520",
+  "reproduction": {
+    "scripts": "  build: tsc -p ./tsconfig.json\n  debug: tsc && node --inspect=9229 dist/server.js\n  lint: tsc --noEmit && eslint . --quiet --fix --resolve-plugins-relative-to .\n  start: node dist/server.js\n  prestart: npm run build\n  dev: nodemon --watch src --exec ts-node-dev src/server.ts\n  test: jest\n  unitTest: jest --testPathPattern=ut.test\\.ts$\n  integrationTest: jest --testPathPattern=it.test\\.ts$ --detectOpenHandles --passWithNoTests --forceExit\n",
+    "lintErrors": [],
+    "buildSuccess": false,
+    "buildLog": "\n> psc-sre-automacao-controller@3.7.2 build\n> tsc -p ./tsconfig.json\n\ntsconfig.json(5,25): error TS5107: Option 'moduleResolution=node10' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '\"ignoreDeprecations\": \"6.0\"' to silence this error.\n  Visit https://aka.ms/ts6 for migration information.\n",
+    "testSuccess": true,
+    "testLog": "\n> psc-sre-automacao-controller@3.7.2 test\n> jest\n\nsh: 1: jest: not found\n"
+  }
+}

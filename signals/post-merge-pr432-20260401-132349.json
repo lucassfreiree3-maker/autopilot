@@ -1,0 +1,8 @@
+{
+  "type": "post-merge-signal",
+  "prNumber": 432,
+  "branch": "claude/fix-controller-vulnerabilities-5iaWt",
+  "timestamp": "2026-04-01T13:23:49Z",
+  "runId": "23850853812",
+  "healthStatus": "degraded"
+}

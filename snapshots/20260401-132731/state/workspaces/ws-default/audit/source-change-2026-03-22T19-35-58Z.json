@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T19:35:58Z",
+  "runId": "23410812718",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23410812718",
+  "component": "agent",
+  "changeType": "delete-lines",
+  "targetPath": "src/utils/autopilotInfo.js",
+  "commitMessage": "fix: delete autopilotInfo.js (require style forbidden by eslint)",
+  "commitSha": "254aae357c2e04f0e50258efb5020b93b6294ab8",
+  "ciResult": "",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "skipped",
+    "promote": "success",
+    "state": "success"
+  }
+}

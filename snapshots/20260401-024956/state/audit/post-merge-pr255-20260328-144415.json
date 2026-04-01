@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr255-20260328-144415",
+  "event": "post-merge-monitor",
+  "prNumber": 255,
+  "branch": "copilot/learn-coding-agent-features",
+  "mergeSha": "421427f81540b7401e7a20df45ef7b9f6f3399b7",
+  "timestamp": "2026-03-28T14:44:15Z",
+  "runId": "23687525711",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

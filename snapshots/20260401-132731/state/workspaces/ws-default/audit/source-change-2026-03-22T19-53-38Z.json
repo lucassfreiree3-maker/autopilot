@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-22T19:53:38Z",
+  "runId": "23410878798",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23410878798",
+  "component": "agent",
+  "changeType": "modify-file",
+  "targetPath": "src/services/automation-http.service.ts",
+  "commitMessage": "fix: replace nested ternary with if/else in automation-http.service.ts",
+  "commitSha": "50f554d5060b506957ba94bafd9f65907bfbae30",
+  "ciResult": "success",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

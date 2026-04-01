@@ -1,0 +1,500 @@
+2026-03-25T13:52:55.4279909Z [36;1m    fi[0m
+2026-03-25T13:52:55.4280346Z [36;1m  else[0m
+2026-03-25T13:52:55.4281129Z [36;1m    error_exit "Nenhum arquivo de build Java (pom.xml, build.gradle, build.gradle.kts, build-env.properties) encontrado."[0m
+2026-03-25T13:52:55.4282091Z [36;1m  fi[0m
+2026-03-25T13:52:55.4282543Z [36;1m}[0m
+2026-03-25T13:52:55.4282963Z [36;1m[0m
+2026-03-25T13:52:55.4283416Z [36;1mcase "npm" in[0m
+2026-03-25T13:52:55.4284049Z [36;1m  npm)[0m
+2026-03-25T13:52:55.4284678Z [36;1m    if [ -f package.json ]; then[0m
+2026-03-25T13:52:55.4285296Z [36;1m      versao=$(jq -r ".version" package.json)[0m
+2026-03-25T13:52:55.4285918Z [36;1m      arquivo_versao="package.json"[0m
+2026-03-25T13:52:55.4286613Z [36;1m      echo "arquivo_versao=$arquivo_versao" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4287239Z [36;1m    else[0m
+2026-03-25T13:52:55.4287851Z [36;1m      error_exit "Arquivo package.json não encontrado para projeto npm."[0m
+2026-03-25T13:52:55.4288524Z [36;1m    fi[0m
+2026-03-25T13:52:55.4288950Z [36;1m    ;;[0m
+2026-03-25T13:52:55.4289545Z [36;1m  maven|gradle|java)[0m
+2026-03-25T13:52:55.4290097Z [36;1m    versao=$(get_java_version)[0m
+2026-03-25T13:52:55.4290612Z [36;1m    ;;[0m
+2026-03-25T13:52:55.4291041Z [36;1m  docker)[0m
+2026-03-25T13:52:55.4291510Z [36;1m    if [ -f image.json ]; then[0m
+2026-03-25T13:52:55.4292112Z [36;1m      versao=$(jq -r ".tag" image.json)[0m
+2026-03-25T13:52:55.4292694Z [36;1m      arquivo_versao="image.json"[0m
+2026-03-25T13:52:55.4293343Z [36;1m      echo "arquivo_versao=$arquivo_versao" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4293957Z [36;1m    else[0m
+2026-03-25T13:52:55.4294584Z [36;1m      error_exit "Arquivo image.json não encontrado para projeto docker."[0m
+2026-03-25T13:52:55.4295258Z [36;1m    fi[0m
+2026-03-25T13:52:55.4295688Z [36;1m    ;;[0m
+2026-03-25T13:52:55.4296124Z [36;1m  python)[0m
+2026-03-25T13:52:55.4296596Z [36;1m    if [ -f setup.py ]; then[0m
+2026-03-25T13:52:55.4297232Z [36;1m      versao=$(python3 setup.py --version | tr -d '[:space:]')[0m
+2026-03-25T13:52:55.4297993Z [36;1m      package_name=$(python3 setup.py --name | tr -d '[:space:]')[0m
+2026-03-25T13:52:55.4298711Z [36;1m      arquivo_versao="$package_name/__init__.py"[0m
+2026-03-25T13:52:55.4299571Z [36;1m      echo "arquivo_versao=$arquivo_versao" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4300210Z [36;1m    else[0m
+2026-03-25T13:52:55.4300812Z [36;1m      error_exit "Arquivo setup.py não encontrado para projeto python."[0m
+2026-03-25T13:52:55.4301479Z [36;1m    fi[0m
+2026-03-25T13:52:55.4301933Z [36;1m    ;;[0m
+2026-03-25T13:52:55.4302361Z [36;1m  *)[0m
+2026-03-25T13:52:55.4302869Z [36;1m    error_exit "Tecnologia 'npm' não reconhecida."[0m
+2026-03-25T13:52:55.4303461Z [36;1m    ;;[0m
+2026-03-25T13:52:55.4303903Z [36;1mesac[0m
+2026-03-25T13:52:55.4304326Z [36;1m[0m
+2026-03-25T13:52:55.4304765Z [36;1m# Padroniza output[0m
+2026-03-25T13:52:55.4305287Z [36;1mecho "versao=$versao" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4305880Z [36;1mif [[ "true" != "true" ]]; then[0m
+2026-03-25T13:52:55.4306638Z [36;1m  echo "## Build psc-sre-automacao-controller - $versao" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4307359Z [36;1mfi[0m
+2026-03-25T13:52:55.4310749Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.4311370Z env:
+2026-03-25T13:52:55.4311831Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.4312378Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.4312848Z   BRANCH_NAME: main
+2026-03-25T13:52:55.4313480Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.4314524Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.4315500Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.4316282Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4316989Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4317789Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4318683Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4319484Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.4320030Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.4320571Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.4321090Z   GIT_LFS: false
+2026-03-25T13:52:55.4321518Z ##[endgroup]
+2026-03-25T13:52:55.4363443Z Detectar tecnologia do projeto
+2026-03-25T13:52:55.4472300Z ##[group]Run # coletar versao semantica
+2026-03-25T13:52:55.4472947Z [36;1m# coletar versao semantica[0m
+2026-03-25T13:52:55.4473519Z [36;1mecho "Validar versão semantica"[0m
+2026-03-25T13:52:55.4474063Z [36;1mif [[ "npm" != 'python' ]]; then[0m
+2026-03-25T13:52:55.4474629Z [36;1m  echo "Validar versão semantica"[0m
+2026-03-25T13:52:55.4475571Z [36;1m  regex="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"[0m
+2026-03-25T13:52:55.4476562Z [36;1m  if ! [ $(echo "3.6.0" | grep -Po $regex) ]; then[0m
+2026-03-25T13:52:55.4477187Z [36;1m    if [[ "true" == "true" ]]; then[0m
+2026-03-25T13:52:55.4477767Z [36;1m      echo "Versão \"3.6.0\" não é semantica."[0m
+2026-03-25T13:52:55.4478352Z [36;1m      versao_semantica=false[0m
+2026-03-25T13:52:55.4478976Z [36;1m      echo "versao_semantica=$versao_semantica" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4479732Z [36;1m      exit 0[0m
+2026-03-25T13:52:55.4480179Z [36;1m    else[0m
+2026-03-25T13:52:55.4480807Z [36;1m      echo -e ":x: Versão \"3.6.0\" não é semantica." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4482190Z [36;1m      echo -e "> [!IMPORTANT]\n> A versão deste pacote não é uma versão estável conforme o Semantic Version (https://semver.org/lang/pt-BR/)." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4483190Z [36;1m      exit 1[0m
+2026-03-25T13:52:55.4483629Z [36;1m    fi[0m
+2026-03-25T13:52:55.4484045Z [36;1m  fi[0m
+2026-03-25T13:52:55.4484476Z [36;1melse[0m
+2026-03-25T13:52:55.4485319Z [36;1m  result=$(python /opt/github/actions-runner/_work/_actions/bbvinet/aic-action-coletar-informacoes/v1/pep440.py "3.6.0"; echo $?)[0m
+2026-03-25T13:52:55.4486229Z [36;1m  if [[ $result -ne 0 ]]; then[0m
+2026-03-25T13:52:55.4486769Z [36;1m    if [[ "true" == "true" ]]; then[0m
+2026-03-25T13:52:55.4487354Z [36;1m      echo "Versão \"3.6.0\" não é semantica."[0m
+2026-03-25T13:52:55.4487941Z [36;1m      versao_semantica=false[0m
+2026-03-25T13:52:55.4488589Z [36;1m      echo "versao_semantica=$versao_semantica" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4489374Z [36;1m      exit 0[0m
+2026-03-25T13:52:55.4489835Z [36;1m    else[0m
+2026-03-25T13:52:55.4490434Z [36;1m      echo -e ":x: Versão \"3.6.0\" não é semantica." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4491560Z [36;1m      echo -e "> [!IMPORTANT]\n> A versão deste pacote não é uma versão estável conforme o PEP440 (https://peps.python.org/pep-0440/)." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4492580Z [36;1m      exit 1[0m
+2026-03-25T13:52:55.4493145Z [36;1m    fi[0m
+2026-03-25T13:52:55.4493575Z [36;1m  fi[0m
+2026-03-25T13:52:55.4493987Z [36;1mfi[0m
+2026-03-25T13:52:55.4494405Z [36;1mversao_semantica=true[0m
+2026-03-25T13:52:55.4495033Z [36;1mecho "versao_semantica=$versao_semantica" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4498087Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.4498686Z env:
+2026-03-25T13:52:55.4499123Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.4499804Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.4500403Z   BRANCH_NAME: main
+2026-03-25T13:52:55.4501028Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.4501941Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.4502869Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.4503812Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4504674Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4505471Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4506216Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4506858Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.4507383Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.4507910Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.4508415Z   GIT_LFS: false
+2026-03-25T13:52:55.4508838Z ##[endgroup]
+2026-03-25T13:52:55.4543652Z Validar versão semantica
+2026-03-25T13:52:55.4544216Z Validar versão semantica
+2026-03-25T13:52:55.4605251Z ##[group]Run echo "Identificar tipo de versão"
+2026-03-25T13:52:55.4605873Z [36;1mecho "Identificar tipo de versão"[0m
+2026-03-25T13:52:55.4606459Z [36;1mregex="^(0|[1-9]\d*)(\.(0|[1-9]\d*)){2,4}$"[0m
+2026-03-25T13:52:55.4607095Z [36;1mif [ $(echo "3.6.0" | grep -Po $regex) ]; then[0m
+2026-03-25T13:52:55.4607753Z [36;1m  echo "tipo_versao=fechada" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4608320Z [36;1melse[0m
+2026-03-25T13:52:55.4608808Z [36;1m  echo "tipo_versao=aberta" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4609475Z [36;1mfi[0m
+2026-03-25T13:52:55.4612156Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.4612769Z env:
+2026-03-25T13:52:55.4613202Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.4613730Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.4614159Z   BRANCH_NAME: main
+2026-03-25T13:52:55.4614805Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.4615713Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.4616716Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.4617470Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4618167Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4618976Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4619880Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4620532Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.4621081Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.4621613Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.4622115Z   GIT_LFS: false
+2026-03-25T13:52:55.4622543Z ##[endgroup]
+2026-03-25T13:52:55.4655213Z Identificar tipo de versão
+2026-03-25T13:52:55.4778056Z ##[group]Run # coletar sigla do projeto
+2026-03-25T13:52:55.4778679Z [36;1m# coletar sigla do projeto[0m
+2026-03-25T13:52:55.4779247Z [36;1mecho "Coletar sigla do projeto"[0m
+2026-03-25T13:52:55.4780107Z [36;1msigla=$(echo "psc-sre-automacao-controller" | grep -oP "^[a-zA-Z\d]{3}")[0m
+2026-03-25T13:52:55.4780861Z [36;1mecho "sigla=$sigla" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.4783788Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.4784429Z env:
+2026-03-25T13:52:55.4784877Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.4785541Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.4786005Z   BRANCH_NAME: main
+2026-03-25T13:52:55.4786669Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.4787606Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.4788556Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.4789690Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4790406Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4791230Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4791985Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4792629Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.4793297Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.4793841Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.4794340Z   GIT_LFS: false
+2026-03-25T13:52:55.4794761Z ##[endgroup]
+2026-03-25T13:52:55.4829154Z Coletar sigla do projeto
+2026-03-25T13:52:55.4971548Z ##[group]Run # Coletar matricula do usuário
+2026-03-25T13:52:55.4972176Z [36;1m# Coletar matricula do usuário[0m
+2026-03-25T13:52:55.4972775Z [36;1mecho "Coletar matricula do usuário"[0m
+2026-03-25T13:52:55.4973376Z [36;1mecho "Triggering Actor: C1342799_BBrasil"[0m
+2026-03-25T13:52:55.4973964Z [36;1m[0m
+2026-03-25T13:52:55.4974389Z [36;1mactor=C1342799_BBrasil[0m
+2026-03-25T13:52:55.4974891Z [36;1m[0m
+2026-03-25T13:52:55.4975347Z [36;1mif [[ $actor == *_BBrasil ]]; then[0m
+2026-03-25T13:52:55.4975896Z [36;1m  actor=${actor%_BBrasil}[0m
+2026-03-25T13:52:55.4976406Z [36;1melse[0m
+2026-03-25T13:52:55.4977223Z [36;1m  # Se não, use outra variável interna do github para identificar o usuário e refaça o teste com o sufixo _BBrasil[0m
+2026-03-25T13:52:55.4978311Z [36;1m  echo "Autor fora do padrão esperado, tentando localizar na mensagem do commit..."[0m
+2026-03-25T13:52:55.4979212Z [36;1m  git log -n1 --format="%b" | rev | cut -d " " -f1 | rev[0m
+2026-03-25T13:52:55.4980054Z [36;1m  actor=$(git log -n1 --format="%b" | rev | cut -d " " -f1 | rev)[0m
+2026-03-25T13:52:55.4980797Z [36;1m  echo "Autor localizado na exceção: $actor"[0m
+2026-03-25T13:52:55.4981412Z [36;1m  if [[ $actor == *_BBrasil ]]; then[0m
+2026-03-25T13:52:55.4981964Z [36;1m    actor=${actor%_BBrasil}[0m
+2026-03-25T13:52:55.4982497Z [36;1m  else[0m
+2026-03-25T13:52:55.4983085Z [36;1m    echo -e ":x: Matricula não encontrada." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4984366Z [36;1m    echo -e "> [!IMPORTANT]\n> A matricula do usuário não foi encontrada. Verifique se o nome do usuário está correto ou execute um rerun para coletar a informação correta." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.4985486Z [36;1m    exit 1[0m
+2026-03-25T13:52:55.4985953Z [36;1m  fi[0m
+2026-03-25T13:52:55.4986376Z [36;1mfi[0m
+2026-03-25T13:52:55.4986786Z [36;1m[0m
+2026-03-25T13:52:55.4987309Z [36;1mecho "matricula=${actor%'_BBrasil'}" >> $GITHUB_OUTPUT[0m
+2026-03-25T13:52:55.4991129Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.4991761Z env:
+2026-03-25T13:52:55.4992246Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.4992800Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.4993241Z   BRANCH_NAME: main
+2026-03-25T13:52:55.4993893Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.4994860Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.4995830Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.4996611Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4997309Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4998163Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4998935Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.4999902Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5000767Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5001579Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5002509Z   GIT_LFS: false
+2026-03-25T13:52:55.5038682Z ##[endgroup]
+2026-03-25T13:52:55.5077707Z Coletar matricula do usuário
+2026-03-25T13:52:55.5078504Z Triggering Actor: C1342799_BBrasil
+2026-03-25T13:52:55.5107607Z ##[group]Run # Identificar publicacao de artefato Docker
+2026-03-25T13:52:55.5108292Z [36;1m# Identificar publicacao de artefato Docker[0m
+2026-03-25T13:52:55.5108942Z [36;1mecho "Identificar publicacao de artefato Docker"[0m
+2026-03-25T13:52:55.5110048Z [36;1mif [ -e Dockerfile ] || [ -e dockerfile ]; then[0m
+2026-03-25T13:52:55.5110684Z [36;1m  echo "artefato_docker=true" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5111428Z [36;1melse[0m
+2026-03-25T13:52:55.5111914Z [36;1m  echo "artefato_docker=false" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5112490Z [36;1mfi[0m
+2026-03-25T13:52:55.5115256Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.5115842Z env:
+2026-03-25T13:52:55.5116278Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.5116825Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.5117249Z   BRANCH_NAME: main
+2026-03-25T13:52:55.5117871Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.5118771Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.5119822Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.5120583Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5121271Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5122086Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5122821Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5123432Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5123992Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5124537Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5125046Z   GIT_LFS: false
+2026-03-25T13:52:55.5125481Z ##[endgroup]
+2026-03-25T13:52:55.5160537Z Identificar publicacao de artefato Docker
+2026-03-25T13:52:55.5237978Z ##[group]Run # Parser do arquivo aic.json
+2026-03-25T13:52:55.5238615Z [36;1m# Parser do arquivo aic.json[0m
+2026-03-25T13:52:55.5239422Z [36;1mecho "Parser do arquivo aic.json"[0m
+2026-03-25T13:52:55.5239992Z [36;1mif ! [ -e aic.json ]; then[0m
+2026-03-25T13:52:55.5240658Z [36;1m  title="Arquivo aic.json não existe nesse repositorio."[0m
+2026-03-25T13:52:55.5242255Z [36;1m  message="O arquivo de configuração aic.json não existe no projeto, por favor confira a [documentação](https://tech.bb.com.br/documentacao/p/aic/plataforma_integracao_continua/github/build/acionar-build#4-arquivos-de-configura%C3%A7%C3%A3o) e crie o arquivo."[0m
+2026-03-25T13:52:55.5243922Z [36;1m  echo "::error title=$title::$message"[0m
+2026-03-25T13:52:55.5244583Z [36;1m  echo -e ":x: $title" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5245302Z [36;1m  echo -e "> [!IMPORTANT]\n> $message" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5245940Z [36;1m  exit 1[0m
+2026-03-25T13:52:55.5246379Z [36;1mfi;[0m
+2026-03-25T13:52:55.5246847Z [36;1mif [[ "true" == "true" ]]; then[0m
+2026-03-25T13:52:55.5247409Z [36;1m  aic_json=$(cat aic.json)[0m
+2026-03-25T13:52:55.5248001Z [36;1m  validacao_jq=$(echo "$aic_json" | jq -c . 2>&1)[0m
+2026-03-25T13:52:55.5248602Z [36;1m  if [ $? -ne 0 ]; then[0m
+2026-03-25T13:52:55.5249478Z [36;1m    echo "Ocorreu um erro ao realizar o parse do arquivo aic.json:"[0m
+2026-03-25T13:52:55.5250179Z [36;1m    echo $validacao_jq[0m
+2026-03-25T13:52:55.5250927Z [36;1m    echo -e ":x: Arquivo aic.json não possui um JSON válido." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5251949Z [36;1m    if [ -z "https://github.com/bbvinet/psc-sre-automacao-controller/blob/main/aic.json" ]; then[0m
+2026-03-25T13:52:55.5253068Z [36;1m      echo -e "> [!IMPORTANT]\n> Ocorreu um erro ao realizar o parse do arquivo aic.json:" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5254049Z [36;1m    else[0m
+2026-03-25T13:52:55.5255359Z [36;1m      echo -e "> [!IMPORTANT]\n> Ocorreu um erro ao realizar o parse do arquivo [aic.json](https://github.com/bbvinet/psc-sre-automacao-controller/blob/main/aic.json):" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5256502Z [36;1m    fi[0m
+2026-03-25T13:52:55.5256999Z [36;1m    echo -e '> ```' >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5257685Z [36;1m    echo -e "> $validacao_jq" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5258491Z [36;1m    echo -e '> ```' >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5259604Z [36;1m    echo -e "> Verifique o conteúdo do arquivo e tente novamente." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5260364Z [36;1m    exit 1[0m
+2026-03-25T13:52:55.5260870Z [36;1m  fi[0m
+2026-03-25T13:52:55.5261418Z [36;1m  aic_json=$(echo "$aic_json" | jq -c .)[0m
+2026-03-25T13:52:55.5262042Z [36;1m  echo "aic_json=$aic_json" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5262632Z [36;1m  exit 0[0m
+2026-03-25T13:52:55.5263084Z [36;1mfi[0m
+2026-03-25T13:52:55.5263558Z [36;1mpipeline=$(jq -c ".pipeline" aic.json)[0m
+2026-03-25T13:52:55.5264261Z [36;1mif [ $pipeline = "null" ]; then[0m
+2026-03-25T13:52:55.5265014Z [36;1m  echo -e ":x: Arquivo aic.json não possui tag \"pipeline\"." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5266941Z [36;1m  echo -e "> [!IMPORTANT]\n> O arquivo de configuração aic.json não possui a tag \`pipeline\` obrigatória no projeto, por favor confira a [documentação](https://tech.bb.com.br/documentacao/p/aic/plataforma_integracao_continua/github/build/acionar-build#4-arquivos-de-configura%C3%A7%C3%A3o) para adequar o arquivo." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5268642Z [36;1m  exit 1[0m
+2026-03-25T13:52:55.5269090Z [36;1mfi;[0m
+2026-03-25T13:52:55.5269701Z [36;1mecho "aic_json=$pipeline" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5272761Z shell: /usr/bin/bash {0}
+2026-03-25T13:52:55.5273245Z env:
+2026-03-25T13:52:55.5273705Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.5274254Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.5274778Z   BRANCH_NAME: main
+2026-03-25T13:52:55.5275477Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.5276431Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.5277406Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.5278187Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5278914Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5279863Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5280637Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5281280Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5281832Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5282378Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5282905Z   GIT_LFS: false
+2026-03-25T13:52:55.5283466Z ##[endgroup]
+2026-03-25T13:52:55.5318068Z Parser do arquivo aic.json
+2026-03-25T13:52:55.5496185Z ##[group]Run package_name=$(jq -r '.name' package.json)
+2026-03-25T13:52:55.5496913Z [36;1mpackage_name=$(jq -r '.name' package.json)[0m
+2026-03-25T13:52:55.5497640Z [36;1mif [[ "$package_name" != "psc-sre-automacao-controller" ]]; then[0m
+2026-03-25T13:52:55.5499493Z [36;1m  message="❌ Erro: O nome do projeto definido no atributo \`name\` do [package.json](https://github.com/bbvinet/psc-sre-automacao-controller/blob/main/package.json) (\`$package_name\`) é diferente do nome do repositório (\`psc-sre-automacao-controller\`). Por favor, ajuste o nome do projeto e tente novamente."[0m
+2026-03-25T13:52:55.5501104Z [36;1m  echo "$message"[0m
+2026-03-25T13:52:55.5501634Z [36;1m  echo "$message" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5502209Z [36;1m  exit 1[0m
+2026-03-25T13:52:55.5502634Z [36;1mfi[0m
+2026-03-25T13:52:55.5505350Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.5506539Z env:
+2026-03-25T13:52:55.5507054Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.5507609Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.5508057Z   BRANCH_NAME: main
+2026-03-25T13:52:55.5508756Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.5509801Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.5510758Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.5511723Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5512423Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5513236Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5513982Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5514632Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5515180Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5515727Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5516235Z   GIT_LFS: false
+2026-03-25T13:52:55.5516677Z ##[endgroup]
+2026-03-25T13:52:55.5690272Z ##[group]Run bbvinet/aic-action-tag-check@v1
+2026-03-25T13:52:55.5690860Z with:
+2026-03-25T13:52:55.5691301Z   versao_projeto: 3.6.0
+2026-03-25T13:52:55.5691764Z   novas_features: true
+2026-03-25T13:52:55.5692208Z env:
+2026-03-25T13:52:55.5692650Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.5693197Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.5693635Z   BRANCH_NAME: main
+2026-03-25T13:52:55.5694246Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.5695145Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.5696087Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.5696836Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5697519Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5698373Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5699096Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5699812Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5700353Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5700888Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5701378Z   GIT_LFS: false
+2026-03-25T13:52:55.5701810Z ##[endgroup]
+2026-03-25T13:52:55.5733965Z ##[group]Run HASH_TAG=$(git ls-remote -t origin 3.6.0^{} | cut -f1 )
+2026-03-25T13:52:55.5734826Z [36;1mHASH_TAG=$(git ls-remote -t origin 3.6.0^{} | cut -f1 )[0m
+2026-03-25T13:52:55.5735456Z [36;1mecho "Hash da tag: $HASH_TAG"[0m
+2026-03-25T13:52:55.5735963Z [36;1m[0m
+2026-03-25T13:52:55.5736413Z [36;1mif [[ $HASH_TAG != "" ]]; then[0m
+2026-03-25T13:52:55.5736977Z [36;1m  HASH_HEAD=$(git rev-list -n1 HEAD)[0m
+2026-03-25T13:52:55.5737568Z [36;1m  echo "Hash do commit: $HASH_HEAD"[0m
+2026-03-25T13:52:55.5738136Z [36;1m  echo "Verificando hash da tag"[0m
+2026-03-25T13:52:55.5738730Z [36;1m  echo "exist_tag=true" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5739375Z [36;1m[0m
+2026-03-25T13:52:55.5739836Z [36;1m  if [[ $HASH_TAG != $HASH_HEAD ]]; then[0m
+2026-03-25T13:52:55.5740481Z [36;1m    echo "rebuild_tag=false" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5741051Z [36;1m[0m
+2026-03-25T13:52:55.5741489Z [36;1m    if [[ true == "true" ]]; then[0m
+2026-03-25T13:52:55.5742241Z [36;1m      echo "Identificado que a tag existe, mas o hash da tag é diferente do HEAD atual."[0m
+2026-03-25T13:52:55.5742968Z [36;1m      exit 0[0m
+2026-03-25T13:52:55.5743404Z [36;1m    fi[0m
+2026-03-25T13:52:55.5743828Z [36;1m[0m
+2026-03-25T13:52:55.5744323Z [36;1m    echo "Tag existente, por favor evolua a versão."[0m
+2026-03-25T13:52:55.5745134Z [36;1m    echo -e ":x: Tag existente, por favor verifique a versão." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5746230Z [36;1m    echo -e "> [!IMPORTANT]\n> Por favor, versione a aplicação para a próxima versão e tente novamente." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5747090Z [36;1m    exit 1[0m
+2026-03-25T13:52:55.5747546Z [36;1m  fi[0m
+2026-03-25T13:52:55.5747970Z [36;1m[0m
+2026-03-25T13:52:55.5748442Z [36;1m  echo "rebuild_tag=true" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5749012Z [36;1m[0m
+2026-03-25T13:52:55.5749669Z [36;1m  if [[ true == "true" ]]; then[0m
+2026-03-25T13:52:55.5750630Z [36;1m    echo "Identificado que a tag existe e o hash da tag é igual ao HEAD atual."[0m
+2026-03-25T13:52:55.5751332Z [36;1m    exit 0[0m
+2026-03-25T13:52:55.5751766Z [36;1m  fi[0m
+2026-03-25T13:52:55.5752177Z [36;1m[0m
+2026-03-25T13:52:55.5752762Z [36;1m  echo -e ":white_check_mark: Rebuild de Tag." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5753622Z [36;1m  echo -e "> [!NOTE]\n> Rebuild da versão 3.6.0 será realizado." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5754327Z [36;1melse[0m
+2026-03-25T13:52:55.5754832Z [36;1m  echo "exist_tag=false" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5755615Z [36;1m  echo "rebuild_tag=false" >> "$GITHUB_OUTPUT"[0m
+2026-03-25T13:52:55.5756196Z [36;1m[0m
+2026-03-25T13:52:55.5756631Z [36;1m  if [[ true == "true" ]]; then[0m
+2026-03-25T13:52:55.5757214Z [36;1m    echo "Identificado que a tag não existe."[0m
+2026-03-25T13:52:55.5757834Z [36;1m    exit 0[0m
+2026-03-25T13:52:55.5758274Z [36;1m  fi[0m
+2026-03-25T13:52:55.5758702Z [36;1m[0m
+2026-03-25T13:52:55.5759366Z [36;1m  echo -e ":white_check_mark: Tag ainda não existe." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5760285Z [36;1m  echo -e "> [!NOTE]\n> Versão 3.6.0 poderá ter tag publicada." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:55.5760989Z [36;1mfi[0m
+2026-03-25T13:52:55.5763927Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:55.5764526Z env:
+2026-03-25T13:52:55.5764970Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:55.5765503Z   TECNOLOGIA: npm
+2026-03-25T13:52:55.5765944Z   BRANCH_NAME: main
+2026-03-25T13:52:55.5766579Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:55.5767495Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:55.5768463Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:55.5769227Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5770055Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5770883Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5771650Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:55.5772290Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:55.5772826Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:55.5773370Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:55.5773892Z   GIT_LFS: false
+2026-03-25T13:52:55.5774361Z ##[endgroup]
+2026-03-25T13:52:56.0190726Z Hash da tag: 081c472231996b7231f0e10852ccfd4016e7a183
+2026-03-25T13:52:56.0246294Z Hash do commit: bd0e821c16f9850c8ab1efb4f905d9449edf4e13
+2026-03-25T13:52:56.0247176Z Verificando hash da tag
+2026-03-25T13:52:56.0248737Z Identificado que a tag existe, mas o hash da tag é diferente do HEAD atual.
+2026-03-25T13:52:56.0305362Z ##[group]Run if [ "true" == "false" ] || \
+2026-03-25T13:52:56.0306013Z [36;1mif [ "true" == "false" ] || \[0m
+2026-03-25T13:52:56.0306600Z [36;1m   [ "fechada" == "aberta" ] || \[0m
+2026-03-25T13:52:56.0307145Z [36;1m   [ "false" == "true" ] || \[0m
+2026-03-25T13:52:56.0307690Z [36;1m   [ "true" == "false" ] || \[0m
+2026-03-25T13:52:56.0308213Z [36;1m   [ "main" == "main" ] || \[0m
+2026-03-25T13:52:56.0308736Z [36;1m   [ "" == "false" ]; then[0m
+2026-03-25T13:52:56.0309615Z [36;1m  echo "AUTO_VERSIONAMENTO=false" >> "$GITHUB_ENV"[0m
+2026-03-25T13:52:56.0310222Z [36;1m  exit 0[0m
+2026-03-25T13:52:56.0310667Z [36;1mfi[0m
+2026-03-25T13:52:56.0311094Z [36;1mif [ "" == "true" ]; then[0m
+2026-03-25T13:52:56.0311712Z [36;1m  echo "Auto Versionamento está habilitado no aic.json"[0m
+2026-03-25T13:52:56.0312392Z [36;1m  echo "AUTO_VERSIONAMENTO=true" >> "$GITHUB_ENV"[0m
+2026-03-25T13:52:56.0313000Z [36;1m  exit 0[0m
+2026-03-25T13:52:56.0313429Z [36;1mfi[0m
+2026-03-25T13:52:56.0313916Z [36;1mif [ "" == "" ]; then[0m
+2026-03-25T13:52:56.0315609Z [36;1m  echo ":warning: Auto Versionamento ativado por padrão. Para desativar adicione \"autoVersionamento\": false dentro da tag \"pipeline\" no seu aic.json. Para mais informações consulte a [documentação](https://tech.bb.com.br/documentacao/p/aic/plataforma_integracao_continua/github/build/auto-versionamento)." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:56.0317578Z [36;1m  echo "AUTO_VERSIONAMENTO=true" >> "$GITHUB_ENV"[0m
+2026-03-25T13:52:56.0318178Z [36;1m  exit 0[0m
+2026-03-25T13:52:56.0318611Z [36;1mfi[0m
+2026-03-25T13:52:56.0321656Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:56.0322274Z env:
+2026-03-25T13:52:56.0322729Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:56.0323274Z   TECNOLOGIA: npm
+2026-03-25T13:52:56.0323709Z   BRANCH_NAME: main
+2026-03-25T13:52:56.0324329Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:56.0325265Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:56.0326228Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:56.0327015Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0327711Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0328523Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0329375Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0330030Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:56.0330585Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:56.0331135Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:56.0331659Z   GIT_LFS: false
+2026-03-25T13:52:56.0332098Z ##[endgroup]
+2026-03-25T13:52:56.0465266Z ##[group]Run echo "Tag 3.6.0 já existe, por favor evolua a versão."
+2026-03-25T13:52:56.0466064Z [36;1mecho "Tag 3.6.0 já existe, por favor evolua a versão."[0m
+2026-03-25T13:52:56.0466910Z [36;1mecho -e ":x: Tag 3.6.0 já existe, por favor verifique a versão." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:56.0468048Z [36;1mecho -e "> [!IMPORTANT]\n> Por favor, versione a aplicação para a próxima versão e tente novamente." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-25T13:52:56.0468900Z [36;1mexit 1[0m
+2026-03-25T13:52:56.0471885Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:56.0472484Z env:
+2026-03-25T13:52:56.0472940Z   REPO_NAME: psc-sre-automacao-controller
+2026-03-25T13:52:56.0473472Z   TECNOLOGIA: npm
+2026-03-25T13:52:56.0473908Z   BRANCH_NAME: main
+2026-03-25T13:52:56.0474534Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-25T13:52:56.0475493Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-25T13:52:56.0476438Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-25T13:52:56.0477205Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0477916Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0478730Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0479568Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-25T13:52:56.0480205Z   CI_READER: aic-actions-user-temp
+2026-03-25T13:52:56.0480751Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-25T13:52:56.0481286Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-25T13:52:56.0481785Z   GIT_LFS: false
+2026-03-25T13:52:56.0482224Z   AUTO_VERSIONAMENTO: false
+2026-03-25T13:52:56.0482691Z ##[endgroup]
+2026-03-25T13:52:56.0520608Z Tag 3.6.0 já existe, por favor evolua a versão.
+2026-03-25T13:52:56.0537737Z ##[error]Process completed with exit code 1.
+2026-03-25T13:52:56.0862468Z Post job cleanup.
+2026-03-25T13:52:56.0946927Z Post job cleanup.
+2026-03-25T13:52:56.2026169Z [command]/usr/bin/git version
+2026-03-25T13:52:56.2127467Z git version 2.47.3
+2026-03-25T13:52:56.2170158Z Copying '/opt/github/runner/.gitconfig' to '/opt/github/actions-runner/_work/_temp/f8d5304c-0211-420b-a007-423a43b8412f/.gitconfig'
+2026-03-25T13:52:56.2181251Z Temporarily overriding HOME='/opt/github/actions-runner/_work/_temp/f8d5304c-0211-420b-a007-423a43b8412f' before making global git config changes
+2026-03-25T13:52:56.2182424Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-25T13:52:56.2188215Z [command]/usr/bin/git config --global --add safe.directory /opt/github/actions-runner/_work/psc-sre-automacao-controller/psc-sre-automacao-controller
+2026-03-25T13:52:56.2247956Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-25T13:52:56.2301253Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-25T13:52:56.2849831Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-25T13:52:56.2955548Z http.https://github.com/.extraheader
+2026-03-25T13:52:56.2970117Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-25T13:52:56.3019151Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-25T13:52:56.3722855Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-25T13:52:56.3781452Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-25T13:52:56.4540834Z A job completed hook has been configured by the self-hosted runner administrator
+2026-03-25T13:52:56.4565239Z ##[group]Run '/opt/github/post-job.sh'
+2026-03-25T13:52:56.4568856Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-25T13:52:56.4569888Z ##[endgroup]
+2026-03-25T13:52:56.4625991Z Running post-job cleanup v1.0.2
+2026-03-25T13:52:56.4626790Z Removing checked-out code directories...
+2026-03-25T13:52:56.4685866Z Deleting directory: /opt/github/actions-runner/_work/psc-sre-automacao-controller
+2026-03-25T13:52:56.4816104Z Stopping and removing Docker containers...
+2026-03-25T13:52:56.5183201Z Post-job cleanup completed
+2026-03-25T13:52:56.5266096Z Evaluate and set job outputs
+2026-03-25T13:52:56.5275829Z Set output 'matricula_solicitante'
+2026-03-25T13:52:56.5278321Z Set output 'ref'
+2026-03-25T13:52:56.5279596Z Cleaning up orphan processes
+2026-03-25T13:52:56.5723091Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -3,29 +3,33 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.7.5",
+  "version": "3.7.6",
   "changes": [
     {
       "action": "search-replace",
       "target_path": "package.json",
-      "search": "\"version\": \"3.7.4\"",
-      "replace": "\"version\": \"3.7.5\""
+      "search": "\"version\": \"3.7.5\"",
+      "replace": "\"version\": \"3.7.6\""
     },
     {
       "action": "search-replace",
       "target_path": "package-lock.json",
-      "search": "\"version\": \"3.7.4\"",
-      "replace": "\"version\": \"3.7.5\""
+      "search": "\"version\": \"3.7.5\"",
+      "replace": "\"version\": \"3.7.6\""
     },
     {
-      "action": "search-replace",
+      "action": "replace-file",
       "target_path": "src/swagger/swagger.json",
-      "search": "\"version\": \"3.7.4\"",
-      "replace": "\"version\": \"3.7.5\""
+      "content_ref": "patches/controller-swagger.json"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/controllers/oas-sre-controller.controller.ts",
+      "content_ref": "patches/oas-sre-controller.controller.ts"
     }
   ],
-  "commit_message": "chore(release): bump controller version to 3.7.5",
+  "commit_message": "fix(security): sanitize clustersNames, authMode and missingTargets to prevent Checkmarx Reflected_XSS (Similarity ID -1420982817)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 83
+  "run": 84
 }

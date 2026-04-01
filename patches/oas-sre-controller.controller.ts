@@ -340,7 +340,7 @@ function readAuthDecision(res: Response): OasOriginAuthDecision | undefined {
 
 function summarizeDispatches(dispatches: AgentCallResult[]) {
   return dispatches.map((item) => ({
-    cluster: item.cluster,
+    cluster: sanitizeForOutput(item.cluster),
     agentStatus: item.status,
   }));
 }
@@ -352,8 +352,8 @@ function buildSyncResponsePayload(context: SyncResponseContext) {
     mode: "sync" as const,
     execId: context.execId,
     image: sanitizeForOutput(context.image),
-    clustersNames: context.clustersNames,
-    authMode: context.authMode,
+    clustersNames: context.clustersNames.map(sanitizeForOutput),
+    authMode: sanitizeForOutput(context.authMode),
     dispatches: summarizeDispatches(context.dispatches),
     statusEndpoint: `/agent/execute?uuid=${encodeURIComponent(context.execId)}`,
     status: context.snapshot.status,
@@ -414,7 +414,7 @@ export async function postOasSreController(
       res.status(404).json({
         ok: false,
         error: "Agent not registered for one or more cluster targets",
-        missingTargets,
+        missingTargets: missingTargets.map(sanitizeForOutput),
       });
       return;
     }
@@ -542,8 +542,8 @@ export async function postOasSreController(
       status: "RUNNING",
       startedAt: timestampSP(),
       image: sanitizeForOutput(validation.image),
-      clustersNames: validation.clustersNames,
-      authMode: authDecision?.mode || "jwt",
+      clustersNames: validation.clustersNames.map(sanitizeForOutput),
+      authMode: sanitizeForOutput(authDecision?.mode || "jwt"),
       dispatches: summarizeDispatches(dispatches),
       statusEndpoint: `/agent/execute?uuid=${encodeURIComponent(execId)}`,
     });

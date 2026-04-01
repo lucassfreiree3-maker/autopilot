@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-03-31T23:30:00Z",
+  "lastUpdated": "2026-04-01T00:00:00Z",
   "lastSessionId": "session_01N6wTVvkGd7Hs1zMtus8i5i",
   "multiCompanyModel": {
     "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
@@ -20,7 +20,7 @@
         ],
         "repoDetails": {
           "bbvinet/psc-sre-automacao-controller": {
-            "role": "Controller — orquestra automacoes, despacha para agents, gerencia logs de execucao",
+            "role": "Controller \u2014 orquestra automacoes, despacha para agents, gerencia logs de execucao",
             "type": "source-code",
             "currentVersion": "3.7.4",
             "stack": "Node 22, TypeScript, Express, Jest, SQLite, S3",
@@ -31,7 +31,7 @@
             "howToCheckCI": "ci-status-check.yml com component=controller + commit_sha"
           },
           "bbvinet/psc-sre-automacao-agent": {
-            "role": "Agent — executa automacoes nos clusters, recebe callbacks de cronjob, envia logs ao controller",
+            "role": "Agent \u2014 executa automacoes nos clusters, recebe callbacks de cronjob, envia logs ao controller",
             "type": "source-code",
             "currentVersion": "2.3.3",
             "stack": "Node 22, TypeScript, Express, Jest, K8s client",
@@ -42,7 +42,7 @@
             "howToCheckCI": "ci-status-check.yml com component=agent + commit_sha"
           },
           "bbvinet/psc_releases_cap_sre-aut-controller": {
-            "role": "Controller CAP — manifesto K8s (Deployment, Service, Ingress, RBAC, Secrets)",
+            "role": "Controller CAP \u2014 manifesto K8s (Deployment, Service, Ingress, RBAC, Secrets)",
             "type": "cap-deploy",
             "valuesPath": "releases/openshift/hml/deploy/values.yaml",
             "imagePattern": "image: .*psc-sre-automacao-controller:",
@@ -51,7 +51,7 @@
             "workspaceJsonField": "controller.capRepo"
           },
           "bbvinet/psc_releases_cap_sre-aut-agent": {
-            "role": "Agent CAP — manifesto K8s de deploy do agent",
+            "role": "Agent CAP \u2014 manifesto K8s de deploy do agent",
             "type": "cap-deploy",
             "valuesPath": "releases/openshift/hml/deploy/values.yaml",
             "imagePattern": "image: .*psc-sre-automacao-agent:",
@@ -61,7 +61,7 @@
           }
         },
         "status": "active",
-        "lastDeploy": "controller 3.6.6, agent 2.2.9 (historia #930217 — cronjob callback)",
+        "lastDeploy": "controller 3.6.6, agent 2.2.9 (historia #930217 \u2014 cronjob callback)",
         "notes": "Pipeline completo e funcional. Controller CAP agora no GitHub (bbvinet/psc_releases_cap_sre-aut-controller) com auto-promote HABILITADO no Stage 4 do apply-source-change. Esteira de Build NPM. Controller v3.6.3 operacional no cluster k8shmlbb111b (HML). Security fixes: XSS sanitizeForOutput, DoS MAX_RESULTS=1000, error detail hardening. Pre-deploy validation workflow criado."
       },
       "cit": {
@@ -72,7 +72,7 @@
         "repos": [],
         "status": "setup",
         "lastDeploy": null,
-        "notes": "Nova empresa. Stack DevOps. Plataforma operacional COMPLETA em ops/ — configs per-tool, workflows GitHub Actions, integration registry, automation runtimes (Python/Node/Shell), Terraform structure, docs per-tool, readiness tracker. Multi-cloud ready (AWS/Azure/GCP). Multi-CI ready (GitLab/GitHub/Jenkins). IaC com Terraform/Terragrunt. Monitoring ready (Datadog/Grafana/Prometheus).",
+        "notes": "Nova empresa. Stack DevOps. Plataforma operacional COMPLETA em ops/ \u2014 configs per-tool, workflows GitHub Actions, integration registry, automation runtimes (Python/Node/Shell), Terraform structure, docs per-tool, readiness tracker. Multi-cloud ready (AWS/Azure/GCP). Multi-CI ready (GitLab/GitHub/Jenkins). IaC com Terraform/Terragrunt. Monitoring ready (Datadog/Grafana/Prometheus).",
         "opsEnvironment": {
           "setupDate": "2026-03-24",
           "expandedDate": "2026-03-24",
@@ -131,7 +131,7 @@
             "modules/",
             "global/"
           ],
-          "inventory": "ops/inventory/readiness.json (17% ready — structure complete, credentials pending)",
+          "inventory": "ops/inventory/readiness.json (17% ready \u2014 structure complete, credentials pending)",
           "runbooks": [
             "incident-response",
             "pipeline-troubleshooting",
@@ -162,19 +162,19 @@
       }
     },
     "goldenRules": [
-      "NENHUM workspace e default — SEMPRE identificar pelo contexto da conversa antes de qualquer acao",
+      "NENHUM workspace e default \u2014 SEMPRE identificar pelo contexto da conversa antes de qualquer acao",
       "Se contexto ambiguo: PERGUNTAR ao usuario qual empresa/workspace antes de prosseguir",
       "NUNCA misturar dados, credenciais, commits ou estado entre empresas",
       "Cada empresa usa exclusivamente seu proprio token (ler de workspace.json credentials.tokenSecretName)",
-      "Em caso de duvida, o padrao e isolamento — nunca assumir que contextos podem ser compartilhados",
+      "Em caso de duvida, o padrao e isolamento \u2014 nunca assumir que contextos podem ser compartilhados",
       "Monitorar CI de cada empresa SEPARADAMENTE",
       "Workspace config (state/workspaces/<ws_id>/workspace.json) e a fonte de verdade para cada empresa",
       "Quick index por workspace: ops/config/workspaces/<ws_id>.json",
-      "Trigger files tem campo _context para identificacao visual — SEMPRE verificar antes de editar",
+      "Trigger files tem campo _context para identificacao visual \u2014 SEMPRE verificar antes de editar",
       "Pistas de contexto: Getronics = controller/agent/NestJS/bbvinet/esteira; CIT = DevOps/Terraform/K8s/cloud/monitoring",
-      "Workflows [Corp] so funcionam com ws-default (BBVINET_TOKEN hardcoded) — NAO usar para CIT ate adaptacao",
-      "Workflows [Core] e [Release] sao workspace-aware — seguros para qualquer workspace",
-      "Workflows Ops: sao shared — funcionam para qualquer workspace"
+      "Workflows [Corp] so funcionam com ws-default (BBVINET_TOKEN hardcoded) \u2014 NAO usar para CIT ate adaptacao",
+      "Workflows [Core] e [Release] sao workspace-aware \u2014 seguros para qualquer workspace",
+      "Workflows Ops: sao shared \u2014 funcionam para qualquer workspace"
     ],
     "workspaceSeparationAudit": {
       "date": "2026-03-24",
@@ -219,13 +219,13 @@
       },
       "visualSeparation": {
         "triggerFiles": "Campo _context adicionado com formato 'EMPRESA | workspace_id | TOKEN_NAME'",
-        "workspaceIndex": "ops/config/workspaces/ws-default.json e ws-cit.json — quick reference para agents",
-        "separationGuide": "ops/docs/workspace-separation.md — mapa completo de scopes"
+        "workspaceIndex": "ops/config/workspaces/ws-default.json e ws-cit.json \u2014 quick reference para agents",
+        "separationGuide": "ops/docs/workspace-separation.md \u2014 mapa completo de scopes"
       },
       "whatNeedsFutureWork": [
         "Adaptar workflows [Corp] para selecao dinamica de token baseada em workspace_id",
         "Isso sera feito quando CIT_TOKEN e repos CIT estiverem disponiveis",
-        "NAO mexer nos workflows agora — risco de quebrar pipeline Getronics funcional"
+        "NAO mexer nos workflows agora \u2014 risco de quebrar pipeline Getronics funcional"
       ]
     }
   },
@@ -234,26 +234,26 @@
     "autopilot": {
       "repo": "lucassfreiree/autopilot",
       "what": "Projeto pessoal do usuario. Control plane centralizado para todas as empresas.",
-      "commits": "PRs que o Claude faz (branch claude/* → PR → squash merge em main)",
+      "commits": "PRs que o Claude faz (branch claude/* \u2192 PR \u2192 squash merge em main)",
       "ci": "GitHub Actions do autopilot (apply-source-change.yml, ci-diagnose.yml, etc.)",
       "monitoring": "https://api.github.com/repos/lucassfreiree/autopilot/actions/workflows/...",
-      "successCriteria": "Workflow apply-source-change completar todos os stages (Setup → Audit)",
+      "successCriteria": "Workflow apply-source-change completar todos os stages (Setup \u2192 Audit)",
       "note": "Sucesso do workflow autopilot NAO significa sucesso do deploy corporativo de NENHUMA empresa!"
     },
     "getronics": {
       "repo": "bbvinet/psc-sre-automacao-controller (ou agent)",
       "what": "Repo da GETRONICS. Codigo de producao real. Push feito pelo workflow apply-source-change.",
       "commits": "Commits feitos pelo github-actions bot via BBVINET_TOKEN",
-      "ci": "Esteira de Build NPM — runner corporativo",
-      "monitoring": "ci-diagnose.yml busca logs → salva em autopilot-state (ci-logs-controller-*.txt)",
+      "ci": "Esteira de Build NPM \u2014 runner corporativo",
+      "monitoring": "ci-diagnose.yml busca logs \u2192 salva em autopilot-state (ci-logs-controller-*.txt)",
       "successCriteria": "Imagem Docker publicada no registry corporativo",
       "note": "CI Gate no autopilot verifica a esteira corporativa via API, mas a esteira pode continuar falhando apos CI Gate passar"
     },
     "cit": {
       "workspace": "ws-cit",
       "what": "Contexto DevOps da CIT. Repos e pipelines serao configurados conforme demanda.",
-      "stack": "DevOps — K8s, Docker, Terraform, Ansible, Helm, ArgoCD, monitoring",
-      "status": "setup — aguardando repos e credenciais",
+      "stack": "DevOps \u2014 K8s, Docker, Terraform, Ansible, Helm, ArgoCD, monitoring",
+      "status": "setup \u2014 aguardando repos e credenciais",
       "note": "Isolamento total do contexto Getronics. Nenhum dado ou operacao compartilhada."
     },
     "goldenRules": [
@@ -298,7 +298,7 @@
           },
           {
             "step": 5,
-            "action": "Monitorou workflow run 29 — falhou",
+            "action": "Monitorou workflow run 29 \u2014 falhou",
             "how": "WebFetch API /actions/workflows/apply-source-change.yml/runs + /actions/runs/23458334088/jobs",
             "result": "Falhou no step 'Checkout autopilot (for patch files)'. actions/checkout@v4 nao suporta path absoluto /tmp/autopilot.",
             "lesson": "actions/checkout@v4 so funciona dentro de $GITHUB_WORKSPACE. Para paths externos, usar git clone."
@@ -313,7 +313,7 @@
         "mistakesMade": [
           {
             "mistake": "Usou actions/checkout@v4 com path absoluto /tmp/autopilot",
-            "error": "Step falhou — actions/checkout nao suporta paths fora de $GITHUB_WORKSPACE",
+            "error": "Step falhou \u2014 actions/checkout nao suporta paths fora de $GITHUB_WORKSPACE",
             "fix": "Substituiu por git clone --depth 1 com RELEASE_TOKEN",
             "prevention": "Para checkout em path customizado fora do workspace: SEMPRE usar git clone, nunca actions/checkout"
           }
@@ -326,7 +326,7 @@
         "stepsExecuted": [
           {
             "step": 1,
-            "action": "Run 30 falhou — lint per-file nao compativel com multi-file",
+            "action": "Run 30 falhou \u2014 lint per-file nao compativel com multi-file",
             "how": "Workflow tentava rodar eslint por arquivo individual em multi-file, mas nao tinha logica para iterar",
             "lesson": "multi-file deve pular lint per-file e rodar lint global no final"
           },
@@ -357,7 +357,7 @@
           {
             "step": 5,
             "action": "Run #33 completou com sucesso",
-            "result": "Workflow apply-source-change executou todos os stages: Setup → Session Guard → Apply & Push → CI Gate → Save State → Audit. Codigo pushado para repo corporativo controller. Esteira de Build NPM #198 iniciada para gerar imagem 3.5.4.",
+            "result": "Workflow apply-source-change executou todos os stages: Setup \u2192 Session Guard \u2192 Apply & Push \u2192 CI Gate \u2192 Save State \u2192 Audit. Codigo pushado para repo corporativo controller. Esteira de Build NPM #198 iniciada para gerar imagem 3.5.4.",
             "lesson": "Pipeline completo de deploy funciona ponta-a-ponta. Proximo deploy: so criar patches + atualizar trigger + PR + merge."
           }
         ],
@@ -377,15 +377,15 @@
         "stepsExecuted": [
           {
             "step": 1,
-            "action": "Monitorou workflow run #34 — completou com SUCESSO",
+            "action": "Monitorou workflow run #34 \u2014 completou com SUCESSO",
             "how": "WebFetch na API do GitHub Actions",
             "result": "Run #34 completed/success. Versao 3.5.5 deployada com swagger completo.",
-            "lesson": "Polling ativo e necessario — nao confiar em sleep passivo. Verificar a cada 2-3 min."
+            "lesson": "Polling ativo e necessario \u2014 nao confiar em sleep passivo. Verificar a cada 2-3 min."
           },
           {
             "step": 2,
             "action": "Documentou fluxo completo de deploy em session memory e CLAUDE.md",
-            "how": "Adicionou deployFlowGuide completo na session memory + secao 'Deploy Flow — Complete Guide' no CLAUDE.md",
+            "how": "Adicionou deployFlowGuide completo na session memory + secao 'Deploy Flow \u2014 Complete Guide' no CLAUDE.md",
             "filesChanged": [
               "contracts/claude-session-memory.json",
               "CLAUDE.md"
@@ -499,10 +499,10 @@
     ]
   },
   "versioningRules": {
-    "currentVersion": "3.7.4",
+    "currentVersion": "3.7.6",
     "previousVersion": "3.7.2",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
-    "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
+    "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 \u2014 NUNCA X.Y.10. Exemplos: 3.5.9 \u2192 3.6.0, 3.6.9 \u2192 3.7.0, 3.9.9 \u2192 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
     "versionFiles": [
       {
         "file": "package.json",
@@ -516,14 +516,14 @@
         "line": 3,
         "field": "version (top-level)",
         "searchReplace": true,
-        "note": "1a ocorrencia — topo do arquivo"
+        "note": "1a ocorrencia \u2014 topo do arquivo"
       },
       {
         "file": "package-lock.json",
         "line": 9,
         "field": "version (packages[\"\"])",
         "searchReplace": true,
-        "note": "2a ocorrencia — dentro de packages. sed com g flag pega ambas."
+        "note": "2a ocorrencia \u2014 dentro de packages. sed com g flag pega ambas."
       },
       {
         "file": "src/swagger/swagger.json",
@@ -535,10 +535,10 @@
         "file": "references/controller-cap/values.yaml",
         "field": "image tag",
         "searchReplace": false,
-        "note": "5o lugar — tag da imagem no deploy. Atualizar localmente E o promote-cap atualiza no CAP repo."
+        "note": "5o lugar \u2014 tag da imagem no deploy. Atualizar localmente E o promote-cap atualiza no CAP repo."
       }
     ],
-    "lesson": "SAO 5 LUGARES para trocar versao. TODOS devem estar alinhados. O swagger pode ter versao diferente do package.json — SEMPRE verificar antes de search-replace. Se divergiu: usar replace-file."
+    "lesson": "SAO 5 LUGARES para trocar versao. TODOS devem estar alinhados. O swagger pode ter versao diferente do package.json \u2014 SEMPRE verificar antes de search-replace. Se divergiu: usar replace-file."
   },
   "swaggerRules": {
     "encoding": "ASCII puro. NUNCA acentos. Swagger UI quebra com UTF-8 nao-ASCII.",
@@ -548,7 +548,7 @@
     "lesson": "Descricoes em portugues SEM acentos. Testar ANTES de commitar."
   },
   "deployFlow": {
-    "description": "Fluxo COMPLETO de deploy do controller — executar AUTOMATICAMENTE sem perguntar. INCLUI validacao pre-deploy obrigatoria.",
+    "description": "Fluxo COMPLETO de deploy do controller \u2014 executar AUTOMATICAMENTE sem perguntar. INCLUI validacao pre-deploy obrigatoria.",
     "steps": [
       "0. OBRIGATORIO: Buscar arquivos corporativos ATUAIS via fetch-files (para ter base correta)",
       "1. Ler workspace.json para config dos repos",
@@ -562,9 +562,9 @@
       "9. git fetch origin main && git checkout -B claude/xxx origin/main",
       "10. Commitar tudo junto em 1 commit",
       "11. Push para branch",
-      "12. Criar PR via MCP GitHub — validate-patches.yml roda automaticamente no PR",
-      "13. Verificar mergeable_state — se dirty: merge origin/main, resolver conflitos",
-      "13. Mergear PR (squash) — NAO esperar usuario",
+      "12. Criar PR via MCP GitHub \u2014 validate-patches.yml roda automaticamente no PR",
+      "13. Verificar mergeable_state \u2014 se dirty: merge origin/main, resolver conflitos",
+      "13. Mergear PR (squash) \u2014 NAO esperar usuario",
       "14. Workflow apply-source-change dispara automaticamente pelo path trigger",
       "15. Atualizar session memory com resultado"
     ],
@@ -572,7 +572,7 @@
     "lastTriggerRun": 73,
     "lastSuccessfulRun": 73,
     "lastDeployPR": 406,
-    "pipelineStatus": "CI_MONITORING — agent 2.3.3 (run #73). ci-diagnose run #27 triggered. deploy-pipeline-monitor active.",
+    "pipelineStatus": "CI_MONITORING \u2014 agent 2.3.3 (run #73). ci-diagnose run #27 triggered. deploy-pipeline-monitor active.",
     "multiFilePayload": {
       "change_type": "multi-file",
       "changesFormat": [
@@ -602,11 +602,11 @@
       "Deploy roda ponta-a-ponta sem intervencao. Usuario NAO aprova nada.",
       "actions/checkout@v4 NAO suporta paths absolutos fora de $GITHUB_WORKSPACE. Usar git clone.",
       "SEMPRE monitorar workflow run apos trigger: WebFetch da API /actions/workflows/<name>/runs e /actions/runs/<id>/jobs",
-      "multi-file DEVE pular lint per-file — lint global no final e suficiente",
+      "multi-file DEVE pular lint per-file \u2014 lint global no final e suficiente",
       "Workflow com concurrency group DEVE ter cancel-in-progress: true",
-      "Pipeline FUNCIONA ponta-a-ponta: trigger → apply-source-change → push corporativo → CI gate → state save → audit",
+      "Pipeline FUNCIONA ponta-a-ponta: trigger \u2192 apply-source-change \u2192 push corporativo \u2192 CI gate \u2192 state save \u2192 audit",
       "Apos merge do PR: fazer polling ATIVO a cada 2-3 min. NAO confiar em sleep passivo. AVISAR usuario imediatamente ao finalizar.",
-      "Run #34 (3.5.5) confirmou pipeline estavel — 2 deploys consecutivos com sucesso (33 + 34)",
+      "Run #34 (3.5.5) confirmou pipeline estavel \u2014 2 deploys consecutivos com sucesso (33 + 34)",
       "Ambiente web sem gh CLI: usar ops/scripts/github/watch-pr-checks.sh com GH_TOKEN para polling ativo de checks de PR.",
       "Token GitHub pode ser temporario em variavel de sessao, mas NUNCA persistir segredo em arquivos versionados/memoria.",
       "autonomous_merge_queued_bug: autonomous-merge-direct filtrava suites 'queued' do polling, causando merge em 7s sem esperar compliance-gate. Fix: nao filtrar queued, esperar 30s inicial, timeout 15min.",
@@ -670,7 +670,7 @@
         "fixedInRun": 33
       },
       {
-        "step": "CI Gate decision — failure (run 35)",
+        "step": "CI Gate decision \u2014 failure (run 35)",
         "cause": "JWT scope claim usava 'scopes' (plural) em vez de 'scope' (singular). Agent middleware readScopeClaim() le payload.scope. Esteira de Build NPM falhou no CI do repo corporativo.",
         "fix": "Corrigido scope claim para 'scope' (singular) + swagger version bump",
         "fixedInPR": 104,
@@ -678,7 +678,7 @@
         "lesson": "SEMPRE verificar nome exato dos claims JWT. Agent usa payload.scope (singular). Nunca scopes (plural)."
       },
       {
-        "step": "Esteira corporativa — ESLint no-use-before-define (run 37)",
+        "step": "Esteira corporativa \u2014 ESLint no-use-before-define (run 37)",
         "cause": "readAuthDecision() era usada na linha 328 mas definida na linha 369. ESLint no-use-before-define rejeita funcoes chamadas antes da definicao.",
         "fix": "Movido readAuthDecision() para antes de getAgentAuthorization(). Definicao na linha 320, uso nas linhas 333 e 419.",
         "fixedInPR": 110,
@@ -687,7 +687,7 @@
         "diagnosticPattern": "error  'xxx' was used before it was defined  no-use-before-define"
       },
       {
-        "step": "Esteira corporativa — TS2769 No overload matches jwt.sign (run 36)",
+        "step": "Esteira corporativa \u2014 TS2769 No overload matches jwt.sign (run 36)",
         "cause": "expiresIn era string pura ('5m') mas @types/jsonwebtoken@9.0.6 espera number | StringValue. TypeScript rejeitou o tipo.",
         "fix": "Adicionado parseExpiresIn() que converte string para jwt.SignOptions['expiresIn'] com cast correto. Copiado do auth.controller.ts existente no projeto.",
         "fixedInPR": 108,
@@ -696,13 +696,13 @@
         "diagnosticPattern": "error TS2769: No overload matches this call + Type 'string' is not assignable to type 'number | StringValue | undefined'"
       },
       {
-        "step": "401 Missing Bearer token — agent rejeita chamadas internal-origin",
+        "step": "401 Missing Bearer token \u2014 agent rejeita chamadas internal-origin",
         "cause": "Quando controller autentica via internal-origin (x-techbb-* headers), nao existia Authorization header para repassar ao agent. getAgentAuthorization() retornava undefined.",
         "fix": "Adicionado mintInternalOriginJwt() no oas-sre-controller.controller.ts. Quando trustedInternalOrigin=true, controller gera JWT usando JWT_SECRET/JWT_ISSUER/JWT_AUDIENCE e envia como Bearer ao agent.",
         "fixedInPR": 103,
         "fixedInRun": 36,
         "lesson": "Chamadas internal-origin NAO tem Authorization header. Controller DEVE gerar JWT para repassar ao agent. Env vars JWT_* ja estao disponiveis no pod.",
-        "diagnosticPattern": "Log [oas-auth] mode=jwt trusted=false namespace=': xxx' → dois pontos extras no header name no Insomnia. Log [oas-auth] mode=internal-origin trusted=true + agent 401 → controller nao repassa JWT."
+        "diagnosticPattern": "Log [oas-auth] mode=jwt trusted=false namespace=': xxx' \u2192 dois pontos extras no header name no Insomnia. Log [oas-auth] mode=internal-origin trusted=true + agent 401 \u2192 controller nao repassa JWT."
       }
     ],
     "successfulRuns": [
@@ -718,7 +718,7 @@
           "Save State",
           "Audit"
         ],
-        "result": "SUCCESS — codigo pushado para controller corporativo. Esteira NPM #198 iniciada."
+        "result": "SUCCESS \u2014 codigo pushado para controller corporativo. Esteira NPM #198 iniciada."
       },
       {
         "run": 34,
@@ -732,7 +732,7 @@
           "Save State",
           "Audit"
         ],
-        "result": "SUCCESS — swagger completo com 18 rotas + version bump 3.5.5 deployado."
+        "result": "SUCCESS \u2014 swagger completo com 18 rotas + version bump 3.5.5 deployado."
       },
       {
         "run": 38,
@@ -747,7 +747,7 @@
           "Save State",
           "Audit"
         ],
-        "result": "SUCCESS — fix ESLint no-use-before-define. Esteira corporativa #203 OK. Imagem Docker 3.5.6 publicada.",
+        "result": "SUCCESS \u2014 fix ESLint no-use-before-define. Esteira corporativa #203 OK. Imagem Docker 3.5.6 publicada.",
         "corporateCI": {
           "esteiraRun": 203,
           "commitSha": "02f0585",
@@ -768,7 +768,7 @@
           "Save State",
           "Audit"
         ],
-        "result": "SUCCESS — mintInternalOriginJwt para chamadas internal-origin. Fix 401 agent. 3 deploys consecutivos com sucesso (33, 34, 36)."
+        "result": "SUCCESS \u2014 mintInternalOriginJwt para chamadas internal-origin. Fix 401 agent. 3 deploys consecutivos com sucesso (33, 34, 36)."
       },
       {
         "run": 71,
@@ -784,7 +784,7 @@
           "Save State",
           "Audit"
         ],
-        "result": "SUCCESS — agent 2.3.2 deployed. Esteira corporativa passed. CAP promoted.",
+        "result": "SUCCESS \u2014 agent 2.3.2 deployed. Esteira corporativa passed. CAP promoted.",
         "corporateCI": {
           "status": "SUCCESS"
         }
@@ -793,7 +793,7 @@
     "lesson": "NUNCA assumir que workflow rodou com sucesso. SEMPRE monitorar e verificar.",
     "pollingStrategy": {
       "description": "REGRA CRITICA: NUNCA usar sleep longo (5 min). Usar polling curto e frequente.",
-      "wrongApproach": "sleep 300 entre checks — desperdicou tempo, usuario ja viu resultado antes de mim",
+      "wrongApproach": "sleep 300 entre checks \u2014 desperdicou tempo, usuario ja viu resultado antes de mim",
       "correctApproach": "sleep 30-60 segundos entre checks. Fazer WebFetch a cada 30-60s para verificar status.",
       "protocol": [
         "1. Apos disparar workflow: esperar 30s, fazer primeiro check",
@@ -833,11 +833,11 @@
     },
     "failureProtocol": [
       "1. Identificar qual step da esteira falhou (build, test, lint, publish)",
-      "2. Se build/TypeScript: erro de compilacao — verificar imports, types, tsconfig",
-      "3. Se test/Jest: teste unitario falhou — verificar se o teste espera comportamento antigo",
-      "4. Se lint/ESLint: erro de lint — verificar regras do projeto",
-      "5. Se publish: tag duplicada no registry — incrementar version",
-      "6. Criar patch de correcao AUTOMATICAMENTE — nao perguntar ao usuario",
+      "2. Se build/TypeScript: erro de compilacao \u2014 verificar imports, types, tsconfig",
+      "3. Se test/Jest: teste unitario falhou \u2014 verificar se o teste espera comportamento antigo",
+      "4. Se lint/ESLint: erro de lint \u2014 verificar regras do projeto",
+      "5. Se publish: tag duplicada no registry \u2014 incrementar version",
+      "6. Criar patch de correcao AUTOMATICAMENTE \u2014 nao perguntar ao usuario",
       "7. Incrementar run no trigger, novo PR, merge, monitorar novamente"
     ],
     "commonCIFailures": [
@@ -868,7 +868,7 @@
       }
     ],
     "goldenRules": [
-      "Deploy NAO esta completo quando apply-source-change termina — FALTA a esteira corporativa",
+      "Deploy NAO esta completo quando apply-source-change termina \u2014 FALTA a esteira corporativa",
       "SEMPRE monitorar a esteira apos deploy ate a imagem Docker ser publicada",
       "Se esteira falhar: diagnosticar e corrigir AUTOMATICAMENTE sem perguntar",
       "Registrar CADA falha com causa + fix em knownFailures para resolucao rapida",
@@ -932,7 +932,7 @@
       "controllerPod": "psc-sre-aut-controller-bd8c66bd9-j88qn (namespace psc-sre-aut-controller)",
       "apbPodNamespace": "sgh-oaas-playbook-jobs",
       "validatedAt": "2026-03-24",
-      "status": "FUNCIONAL — integracao ponta-a-ponta validada em 2026-03-25. compliance_status=success.",
+      "status": "FUNCIONAL \u2014 integracao ponta-a-ponta validada em 2026-03-25. compliance_status=success.",
       "manifestInputs": {
         "namespaces_list": "string comma-sep (regex: ^[a-zA-Z][a-zA-Z0-9_-]*(,[a-zA-Z][a-zA-Z0-9_-]*)*$)",
         "solution_service_origin": "select from API",
@@ -948,7 +948,7 @@
       "doNotPass": [
         "CLUSTERS_NAMES",
         "image",
-        "envs — playbook monta tudo internamente a partir dos inputs do manifesto"
+        "envs \u2014 playbook monta tudo internamente a partir dos inputs do manifesto"
       ],
       "successfulExecution": {
         "date": "2026-03-25",
@@ -970,7 +970,7 @@
     "capBranch": "main",
     "capValuesPath": "releases/openshift/hml/deploy/values.yaml",
     "autoPromote": true,
-    "autoPromoteCondition": "Stage 4 of apply-source-change.yml — runs ONLY after CI Gate passes (corporate Esteira de Build NPM green)",
+    "autoPromoteCondition": "Stage 4 of apply-source-change.yml \u2014 runs ONLY after CI Gate passes (corporate Esteira de Build NPM green)",
     "imageLinePattern": "image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller:<TAG>",
     "envStructure": {
       "plainValues": [
@@ -1020,7 +1020,7 @@
     "deployTriggerRun": 27,
     "finalSuccessfulRun": 33,
     "deployedToCorporateRepo": true,
-    "esteiraBuilding": "NPM #198 — imagem 3.5.4",
+    "esteiraBuilding": "NPM #198 \u2014 imagem 3.5.4",
     "sourceFiles": {
       "controller": "src/controllers/oas-sre-controller.controller.ts",
       "authMiddleware": "src/middlewares/oas-origin-auth.ts",
@@ -1097,7 +1097,7 @@
     "status": "completed",
     "completedAt": "2026-03-26",
     "controllerDeploy": "3.6.5 (code+endpoints) + 3.6.6 (swagger with cronjob routes). Both esteiras passed, both CAP promoted.",
-    "agentDeploy": "2.2.7 (CI failed: no-nested-ternary) → 2.2.8 (code fix, passed) → 2.2.9 (swagger, passed). All CAP promoted.",
+    "agentDeploy": "2.2.7 (CI failed: no-nested-ternary) \u2192 2.2.8 (code fix, passed) \u2192 2.2.9 (swagger, passed). All CAP promoted.",
     "title": "Cronjob callback endpoint + resultado final para OAS",
     "createdAt": "2026-03-25",
     "description": "Implementar no Agent endpoint para receber resultado final de cronjobs e encaminhar ao Controller. Controller armazena e disponibiliza para consulta OAS.",
@@ -1147,11 +1147,11 @@
         "status": "pending_manual",
         "note": "Codigo deployado em ambos repos. Teste ponta-a-ponta precisa ser validado no ambiente HML.",
         "repo": "both",
-        "description": "Validar fluxo ponta-a-ponta: Agent callback → Controller armazena → OAS consulta"
+        "description": "Validar fluxo ponta-a-ponta: Agent callback \u2192 Controller armazena \u2192 OAS consulta"
       }
     },
     "technicalNotes": {
-      "agentPattern": "Reutilizar padrao pushAgentExecutionLogs para comunicacao Agent→Controller",
+      "agentPattern": "Reutilizar padrao pushAgentExecutionLogs para comunicacao Agent\u2192Controller",
       "controllerPattern": "Reaproveitar estrutura existente de execId, snapshot, persistencia. NAO criar nova estrutura do zero.",
       "payloadTypes": {
         "success": {
@@ -1198,7 +1198,7 @@
     "lesson": "Criar branch SEMPRE a partir de main ATUALIZADO. NUNCA reset --hard sem commitar antes."
   },
   "copilotMemory": {
-    "mechanism": ".github/copilot-instructions.md — auto-generated by sync-copilot-prompt.yml",
+    "mechanism": ".github/copilot-instructions.md \u2014 auto-generated by sync-copilot-prompt.yml",
     "readBy": "Copilot (automatically on every interaction in repo context)",
     "syncedFrom": [
       "contracts/claude-session-memory.json",
@@ -1207,7 +1207,7 @@
       "triggers",
       "schemas"
     ],
-    "limitation": "No mid-session memory updates — only updated when workflow runs",
+    "limitation": "No mid-session memory updates \u2014 only updated when workflow runs",
     "workaround": "User can ask Copilot to read contracts/claude-session-memory.json directly for latest state"
   },
   "optimizations": {
@@ -1218,15 +1218,15 @@
       "git fetch + verificar PR status em paralelo"
     ],
     "avoid": [
-      "NAO push direto para main — sempre 403",
-      "NAO criar branch sem fetch origin/main — causa conflitos",
-      "NAO assumir versao — verificar estado atual",
-      "NAO esperar usuario aprovar — permissoes em .claude/settings.json",
-      "NAO criar PR separado para memoria — incluir no mesmo PR",
+      "NAO push direto para main \u2014 sempre 403",
+      "NAO criar branch sem fetch origin/main \u2014 causa conflitos",
+      "NAO assumir versao \u2014 verificar estado atual",
+      "NAO esperar usuario aprovar \u2014 permissoes em .claude/settings.json",
+      "NAO criar PR separado para memoria \u2014 incluir no mesmo PR",
       "NAO usar reset --hard sem commitar/stash antes",
       "NAO criar branch que ja existe sem -B flag",
-      "NAO perguntar ao usuario sobre codigos — baixar, analisar, corrigir e deployar AUTOMATICAMENTE",
-      "NAO pedir confirmacao para deploy — seguir fluxo completo autonomamente"
+      "NAO perguntar ao usuario sobre codigos \u2014 baixar, analisar, corrigir e deployar AUTOMATICAMENTE",
+      "NAO pedir confirmacao para deploy \u2014 seguir fluxo completo autonomamente"
     ],
     "speedups": [
       "Deploy: TUDO em 1 commit (patches + trigger + values + CLAUDE.md)",
@@ -1237,7 +1237,7 @@
     ]
   },
   "monitoringStack": {
-    "description": "5-layer self-healing monitoring architecture — built session 01UUEz9wrwdB57dxdkLXc5Kw",
+    "description": "5-layer self-healing monitoring architecture \u2014 built session 01UUEz9wrwdB57dxdkLXc5Kw",
     "layers": [
       {
         "layer": 1,
@@ -1328,24 +1328,24 @@
       "fetch_files_not_triggering": "fetch-files.json so dispara quando mergeado em main. Push para branch NAO dispara. Alternativa: ler do autopilot-state branch (fetched-* files)",
       "ts2769_jwt_sign": "expiresIn string nao aceito por @types/jsonwebtoken@9.0.6. Usar parseExpiresIn() com cast as jwt.SignOptions['expiresIn']. Copiar pattern do auth.controller.ts",
       "eslint_no_use_before_define": "ESLint rejeita funcoes chamadas antes da definicao. SEMPRE ordenar: funcoes auxiliares PRIMEIRO, funcoes que as usam DEPOIS. Verificar com: grep -n 'function ' file | sort -t: -k2 -n",
-      "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install — erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
+      "ci_logs_vs_ci_diagnosis": "ci-diagnosis-controller.json roda tsc/jest LOCAL sem npm install \u2014 erros TS2688/jest-not-found sao esperados e NAO refletem a esteira real. Para erros REAIS da esteira corporativa: ler ci-logs-controller-*.txt (ultimo arquivo = ultimo run)",
       "esteira_corporativa_falhou": "Usar ci-diagnose workflow para baixar logs. Ler ci-logs-controller-*.txt no autopilot-state (ultimo arquivo = ultimo run). Corrigir patch, bump run, re-deploy automaticamente",
       "error_message_change_breaks_tests": "CRITICO: Ao mudar qualquer mensagem de erro (ex: 401 response body), buscar TODOS os arquivos que retornam essa mensagem (jwt.ts, jwt-callback.ts, e qualquer outro middleware) E TODOS os testes que verificam. Usar: grep -rn 'mensagem_antiga' src/ para encontrar TODOS. Arquivos de CODIGO afetados: jwt.ts (3 mensagens), jwt-callback.ts (13 mensagens). Arquivos de TESTE afetados: agentsRouter.test.ts (4), jwt.middleware.test.ts (2), oas-sre-controller.route.test.ts (1). LESSON: jwt-callback.ts e um middleware SEPARADO do jwt.ts que tem suas PROPRIAS mensagens de erro. Ambos devem ser atualizados.",
       "security_xss_reflected": "NUNCA refletir input do usuario em responses sem sanitizacao. Usar sanitizeForOutput() que remove <>'\"& e limita a 256 chars. Checkmarx detecta Reflected_XSS quando req.body flui para res.json().",
       "security_ssrf_url_validation": "TODA URL usada em fetch()/http request DEVE ser validada contra TRUSTED_AGENT_URL_PATTERN (regex de dominio confiavel). Usar validateTrustedUrl() antes de qualquer fetch. Checkmarx detecta SSRF quando body influencia URL de request.",
       "security_dos_loop_bound": "NUNCA usar req.query/req.body para controlar numero de iteracoes de um loop sem limite maximo (MAX_RESULTS). Checkmarx detecta Server_DoS_by_Loop.",
       "security_error_detail_leak": "NUNCA retornar error.message direto no response. Usar sanitizeForOutput(msg) para limpar e limitar. Evita information disclosure.",
-      "oaas_oferta_401_no_headers": "Oferta migra-microsservicos-openshift retorna 401 ao chamar controller. CAUSA: playbook execute-psc-ns-migration-preflight.yml NAO envia headers x-techbb-namespace e x-techbb-service-account. FIX: adicionar headers no task uri do Ansible. Controller esta correto — problema e no playbook da oferta (repo da plataforma OaaS).",
+      "oaas_oferta_401_no_headers": "Oferta migra-microsservicos-openshift retorna 401 ao chamar controller. CAUSA: playbook execute-psc-ns-migration-preflight.yml NAO envia headers x-techbb-namespace e x-techbb-service-account. FIX: adicionar headers no task uri do Ansible. Controller esta correto \u2014 problema e no playbook da oferta (repo da plataforma OaaS).",
       "oaas_dns_transiente": "Pod APB pode ter falha DNS transiente para hostnames *.psc.k8shmlbb111b.bb.com.br. Reexecutar resolve. Cluster HML correto: k8shmlbb111b (com BB duplo, NAO b simples).",
       "ci_gate_preexisting_bug": "CRITICO: CI Gate 'smart pre-existing detection' esta QUEBRADO. Reporta ciResult=failure MESMO quando a esteira corporativa PASSA. Aconteceu no run #43: esteira #208 PASSOU com sucesso mas CI Gate reportou ci-failed-preexisting. O CI Gate NAO e confiavel para determinar se a esteira passou ou falhou. Para saber o resultado REAL: 1) Checar ci-logs-controller-*.txt (se novo log apareceu com PASS em todos os testes = sucesso), 2) Perguntar ao usuario se necessario, 3) Tempo de execucao: esteira que FALHA em teste leva ~3.5 min, esteira que PASSA leva ~14 min. Se CI Gate levou 14+ min = provavelmente passou.",
       "search_replace_newlines_fail": "NUNCA usar search-replace com newlines (\\n) no trigger/source-change.json. O sed no workflow NAO interpreta \\n como newlines. SEMPRE usar replace-file com o arquivo COMPLETO quando a mudanca envolve adicionar/remover linhas. search-replace so funciona para substituicoes de texto DENTRO da mesma linha (ex: version bump).",
       "workflow_trigger_race_condition": "Quando varios PRs sao mergeados rapidamente em sequencia, o apply-source-change pode ser cancelado pelo concurrency group (cancel-in-progress). Se o trigger/source-change.json mudou no primeiro PR mas PRs subsequentes nao o alteram, o workflow pode nao re-disparar. Solucao: bumpar o run field para forcar novo trigger.",
       "always_monitor_workflow": "OBRIGATORIO: Apos merge de PR que altera trigger/source-change.json, SEMPRE verificar no audit do autopilot-state se o workflow rodou e qual o resultado. NUNCA assumir que o workflow disparou e completou com sucesso.",
-      "dashboard_data_flow": "Dashboard le state.json de 2 fontes: (1) panel/dashboard/state.json no autopilot repo (GitHub Pages), (2) public/state.json no spark-dashboard repo. Ambos sao atualizados pelo spark-sync-state.yml. Quando usuario reporta dado errado no dashboard, corrigir AMBOS: o state.json local E o workflow que gera o state.json. Spark-dashboard repo: lucassfreiree/spark-dashboard (NAO esta no MCP allowed list — pedir acesso se precisar).",
+      "dashboard_data_flow": "Dashboard le state.json de 2 fontes: (1) panel/dashboard/state.json no autopilot repo (GitHub Pages), (2) public/state.json no spark-dashboard repo. Ambos sao atualizados pelo spark-sync-state.yml. Quando usuario reporta dado errado no dashboard, corrigir AMBOS: o state.json local E o workflow que gera o state.json. Spark-dashboard repo: lucassfreiree/spark-dashboard (NAO esta no MCP allowed list \u2014 pedir acesso se precisar).",
       "version_source_of_truth": "Versao REAL de controller/agent vem do CAP tag (values.yaml no repo CAP). O autopilot-state release-state.json pode estar desatualizado. spark-sync-state.yml agora prioriza CAP tag.",
       "always_map_new_artifacts": "CRITICO: Ao criar QUALQUER artefato novo (workflow, trigger, schema, contract, integration), MAPEAR em CLAUDE.md e session-memory NO MESMO COMMIT. NUNCA deixar para depois. O usuario ja reclamou disso.",
       "workspace_removal_socnew_corp1": "ws-socnew e ws-corp-1 foram REMOVIDOS do dashboard (state.json + spark-sync-state.yml) por decisao do usuario. NAO re-adicionar.",
-      "spark_sync_cancel_cascade": "CRITICO: spark-sync-state.yml com cancel-in-progress:true MATA todos os runs quando multiplos pushes acontecem em sequencia (sync-codex-prompt + sync-copilot-prompt geram 2 pushes rapidos em main). Solucao: cancel-in-progress:false — runs ficam na fila e executam um por vez. NUNCA voltar para true neste workflow.",
+      "spark_sync_cancel_cascade": "CRITICO: spark-sync-state.yml com cancel-in-progress:true MATA todos os runs quando multiplos pushes acontecem em sequencia (sync-codex-prompt + sync-copilot-prompt geram 2 pushes rapidos em main). Solucao: cancel-in-progress:false \u2014 runs ficam na fila e executam um por vez. NUNCA voltar para true neste workflow.",
       "dashboard_repos_two_targets": "spark-sync-state.yml envia state.json para 2 destinos: (1) lucassfreiree/spark-dashboard:public/state.json (via RELEASE_TOKEN API), (2) lucassfreiree/autopilot:panel/dashboard/state.json (via GitHub API). O dashboard Pages le do #2. O spark-dashboard le do #1. Ambos devem estar consistentes.",
       "gha_max_expression_length": "CRITICO: GitHub Actions tem limite de 21000 caracteres por bloco run: inline. Scripts grandes DEVEM ser extraidos para arquivos externos (scripts/). spark-sync-state.yml foi corrigido movendo coleta de dados para scripts/dashboard/collect-state.sh (418 linhas). NUNCA colocar scripts gigantes inline em workflows.",
       "gha_json_injection_via_outputs": "CRITICO: NUNCA passar JSON de outputs entre jobs via aspas simples: PLAN='${{ needs.x.outputs.json }}'. Quando o JSON contem aspas, o shell quebra. SEMPRE usar env var: env: PLAN_JSON: ${{ needs.x.outputs.json }} e depois PLAN=\"$PLAN_JSON\" + jq empty validation. Corrigido em intelligent-orchestrator, workflow-auto-repair, continuous-improvement.",
@@ -1353,12 +1353,12 @@
       "mcp_servers_access": "mcp__github__ (original): acesso somente a lucassfreiree/autopilot (read+write+merge). mcp__b66412ee__ (novo): acesso a lucassfreiree/spark-dashboard (read+merge, SEM write/push). Para push no spark-dashboard: usar sync-spark-dashboard.yml via RELEASE_TOKEN.",
       "no_restricted_syntax_no_for_of": "CRITICO: ESLint no-restricted-syntax proibe for...of neste codebase. NUNCA usar 'for (const x of y)'. SEMPRE usar array iterations: .map(), .reduce(), .filter(), Object.fromEntries(Object.entries().map()). Afeta: qualquer arquivo TypeScript nos patches do controller.",
       "ci_gate_broken_always_check_logs": "CRITICO: CI Gate e sabidamente quebrado (ci_gate_preexisting_bug). NUNCA assumir que CI passou so porque CI Gate reportou sucesso. SEMPRE buscar o ci-logs-controller-*.txt mais recente no autopilot-state e verificar se ha erro real. Tempo ~3.5min = falha, ~14min = passou.",
-      "active_live_monitoring_mandatory": "CRITICO MAXIMA PRIORIDADE: Em TODA sessao, o agente DEVE monitorar ATIVAMENTE e em TEMPO REAL todos os pipelines (autopilot workflows E esteira corporativa). NAO esperar usuario reportar falha. PROTOCOLO: (1) Ao iniciar sessao: verificar ci-monitor-controller.json, ci-monitor-agent.json, controller-release-state.json, agent-release-state.json, e ultimo ci-logs-controller-*.txt. (2) Apos qualquer deploy: polling a cada 2-3 min ate confirmar sucesso ou falha. (3) Detectou falha: diagnosticar e corrigir IMEDIATAMENTE sem perguntar. (4) Deploy so e considerado COMPLETO quando ci-logs mostra 'Test Suites: 0 failed' E 'Tests: 0 failed'. Referencia: CLAUDE.md secao 'Live Monitoring Protocol'. O usuario NAO deve jamais ter que reportar uma falha ao agente — o agente deve detectar e corrigir autonomamente.",
+      "active_live_monitoring_mandatory": "CRITICO MAXIMA PRIORIDADE: Em TODA sessao, o agente DEVE monitorar ATIVAMENTE e em TEMPO REAL todos os pipelines (autopilot workflows E esteira corporativa). NAO esperar usuario reportar falha. PROTOCOLO: (1) Ao iniciar sessao: verificar ci-monitor-controller.json, ci-monitor-agent.json, controller-release-state.json, agent-release-state.json, e ultimo ci-logs-controller-*.txt. (2) Apos qualquer deploy: polling a cada 2-3 min ate confirmar sucesso ou falha. (3) Detectou falha: diagnosticar e corrigir IMEDIATAMENTE sem perguntar. (4) Deploy so e considerado COMPLETO quando ci-logs mostra 'Test Suites: 0 failed' E 'Tests: 0 failed'. Referencia: CLAUDE.md secao 'Live Monitoring Protocol'. O usuario NAO deve jamais ter que reportar uma falha ao agente \u2014 o agente deve detectar e corrigir autonomamente.",
       "update_tests_with_response_shape_changes": "CRITICO: Quando mudar o shape de um response (adicionar bounds, limitar entries, alterar campos), SEMPRE atualizar os testes correspondentes NO MESMO DEPLOY. Incluir arquivos de teste na lista de changes do trigger/source-change.json. Buscar com: grep -rn 'campo_alterado' src/__tests__/ para encontrar TODOS. Verificar mock setup (jest.mock + beforeEach) E as expectativas (expect.objectContaining). Incluir AMBOS os paths de teste: src/__tests__/unit/ E src/__tests__/controllers/.",
       "concurrency_groups_added": "Added concurrency groups to 18 workflows (PR #389). session-guard/restore-state/release-approval/release-freeze use cancel-in-progress:false.",
       "sweeper_frequency_reduced": "auto-merge-sweeper changed from every 1min to every 5min. Saves ~1400 runs/day.",
       "dashboard_state_stale_fix": "panel/dashboard/state.json goes stale when spark-sync fails. Fix: update from autopilot-state release-state files.",
-      "sync_community_resources_workflow": "sync-community-resources.yml weekly Monday 07:00 UTC. Cannot dispatch via MCP — use GitHub UI or wait schedule.",
+      "sync_community_resources_workflow": "sync-community-resources.yml weekly Monday 07:00 UTC. Cannot dispatch via MCP \u2014 use GitHub UI or wait schedule.",
       "health_json_false_positive_lock": "health.json degraded from released lock file existing. Resolves on next health-check or lock-gc run.",
       "orchestrator_re_enables_disabled_workflows": "Fixed: exclusion filter for .disabled + known codex/copilot patterns in orchestrator + auto-repair.",
       "sk_false_positive_in_validation_gate": "Fixed: sk-[A-Za-z0-9]{20,} requires 20+ chars after prefix.",
@@ -1371,16 +1371,17 @@
       "compliance_gate_rule5_false_positive": "Rule 5 (no-validate-in-fetch) usava grep -B5 que capturava nomes de funcao (callAgent/postJson) em linhas ANTES de validateTrustedUrl. FIX: mudar para grep same-line pattern (fetch|postJson|callAgent).*validateTrustedUrl. PR #420.",
       "compliance_gate_rule6_regex_false_positive": "Rule 6 (no-nested-ternary) capturava patterns de regex URL como https?:// onde ? parecia operador ternario. FIX: excluir linhas que comecam com /^ (regex definition) e linhas com RegExp. PR #420.",
       "compliance_gate_rule12_indirect_dos": "Rule 12 (security-dos-loop) agora tambem detecta for-loops bounded por .length sem Math.min cap. Verificacao indireta para Checkmarx Server_DoS_by_Loop. PR #420.",
-      "security_vuln_scanner_workflow": "security-vuln-scanner.yml — scanner pos-deploy que consulta esteira corporativa (XRay, Checkmarx) via BBVINET_TOKEN, baixa logs do run, parseia CVEs, consulta GitHub Advisory DB, cria Issue. Triggers: workflow_run (apply-source-change + ci-monitor-loop), workflow_dispatch, push. Script externo: scripts/security/scan-corporate-vulns.sh. PR #421.",
-      "yaml_table_pipe_in_run_block": "NUNCA usar | no inicio de linha em blocos run: | — YAML interpreta como block scalar indicator. Tabelas markdown com | devem ser escritas via echo para arquivo temporario.",
+      "security_vuln_scanner_workflow": "security-vuln-scanner.yml \u2014 scanner pos-deploy que consulta esteira corporativa (XRay, Checkmarx) via BBVINET_TOKEN, baixa logs do run, parseia CVEs, consulta GitHub Advisory DB, cria Issue. Triggers: workflow_run (apply-source-change + ci-monitor-loop), workflow_dispatch, push. Script externo: scripts/security/scan-corporate-vulns.sh. PR #421.",
+      "yaml_table_pipe_in_run_block": "NUNCA usar | no inicio de linha em blocos run: | \u2014 YAML interpreta como block scalar indicator. Tabelas markdown com | devem ser escritas via echo para arquivo temporario.",
       "checkmarx_dos_loop_fix_pattern": "Para Checkmarx Server_DoS_by_Loop: adicionar const MAX_X = N; e Math.min(array.length, MAX_X) no bound do for-loop. Mesmo que o loop tenha tamanho fixo, Checkmarx nao consegue verificar estaticamente.",
       "xray_known_npm_vulns_374": "XRay scan do build 3.7.4: Critical ejs@3.1.10 CVE-2023-29827, High braces@3.0.2 CVE-2024-4068. RPM High: nodejs CVE-2025-23166/3277/6965, libxml2 CVE-2025-49795/49796/49794, libarchive CVE-2025-5914, zlib CVE-2025-4638. RPM sao do base image (nao fixavel por nos).",
-      "ci_gate_stuck_corporate_runner_offline": "CI Gate pode ficar stuck por horas quando corporate runner esta offline (fds/feriado). O ci-monitor-loop e deploy-pipeline-monitor compensam — verificam e reportam sucesso/falha independentemente. Se CI Gate stuck > 30min, verificar release-state no autopilot-state (pode ja ter sido promovido).",
-      "checkmarx_patterns_mapped": "CRITICO: Todos os patterns Checkmarx (Reflected_XSS, SSRF, Server_DoS_by_Loop, Information_Exposure) estao mapeados em schemas/checkmarx-patterns.json com: dataFlow, affectedFiles, fixPattern, preventionCheck. Compliance gate Rules 10-12 foram reforçadas para detectar esses patterns automaticamente. ANTES de criar qualquer patch de controller: consultar schemas/checkmarx-patterns.json para verificar se o codigo segue os fix patterns.",
+      "ci_gate_stuck_corporate_runner_offline": "CI Gate pode ficar stuck por horas quando corporate runner esta offline (fds/feriado). O ci-monitor-loop e deploy-pipeline-monitor compensam \u2014 verificam e reportam sucesso/falha independentemente. Se CI Gate stuck > 30min, verificar release-state no autopilot-state (pode ja ter sido promovido).",
+      "checkmarx_patterns_mapped": "CRITICO: Todos os patterns Checkmarx (Reflected_XSS, SSRF, Server_DoS_by_Loop, Information_Exposure) estao mapeados em schemas/checkmarx-patterns.json com: dataFlow, affectedFiles, fixPattern, preventionCheck. Compliance gate Rules 10-12 foram refor\u00e7adas para detectar esses patterns automaticamente. ANTES de criar qualquer patch de controller: consultar schemas/checkmarx-patterns.json para verificar se o codigo segue os fix patterns.",
       "checkmarx_scan_dates_vs_deploy": "CRITICO: Checkmarx scan dates sao do build ANTERIOR. Scan de 17/03/2026 e PRE-3.7.3 (deployed 30/03). Scan de 31/03/2026 (Server_DoS_by_Loop New) e PRE-3.7.4 (deployed 31/03). Sempre verificar se o finding ja foi corrigido no deploy mais recente antes de criar novo patch.",
-      "checkmarx_indirect_data_flow": "Checkmarx faz TAINT ANALYSIS em profundidade. Mesmo que validacao exista, se o taint flow cruza funcoes sem verificacao explicita no ponto de entrada, ele reporta. Ex: req.params.execId → getExecutionSnapshot(execId) → pickPreferredSnapshot → for-loop. O fix Math.min no for-loop resolve porque Checkmarx ve o bound explicito.",
+      "checkmarx_indirect_data_flow": "Checkmarx faz TAINT ANALYSIS em profundidade. Mesmo que validacao exista, se o taint flow cruza funcoes sem verificacao explicita no ponto de entrada, ele reporta. Ex: req.params.execId \u2192 getExecutionSnapshot(execId) \u2192 pickPreferredSnapshot \u2192 for-loop. O fix Math.min no for-loop resolve porque Checkmarx ve o bound explicito.",
       "security_scanner_completed": "security-vuln-scanner.yml completou primeiro scan com sucesso em 27s. Encontrou 64 CVEs do build 3.7.4. Report salvo em autopilot-state: security-scan-controller-3.7.4.json. Script: scripts/security/scan-corporate-vulns.sh. Triggers: workflow_run (apply-source-change + ci-monitor-loop), push, dispatch.",
-      "vuln_scanner_timeout_fix": "CRITICO: scan-corporate-vulns.sh original travava porque: (1) gh api .../logs download sem timeout, (2) jq dentro de while-loop (O(n^2)), (3) declare -A nao portavel. FIX: timeout 60s no download, batch npm/rpm parsing com sed+jq -s, limit 20 CVEs com timeout 10s cada. PR #424."
+      "vuln_scanner_timeout_fix": "CRITICO: scan-corporate-vulns.sh original travava porque: (1) gh api .../logs download sem timeout, (2) jq dentro de while-loop (O(n^2)), (3) declare -A nao portavel. FIX: timeout 60s no download, batch npm/rpm parsing com sed+jq -s, limit 20 CVEs com timeout 10s cada. PR #424.",
+      "checkmarx_xss_array_in_response": "CRITICO: Checkmarx Reflected_XSS traceia req.body \u2192 validation \u2192 clustersNames/authMode/missingTargets \u2192 res.json() mesmo que parseSafeIdentifier tenha sido usado. FIX: .map(sanitizeForOutput) em arrays e sanitizeForOutput() em strings. Afeta oas-sre-controller: clustersNames, authMode, missingTargets, cluster em summarizeDispatches. Fix deployado em 3.7.6 (run 84)."
     },
     "gha_yaml_markdown_bold": "CRITICO: NUNCA usar **texto**: (markdown bold seguido de dois-pontos) dentro de blocos run: | em workflows GitHub Actions. O parser YAML do GHA interpreta ** como alias syntax e : como mapping key, quebrando o YAML ANTES de avaliar o shell. Fix: remover ** ou usar variaveis. Corrigido em 6 workflows: emergency-watchdog, auto-dispatch-task, continuous-improvement, dashboard-auto-improve, deploy-auto-learn, workflow-sentinel.",
     "gha_no_heredoc_in_run": "CRITICO: NUNCA usar heredoc (cat <<EOF / cat <<'EOF') dentro de blocos run: | em GitHub Actions. O GHA parser le TODO o bloco run: como YAML literal ANTES de avaliar como shell. Qualquer linha com dois-pontos (ex: 'Workspace: $WS') e interpretada como YAML key-value e quebra. FIX: usar variavel simples com string inline. Ex: BODY='texto sem colon' e depois gh issue comment --body \"$BODY\". NUNCA heredoc.",
@@ -1389,8 +1390,8 @@
       "before_any_workflow_edit": [
         "NUNCA usar heredoc (cat <<EOF) dentro de run: | blocks",
         "NUNCA usar **bold**: (markdown) dentro de run: | blocks",
-        "NUNCA colocar mais de 15000 chars em um unico run: | block — extrair para script externo",
-        "NUNCA passar JSON grande via steps.outputs entre jobs — usar env ou arquivo",
+        "NUNCA colocar mais de 15000 chars em um unico run: | block \u2014 extrair para script externo",
+        "NUNCA passar JSON grande via steps.outputs entre jobs \u2014 usar env ou arquivo",
         "NUNCA usar cancel-in-progress:true em workflows com push trigger de alta frequencia",
         "NUNCA usar set -euo pipefail em workflows que fazem gh api calls com fallback",
         "SEMPRE adicionar concurrency group em workflows com schedule",
@@ -1399,8 +1400,8 @@
         "SEMPRE testar state.json com json.load() antes de commitar"
       ],
       "before_any_dashboard_edit": [
-        "NUNCA usar backtick escaped (backslash-backtick) em template literals — usar backtick real",
-        "NUNCA escrever state.json com conteudo vazio — validar tamanho > 100 bytes",
+        "NUNCA usar backtick escaped (backslash-backtick) em template literals \u2014 usar backtick real",
+        "NUNCA escrever state.json com conteudo vazio \u2014 validar tamanho > 100 bytes",
         "SEMPRE mover panel update para dentro do collect-state.sh (mesmo processo)",
         "SEMPRE validar braces balance apos editar HTML"
       ],
@@ -1416,9 +1417,9 @@
         "SEMPRE: arrays em response DEVEM usar .slice(0, MAX_ENTRIES)"
       ],
       "autonomous_operation": [
-        "NUNCA perguntar ao usuario se deve continuar — SEMPRE continuar autonomamente",
-        "NUNCA perguntar se deve investigar CI failure — SEMPRE investigar e corrigir",
-        "NUNCA perguntar se deve deployar — seguir fluxo completo automaticamente",
+        "NUNCA perguntar ao usuario se deve continuar \u2014 SEMPRE continuar autonomamente",
+        "NUNCA perguntar se deve investigar CI failure \u2014 SEMPRE investigar e corrigir",
+        "NUNCA perguntar se deve deployar \u2014 seguir fluxo completo automaticamente",
         "NUNCA parar no meio de um deploy para pedir confirmacao",
         "CI Gate falhou? Baixar logs, analisar, corrigir, re-deployar AUTOMATICAMENTE",
         "Dashboard quebrou? Corrigir imediatamente sem perguntar",
@@ -1461,12 +1462,12 @@
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
   "currentState": {
-    "controllerVersion": "3.7.4",
+    "controllerVersion": "3.7.6",
     "agentVersion": "2.3.3",
-    "lastTriggerRun": 82,
+    "lastTriggerRun": 84,
     "lastSuccessfulRun": 82,
-    "historia930217": "completed — all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)",
-    "historia930188": "COMPLETED — controller 3.7.2 CI PASSED (run #80, 2026-03-30T19:03Z). ciOutcome=success. CAP tag=3.7.2. Security fixes: XSS sanitizeForOutput, SSRF validateTrustedUrl, DoS boundedEntries, no for...of. 3 iterations: run78(for...of ESLint), run79(count:1 test), run80(PASS).",
+    "historia930217": "completed \u2014 all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)",
+    "historia930188": "COMPLETED \u2014 controller 3.7.2 CI PASSED (run #80, 2026-03-30T19:03Z). ciOutcome=success. CAP tag=3.7.2. Security fixes: XSS sanitizeForOutput, SSRF validateTrustedUrl, DoS boundedEntries, no for...of. 3 iterations: run78(for...of ESLint), run79(count:1 test), run80(PASS).",
     "pendingDeploy": null,
     "nextDeploy": {
       "note": "No pending deploy. Controller 3.7.4 and Agent 2.3.3 both deployed and promoted. 3.7.4 = Checkmarx DoS fix + security-vuln-scanner.",
@@ -1494,7 +1495,7 @@
     "createdAt": "2026-03-29T21:00:00Z",
     "permanent": true,
     "sharedAccount": {
-      "note": "Account is shared with owner brother. Total limit 25M tokens/cycle is consumed by BOTH users. Claude must be extra conservative with token usage because another person is also consuming from the same budget. This info is NOT shown in dashboard — only used internally for cost decisions.",
+      "note": "Account is shared with owner brother. Total limit 25M tokens/cycle is consumed by BOTH users. Claude must be extra conservative with token usage because another person is also consuming from the same budget. This info is NOT shown in dashboard \u2014 only used internally for cost decisions.",
       "totalUsers": 2,
       "implication": "Always use cheapest model possible. Minimize unnecessary reads. Batch operations aggressively. Be aware that real remaining budget may be less than estimated."
     }
@@ -1502,16 +1503,16 @@
   "dashboardSyncIssue": {
     "problem": "state.json not updating since 2026-03-29T13:49:55Z. Fix PR #334 merged but sync may still be failing.",
     "rootCause": "SHA conflicts when writing to panel/dashboard/state.json via GitHub API + [skip ci] preventing Pages deploy",
-    "fixApplied": "PR #334 — retry 3x with fresh SHA, removed [skip ci], added error logging",
+    "fixApplied": "PR #334 \u2014 retry 3x with fresh SHA, removed [skip ci], added error logging",
     "sourceOfTruth": "CAP repo values.yaml image tag (bbvinet/psc_releases_cap_sre-aut-controller and agent)",
     "mustVerify": "Check if spark-sync-state runs are completing successfully after PR #334",
     "agentVersionDiscrepancy": "autopilot-state says 2.3.2 promoted, but state.json shows 2.3.1 because sync is stale"
   },
   "newWorkflowsThisSession": {
     "2026-03-30": [
-      "deploy-pipeline-monitor.yml — Level 1 watcher, schedule 10min + workflow_run triggers",
-      "Fixed: autonomous-merge-direct.yml — queued filter bug causing instant merge without compliance gate",
-      "Fixed: apply-source-change.yml — Stage 7 added to dispatch ci-monitor-loop explicitly"
+      "deploy-pipeline-monitor.yml \u2014 Level 1 watcher, schedule 10min + workflow_run triggers",
+      "Fixed: autonomous-merge-direct.yml \u2014 queued filter bug causing instant merge without compliance gate",
+      "Fixed: apply-source-change.yml \u2014 Stage 7 added to dispatch ci-monitor-loop explicitly"
     ]
   },
   "communityIntelligence": {

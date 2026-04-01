@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-25T13:35:36Z",
+  "runId": "23543710807",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23543710807",
+  "component": "controller",
+  "changeType": "multi-file",
+  "targetPath": "",
+  "commitMessage": "fix(security): XSS sanitization + SSRF URL validation + error output hardening (3.5.13)",
+  "commitSha": "bd3ba1bd08733c1de0b8ae950c2031d3602bb6f1",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "failure",
+    "promote": "skipped",
+    "state": "success"
+  }
+}

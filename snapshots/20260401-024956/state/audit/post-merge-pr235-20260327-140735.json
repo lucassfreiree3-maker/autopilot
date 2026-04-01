@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr235-20260327-140735",
+  "event": "post-merge-monitor",
+  "prNumber": 235,
+  "branch": "copilot/update-controller-to-3-6-8",
+  "mergeSha": "bae6510b5d9de5cd61ddc9d82b4c494a1207c715",
+  "timestamp": "2026-03-27T14:07:35Z",
+  "runId": "23650188701",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

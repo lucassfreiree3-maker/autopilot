@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr431-20260401-131956",
+  "event": "post-merge-monitor",
+  "prNumber": 431,
+  "branch": "claude/fix-controller-vulnerabilities-5iaWt",
+  "mergeSha": "ba01a8a2cfcd375b717974f0432f981d1e61d1bf",
+  "timestamp": "2026-04-01T13:19:56Z",
+  "runId": "23850687345",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -20,6 +20,7 @@ import { readSyncPollIntervalMs } from "../util/sync-poll-interval";
 export type ExecStatus = "RUNNING" | "PENDING" | "DONE" | "ERROR";
 
 const MAX_ENTRIES_PER_EXEC = 500;
+const SAFE_EXEC_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
 export type LogEntry = {
   ts: string;
@@ -620,13 +621,13 @@ export async function pushAgentExecutionLogs(
   const fromBody = typeof body.from === "string" ? body.from : undefined;
   const from = fromBody || queryFrom || headerXFrom || headerFrom || "agent";
 
-  if (!execId || entries.length < 1) {
+  if (!execId || !SAFE_EXEC_ID_PATTERN.test(execId) || entries.length < 1) {
     res.status(400).json({
       ok: false,
       title: "Bad Request",
       status: 400,
       detail:
-        "Provide execId (string) and entries (array) with at least one item.",
+        "Provide execId (string matching safe pattern) and entries (array) with at least one item.",
     });
     return;
   }
@@ -718,12 +719,12 @@ export async function getAgentExecutionLogs(
     return;
   }
 
-  if (!execId) {
+  if (!execId || !SAFE_EXEC_ID_PATTERN.test(execId)) {
     res.status(400).json({
       ok: false,
       title: "Bad Request",
       status: 400,
-      detail: "Provide uuid (recommended) or execId (query string).",
+      detail: "Provide uuid (recommended) or execId (query string) matching safe pattern.",
     });
     return;
   }

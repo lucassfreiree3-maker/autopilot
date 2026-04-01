@@ -63,8 +63,27 @@ const DEFAULT_AGENT_CALL_TIMEOUT_MS = 35_000;
 const TRUSTED_AGENT_URL_PATTERN =
   /^https?:\/\/(?!.*@)[a-zA-Z0-9._-]+(?::[0-9]{1,5})?(?:\/[^\s<>"']*)?$/;
 
+const BLOCKED_SSRF_HOSTS = [
+  "169.254.169.254",
+  "metadata.google.internal",
+  "metadata.goog",
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  "0.0.0.0",
+];
+
 function validateTrustedUrl(url: string): boolean {
-  return Boolean(url) && TRUSTED_AGENT_URL_PATTERN.test(url);
+  if (!url || !TRUSTED_AGENT_URL_PATTERN.test(url)) return false;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (BLOCKED_SSRF_HOSTS.includes(host)) return false;
+    if (host.startsWith("169.254.")) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -474,12 +493,9 @@ export async function postOasSreController(
         ok: false,
         error: "Failed to call Agent",
         execId,
-        cluster: failedDispatch.cluster,
+        cluster: sanitizeForOutput(failedDispatch.cluster),
         agentStatus: failedDispatch.status,
-        dispatches: dispatches.map((item) => ({
-          cluster: item.cluster,
-          agentStatus: item.status,
-        })),
+        dispatches: summarizeDispatches(dispatches),
       });
       return;
     }

@@ -72,6 +72,8 @@ const VALID_COMPLIANCE_STATUSES: CronjobComplianceStatus[] = [
   "error",
 ];
 
+const SAFE_EXEC_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+
 // ── Validation ─────────────────────────────────────────────────
 
 function validateCronjobResult(body: unknown): ValidationResult {
@@ -357,10 +359,10 @@ export async function getCronjobStatus(
 ): Promise<void> {
   const execId = safeString(req.params.execId);
 
-  if (!execId) {
+  if (!execId || !SAFE_EXEC_ID_PATTERN.test(execId)) {
     res.status(400).json({
       ok: false,
-      error: "Parameter 'execId' is required.",
+      error: "Parameter 'execId' is required and must match safe pattern.",
     });
     return;
   }

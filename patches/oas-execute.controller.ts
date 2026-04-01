@@ -27,8 +27,27 @@ const DEFAULT_AGENT_CALL_TIMEOUT_MS = 30_000;
 const TRUSTED_AGENT_URL_PATTERN =
   /^https?:\/\/(?!.*@)[a-zA-Z0-9._-]+(?::[0-9]{1,5})?(?:\/[^\s<>"']*)?$/;
 
+const BLOCKED_SSRF_HOSTS = [
+  "169.254.169.254",
+  "metadata.google.internal",
+  "metadata.goog",
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  "0.0.0.0",
+];
+
 function validateTrustedUrl(url: string): boolean {
-  return Boolean(url) && TRUSTED_AGENT_URL_PATTERN.test(url);
+  if (!url || !TRUSTED_AGENT_URL_PATTERN.test(url)) return false;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    if (BLOCKED_SSRF_HOSTS.includes(host)) return false;
+    if (host.startsWith("169.254.")) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeForOutput(value: unknown): string {
@@ -287,10 +306,6 @@ export async function postOasAutomation(
     const timeoutMs = readAgentCallTimeoutMs();
     const abort = new AbortController();
     const timeoutId = setTimeout(() => abort.abort(), timeoutMs);
-    if (!validateTrustedUrl(trustedAgentUrl)) {
-      res.status(500).json({ ok: false, error: "Resolved agent URL is not trusted" });
-      return;
-    }
 
     let resp: Awaited<ReturnType<typeof fetch>>;
     try {

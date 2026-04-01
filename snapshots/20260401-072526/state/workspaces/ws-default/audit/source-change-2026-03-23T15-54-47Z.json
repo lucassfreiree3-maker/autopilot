@@ -1,0 +1,20 @@
+{
+  "operation": "source-code-change",
+  "workspaceId": "ws-default",
+  "timestamp": "2026-03-23T15:54:47Z",
+  "runId": "23446447982",
+  "runUrl": "https://github.com/lucassfreiree/autopilot/actions/runs/23446447982",
+  "component": "controller",
+  "changeType": "modify-file",
+  "targetPath": "src/__tests__/unit/agents-execute-logs.controller.test.ts",
+  "commitMessage": "fix: replace fake timers with real short timeouts in waitForFinalExecution tests",
+  "commitSha": "6403a21c6d405c77b8be99139ae3ea2d013a48ed",
+  "ciResult": "failure",
+  "promoted": false,
+  "stages": {
+    "apply": "success",
+    "ci": "success",
+    "promote": "success",
+    "state": "success"
+  }
+}

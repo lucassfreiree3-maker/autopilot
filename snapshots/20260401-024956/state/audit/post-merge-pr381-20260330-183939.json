@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr381-20260330-183939",
+  "event": "post-merge-monitor",
+  "prNumber": 381,
+  "branch": "claude/fix-ci-autonomous-loop",
+  "mergeSha": "810e1add4c4c2c1cf6bda09d7ef3438cd847e6b5",
+  "timestamp": "2026-03-30T18:39:39Z",
+  "runId": "23761439729",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

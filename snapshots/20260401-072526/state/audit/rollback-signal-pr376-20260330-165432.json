@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 376,
+  "branch": "claude/controller-3.7.1-historia-930188",
+  "mergeSha": "2f062d7fd256081a3bc2778fc9cd68215f0fed98",
+  "timestamp": "2026-03-30T16:54:32Z",
+  "runId": "23756818950",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

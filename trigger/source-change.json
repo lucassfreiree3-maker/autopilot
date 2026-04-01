@@ -3,19 +3,19 @@
   "workspace_id": "ws-default",
   "component": "controller",
   "change_type": "multi-file",
-  "version": "3.7.6",
+  "version": "3.7.7",
   "changes": [
     {
       "action": "search-replace",
       "target_path": "package.json",
-      "search": "\"version\": \"3.7.5\"",
-      "replace": "\"version\": \"3.7.6\""
+      "search": "\"version\": \"3.7.6\"",
+      "replace": "\"version\": \"3.7.7\""
     },
     {
       "action": "search-replace",
       "target_path": "package-lock.json",
-      "search": "\"version\": \"3.7.5\"",
-      "replace": "\"version\": \"3.7.6\""
+      "search": "\"version\": \"3.7.6\"",
+      "replace": "\"version\": \"3.7.7\""
     },
     {
       "action": "replace-file",
@@ -26,10 +26,25 @@
       "action": "replace-file",
       "target_path": "src/controllers/oas-sre-controller.controller.ts",
       "content_ref": "patches/oas-sre-controller.controller.ts"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/controllers/oas-execute.controller.ts",
+      "content_ref": "patches/oas-execute.controller.ts"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/controllers/agents-execute-logs.controller.ts",
+      "content_ref": "patches/agents-execute-logs.controller.ts"
+    },
+    {
+      "action": "replace-file",
+      "target_path": "src/controllers/cronjob-result.controller.ts",
+      "content_ref": "patches/cronjob-result.controller.ts"
     }
   ],
-  "commit_message": "fix(security): sanitize clustersNames, authMode and missingTargets to prevent Checkmarx Reflected_XSS (Similarity ID -1420982817)",
+  "commit_message": "fix(security): address Checkmarx vulnerabilities — XSS sanitize output, SSRF block metadata hosts, DoS validate execId, silent log drop (v3.7.7)",
   "skip_ci_wait": false,
   "promote": true,
-  "run": 84
+  "run": 85
 }

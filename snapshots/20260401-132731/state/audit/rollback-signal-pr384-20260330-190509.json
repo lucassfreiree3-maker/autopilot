@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 384,
+  "branch": "claude/ci-diagnose-run80",
+  "mergeSha": "97276934148b21204db52351dad6a943b9c6772a",
+  "timestamp": "2026-03-30T19:05:09Z",
+  "runId": "23762539228",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

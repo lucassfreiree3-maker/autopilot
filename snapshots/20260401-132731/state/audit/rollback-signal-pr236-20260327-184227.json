@@ -1,0 +1,12 @@
+{
+  "type": "rollback-signal",
+  "prNumber": 236,
+  "branch": "copilot/update-swagger-json-version",
+  "mergeSha": "2e9284e39886d4e744c089fa60b81ca445ec951d",
+  "timestamp": "2026-03-27T18:42:27Z",
+  "runId": "23662039863",
+  "reason": "post-merge health check degraded",
+  "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) ",
+  "status": "pending-review",
+  "note": "Manual review required before executing rollback"
+}

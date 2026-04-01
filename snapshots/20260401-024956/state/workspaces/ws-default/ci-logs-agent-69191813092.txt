@@ -1,0 +1,500 @@
+2026-03-30T14:44:19.9237304Z   console.log
+2026-03-30T14:44:19.9238027Z     [ExecuteController] Executando automacao HTTP: get_pods
+2026-03-30T14:44:19.9238521Z 
+2026-03-30T14:44:19.9239167Z       at ExecuteController.log (src/controller/execute.controller.ts:426:13)
+2026-03-30T14:44:19.9239677Z 
+2026-03-30T14:44:19.9239948Z   console.log
+2026-03-30T14:44:19.9240759Z     [AutomationHTTP] Executando get_pods em http://sre-k8s-namespace-analyze.psc.hm.bb.com.br/execute
+2026-03-30T14:44:19.9241358Z 
+2026-03-30T14:44:19.9241838Z       at AutomationHttpService.log (src/services/automation-http.service.ts:33:13)
+2026-03-30T14:44:19.9242689Z 
+2026-03-30T14:44:19.9318565Z   console.log
+2026-03-30T14:44:19.9319190Z     [AutomationHTTP] get_pods executado com sucesso
+2026-03-30T14:44:19.9319599Z 
+2026-03-30T14:44:19.9320065Z       at AutomationHttpService.log (src/services/automation-http.service.ts:61:15)
+2026-03-30T14:44:19.9320582Z 
+2026-03-30T14:44:19.9324939Z   console.log
+2026-03-30T14:44:19.9325498Z     [30/03/2026, 11:44:19] === RESULTADO HTTP ===
+2026-03-30T14:44:19.9325884Z 
+2026-03-30T14:44:19.9326541Z       at ExecuteController.log (src/controller/execute.controller.ts:442:13)
+2026-03-30T14:44:19.9327041Z 
+2026-03-30T14:44:19.9328259Z   console.log
+2026-03-30T14:44:19.9328700Z     {
+2026-03-30T14:44:19.9329150Z       "output": "mock output"
+2026-03-30T14:44:19.9329634Z     }
+2026-03-30T14:44:19.9329860Z 
+2026-03-30T14:44:19.9330264Z       at ExecuteController.log (src/controller/execute.controller.ts:443:13)
+2026-03-30T14:44:19.9330775Z 
+2026-03-30T14:44:19.9331070Z   console.log
+2026-03-30T14:44:19.9331619Z     ============================
+2026-03-30T14:44:19.9331974Z 
+2026-03-30T14:44:19.9332467Z       at ExecuteController.log (src/controller/execute.controller.ts:444:13)
+2026-03-30T14:44:19.9332941Z 
+2026-03-30T14:44:19.9338330Z   console.log
+2026-03-30T14:44:19.9338956Z     [ExecuteController] Resultado HTTP enviado ao Controller
+2026-03-30T14:44:19.9339381Z 
+2026-03-30T14:44:19.9339797Z       at ExecuteController.log (src/controller/execute.controller.ts:457:15)
+2026-03-30T14:44:19.9340286Z 
+2026-03-30T14:44:19.9356016Z   console.log
+2026-03-30T14:44:19.9356988Z     [ExecuteController] Imagem direta recebida: execId=test-oas-invalid-001 image=ubuntu:latest
+2026-03-30T14:44:19.9357547Z 
+2026-03-30T14:44:19.9357949Z       at ExecuteController.log (src/controller/execute.controller.ts:331:17)
+2026-03-30T14:44:19.9358427Z 
+2026-03-30T14:44:19.9385356Z   console.log
+2026-03-30T14:44:19.9386646Z     [ExecuteController] Job dinamico iniciado: execId=test-oas-invalid-001 image=ubuntu:latest ns=psc-sre-aut-agent
+2026-03-30T14:44:19.9387303Z 
+2026-03-30T14:44:19.9387737Z       at ExecuteController.log (src/controller/execute.controller.ts:189:13)
+2026-03-30T14:44:19.9388217Z 
+2026-03-30T14:44:19.9447082Z PASS src/__tests__/unit/register.routes.test.ts
+2026-03-30T14:44:19.9447730Z   RegisterRoutes
+2026-03-30T14:44:19.9448548Z     ✓ Deve registrar rota POST /register (1 ms)
+2026-03-30T14:44:19.9449331Z     ✓ Deve chamar controller e retornar mensagem de sucesso (2 ms)
+2026-03-30T14:44:19.9450138Z     ✓ Deve forcar DataRegistro como data atual (1 ms)
+2026-03-30T14:44:19.9451005Z     ✓ Deve propagar status/body quando o controller retorna erro proxy (1 ms)
+2026-03-30T14:44:19.9451916Z     ✓ Deve chamar next com erro quando controller lanca excecao generica
+2026-03-30T14:44:19.9452377Z 
+2026-03-30T14:44:20.0082859Z   console.error
+2026-03-30T14:44:20.0084444Z     [ExecuteController] Erro no job dinamico: TypeError: this.batchV1Api.createNamespacedJob is not a function
+2026-03-30T14:44:20.0087186Z         at JobExecutorService.createNamespacedJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:96:27)
+2026-03-30T14:44:20.0089203Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.0090973Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7285:41
+2026-03-30T14:44:20.0092619Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.0094588Z         at Object.<anonymous>.__awaiter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7234:10)
+2026-03-30T14:44:20.0097578Z         at JobExecutorService.createJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7323:12)
+2026-03-30T14:44:20.0100617Z         at AutomationJobService.createJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:230:44)
+2026-03-30T14:44:20.0102969Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.0104716Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:2741:39
+2026-03-30T14:44:20.0106641Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.0108815Z         at Object.<anonymous>.__awaiter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:2690:10)
+2026-03-30T14:44:20.0112176Z         at AutomationJobService.executeDynamicJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:3126:12)
+2026-03-30T14:44:20.0115719Z         at ExecuteController.executeDynamicJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/controller/execute.controller.ts:204:44)
+2026-03-30T14:44:20.0117833Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.0119377Z         at fulfilled (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/controller/execute.controller.ts:8933:24)
+2026-03-30T14:44:20.0120896Z 
+2026-03-30T14:44:20.0121734Z     [0m [90m 244 |[39m     } [36mcatch[39m (error) {
+2026-03-30T14:44:20.0140763Z      [90m 245 |[39m       [36mconst[39m detail [33m=[39m error [36minstanceof[39m [33mError[39m [33m?[39m error[33m.[39mmessage [33m:[39m [33mString[39m(error)[33m;[39m
+2026-03-30T14:44:20.0144050Z     [31m[1m>[22m[39m[90m 246 |[39m       console[33m.[39merror([32m"[ExecuteController] Erro no job dinamico:"[39m[33m,[39m error)[33m;[39m
+2026-03-30T14:44:20.0145891Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-30T14:44:20.0147779Z      [90m 247 |[39m       [36mawait[39m [36mthis[39m[33m.[39mcontrollerClient[33m.[39msendExecutionLog({
+2026-03-30T14:44:20.0149715Z      [90m 248 |[39m         execId[33m,[39m
+2026-03-30T14:44:20.0151175Z      [90m 249 |[39m         ok[33m:[39m [36mfalse[39m[33m,[39m[0m
+2026-03-30T14:44:20.0151922Z 
+2026-03-30T14:44:20.0152664Z       at ExecuteController.error (src/controller/execute.controller.ts:246:15)
+2026-03-30T14:44:20.0153976Z           at Generator.throw (<anonymous>)
+2026-03-30T14:44:20.0155156Z       at rejected (src/controller/execute.controller.ts:8947:32)
+2026-03-30T14:44:20.0155893Z 
+2026-03-30T14:44:20.0156366Z   console.log
+2026-03-30T14:44:20.0158926Z     Erro registrado: sre-job em psc-sre-aut-agent
+2026-03-30T14:44:20.0159604Z 
+2026-03-30T14:44:20.0160692Z       at Function.log [as addExecution] (src/controller/error-agent.controller.ts:25:13)
+2026-03-30T14:44:20.0161638Z 
+2026-03-30T14:44:20.0441453Z   console.log
+2026-03-30T14:44:20.0442266Z     
+2026-03-30T14:44:20.0443069Z     Iniciando Job com os dados recebidos:
+2026-03-30T14:44:20.0443697Z 
+2026-03-30T14:44:20.0444473Z       at ExecuteController.log (src/controller/execute.controller.ts:347:13)
+2026-03-30T14:44:20.0445382Z 
+2026-03-30T14:44:20.0466031Z   console.log
+2026-03-30T14:44:20.0467257Z     Namespace: psc-agent, Cluster: k8sdesbb111b, Function: get_pods
+2026-03-30T14:44:20.0468070Z 
+2026-03-30T14:44:20.0468817Z       at ExecuteController.log (src/controller/execute.controller.ts:348:13)
+2026-03-30T14:44:20.0469691Z 
+2026-03-30T14:44:20.0497279Z   console.log
+2026-03-30T14:44:20.0497578Z 
+2026-03-30T14:44:20.0497600Z 
+2026-03-30T14:44:20.0498042Z       at ExecuteController.log (src/controller/execute.controller.ts:351:13)
+2026-03-30T14:44:20.0498549Z 
+2026-03-30T14:44:20.0499430Z   console.log
+2026-03-30T14:44:20.0500105Z     Log enviado - ExecId: test-trace-001, Status: RUNNING, OK: true
+2026-03-30T14:44:20.0500750Z 
+2026-03-30T14:44:20.0501158Z       at ExecuteController.log (src/controller/execute.controller.ts:385:13)
+2026-03-30T14:44:20.0501642Z 
+2026-03-30T14:44:20.0510256Z   console.log
+2026-03-30T14:44:20.0510912Z     [ExecuteController] Executando automacao HTTP: get_pods
+2026-03-30T14:44:20.0511350Z 
+2026-03-30T14:44:20.0512030Z       at ExecuteController.log (src/controller/execute.controller.ts:426:13)
+2026-03-30T14:44:20.0512532Z 
+2026-03-30T14:44:20.0520380Z   console.log
+2026-03-30T14:44:20.0520925Z     [30/03/2026, 11:44:20] === RESULTADO HTTP ===
+2026-03-30T14:44:20.0521300Z 
+2026-03-30T14:44:20.0521707Z       at ExecuteController.log (src/controller/execute.controller.ts:442:13)
+2026-03-30T14:44:20.0522169Z 
+2026-03-30T14:44:20.0525616Z   console.log
+2026-03-30T14:44:20.0526483Z     {
+2026-03-30T14:44:20.0527127Z       "result": "ok"
+2026-03-30T14:44:20.0527796Z     }
+2026-03-30T14:44:20.0528120Z 
+2026-03-30T14:44:20.0528560Z       at ExecuteController.log (src/controller/execute.controller.ts:443:13)
+2026-03-30T14:44:20.0529046Z 
+2026-03-30T14:44:20.0530471Z   console.log
+2026-03-30T14:44:20.0531035Z     ============================
+2026-03-30T14:44:20.0531349Z 
+2026-03-30T14:44:20.0531777Z       at ExecuteController.log (src/controller/execute.controller.ts:444:13)
+2026-03-30T14:44:20.0532262Z 
+2026-03-30T14:44:20.0537467Z   console.log
+2026-03-30T14:44:20.0538240Z     [ExecuteController] Resultado HTTP enviado ao Controller
+2026-03-30T14:44:20.0538862Z 
+2026-03-30T14:44:20.0539490Z       at ExecuteController.log (src/controller/execute.controller.ts:457:15)
+2026-03-30T14:44:20.0540278Z 
+2026-03-30T14:44:20.1489675Z PASS src/__tests__/unit/infoAgent.routes.test.ts
+2026-03-30T14:44:20.1490610Z   AgentRoutes (infoAgent)
+2026-03-30T14:44:20.1491605Z     ✓ Deve registrar rota GET /agent/info (1 ms)
+2026-03-30T14:44:20.1492560Z     ✓ Deve chamar controller e retornar informações do agent (11 ms)
+2026-03-30T14:44:20.1495693Z     ✓ Deve chamar next com erro quando controller lança exceção (1 ms)
+2026-03-30T14:44:20.1497213Z     ✓ Deve criar nova instância do controller a cada chamada (1 ms)
+2026-03-30T14:44:20.1498791Z     ✓ Deve funcionar sem query params ou body (1 ms)
+2026-03-30T14:44:20.1499558Z 
+2026-03-30T14:44:20.1522618Z   console.log
+2026-03-30T14:44:20.1523519Z     [ExecuteController] Imagem direta recebida: execId=test-oas-invalid-local-001 image=ubuntu:latest
+2026-03-30T14:44:20.1524134Z 
+2026-03-30T14:44:20.1587993Z       at ExecuteController.log (src/controller/execute.controller.ts:331:17)
+2026-03-30T14:44:20.1588540Z 
+2026-03-30T14:44:20.1588965Z   console.log
+2026-03-30T14:44:20.1589908Z     [ExecuteController] Job dinamico iniciado: execId=test-oas-invalid-local-001 image=ubuntu:latest ns=psc-sre-aut-agent
+2026-03-30T14:44:20.1590631Z 
+2026-03-30T14:44:20.1591230Z       at ExecuteController.log (src/controller/execute.controller.ts:189:13)
+2026-03-30T14:44:20.1591721Z 
+2026-03-30T14:44:20.1603232Z   console.error
+2026-03-30T14:44:20.1604228Z     [ExecuteController] Erro no job dinamico: TypeError: this.batchV1Api.createNamespacedJob is not a function
+2026-03-30T14:44:20.1605820Z         at JobExecutorService.createNamespacedJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:96:27)
+2026-03-30T14:44:20.1607067Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.1608147Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7285:41
+2026-03-30T14:44:20.1609094Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.1610240Z         at Object.<anonymous>.__awaiter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7234:10)
+2026-03-30T14:44:20.1611895Z         at JobExecutorService.createJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/job-executor.service.ts:7323:12)
+2026-03-30T14:44:20.1613561Z         at AutomationJobService.createJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:230:44)
+2026-03-30T14:44:20.1614646Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.1615659Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:2741:39
+2026-03-30T14:44:20.1617052Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.1618180Z         at Object.<anonymous>.__awaiter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:2690:10)
+2026-03-30T14:44:20.1619877Z         at AutomationJobService.executeDynamicJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/services/automation-job.service.ts:3126:12)
+2026-03-30T14:44:20.1621621Z         at ExecuteController.executeDynamicJob (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/controller/execute.controller.ts:204:44)
+2026-03-30T14:44:20.1622719Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.1623795Z         at fulfilled (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/controller/execute.controller.ts:8933:24)
+2026-03-30T14:44:20.1624536Z 
+2026-03-30T14:44:20.1625133Z     [0m [90m 244 |[39m     } [36mcatch[39m (error) {
+2026-03-30T14:44:20.1626595Z      [90m 245 |[39m       [36mconst[39m detail [33m=[39m error [36minstanceof[39m [33mError[39m [33m?[39m error[33m.[39mmessage [33m:[39m [33mString[39m(error)[33m;[39m
+2026-03-30T14:44:20.1628170Z     [31m[1m>[22m[39m[90m 246 |[39m       console[33m.[39merror([32m"[ExecuteController] Erro no job dinamico:"[39m[33m,[39m error)[33m;[39m
+2026-03-30T14:44:20.1629231Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-30T14:44:20.1630214Z      [90m 247 |[39m       [36mawait[39m [36mthis[39m[33m.[39mcontrollerClient[33m.[39msendExecutionLog({
+2026-03-30T14:44:20.1631088Z      [90m 248 |[39m         execId[33m,[39m
+2026-03-30T14:44:20.1631842Z      [90m 249 |[39m         ok[33m:[39m [36mfalse[39m[33m,[39m[0m
+2026-03-30T14:44:20.1632269Z 
+2026-03-30T14:44:20.1647460Z       at ExecuteController.error (src/controller/execute.controller.ts:246:15)
+2026-03-30T14:44:20.1648419Z           at Generator.throw (<anonymous>)
+2026-03-30T14:44:20.1649120Z       at rejected (src/controller/execute.controller.ts:8947:32)
+2026-03-30T14:44:20.1649548Z 
+2026-03-30T14:44:20.1649938Z   console.log
+2026-03-30T14:44:20.1650552Z     Erro registrado: sre-job em psc-sre-aut-agent
+2026-03-30T14:44:20.1650931Z 
+2026-03-30T14:44:20.1652433Z       at Function.log [as addExecution] (src/controller/error-agent.controller.ts:25:13)
+2026-03-30T14:44:20.1653193Z 
+2026-03-30T14:44:20.1653473Z   console.log
+2026-03-30T14:44:20.1654058Z     
+2026-03-30T14:44:20.1654681Z     Iniciando Job com os dados recebidos:
+2026-03-30T14:44:20.1655138Z 
+2026-03-30T14:44:20.1655839Z       at ExecuteController.log (src/controller/execute.controller.ts:347:13)
+2026-03-30T14:44:20.1656634Z 
+2026-03-30T14:44:20.1656893Z   console.log
+2026-03-30T14:44:20.1657756Z     Namespace: scriptalert(xss)/script, Cluster: k8s, Function: get_pods
+2026-03-30T14:44:20.1658351Z 
+2026-03-30T14:44:20.1658930Z       at ExecuteController.log (src/controller/execute.controller.ts:348:13)
+2026-03-30T14:44:20.1659935Z 
+2026-03-30T14:44:20.1662470Z   console.log
+2026-03-30T14:44:20.1662930Z 
+2026-03-30T14:44:20.1662944Z 
+2026-03-30T14:44:20.1663621Z       at ExecuteController.log (src/controller/execute.controller.ts:351:13)
+2026-03-30T14:44:20.1664252Z 
+2026-03-30T14:44:20.1669734Z   console.log
+2026-03-30T14:44:20.1670534Z     Log enviado - ExecId: test-xss, Status: RUNNING, OK: true
+2026-03-30T14:44:20.1671083Z 
+2026-03-30T14:44:20.1671635Z       at ExecuteController.log (src/controller/execute.controller.ts:385:13)
+2026-03-30T14:44:20.1672490Z 
+2026-03-30T14:44:20.1677188Z   console.log
+2026-03-30T14:44:20.1678845Z     [ExecuteController] Executando automacao HTTP: get_pods
+2026-03-30T14:44:20.1679411Z 
+2026-03-30T14:44:20.1679942Z       at ExecuteController.log (src/controller/execute.controller.ts:426:13)
+2026-03-30T14:44:20.1680581Z 
+2026-03-30T14:44:20.1685965Z   console.log
+2026-03-30T14:44:20.1687148Z     [AutomationHTTP] Executando get_pods em http://sre-k8s-namespace-analyze.psc.hm.bb.com.br/execute
+2026-03-30T14:44:20.1689022Z 
+2026-03-30T14:44:20.1689639Z       at AutomationHttpService.log (src/services/automation-http.service.ts:33:13)
+2026-03-30T14:44:20.1690365Z 
+2026-03-30T14:44:20.1692182Z   console.log
+2026-03-30T14:44:20.1693334Z     [AutomationHTTP] get_pods executado com sucesso
+2026-03-30T14:44:20.1694068Z 
+2026-03-30T14:44:20.1694685Z       at AutomationHttpService.log (src/services/automation-http.service.ts:61:15)
+2026-03-30T14:44:20.1695506Z 
+2026-03-30T14:44:20.1699849Z   console.log
+2026-03-30T14:44:20.1700559Z     [30/03/2026, 11:44:20] === RESULTADO HTTP ===
+2026-03-30T14:44:20.1701044Z 
+2026-03-30T14:44:20.1701588Z       at ExecuteController.log (src/controller/execute.controller.ts:442:13)
+2026-03-30T14:44:20.1702245Z 
+2026-03-30T14:44:20.1704518Z   console.log
+2026-03-30T14:44:20.1705106Z     {
+2026-03-30T14:44:20.1705752Z       "output": "mock output"
+2026-03-30T14:44:20.1706484Z     }
+2026-03-30T14:44:20.1706808Z 
+2026-03-30T14:44:20.1707347Z       at ExecuteController.log (src/controller/execute.controller.ts:443:13)
+2026-03-30T14:44:20.1707989Z 
+2026-03-30T14:44:20.1709502Z   console.log
+2026-03-30T14:44:20.1710337Z     ============================
+2026-03-30T14:44:20.1710738Z 
+2026-03-30T14:44:20.1711279Z       at ExecuteController.log (src/controller/execute.controller.ts:444:13)
+2026-03-30T14:44:20.1712017Z 
+2026-03-30T14:44:20.1715396Z   console.log
+2026-03-30T14:44:20.1716469Z     [ExecuteController] Resultado HTTP enviado ao Controller
+2026-03-30T14:44:20.1717127Z 
+2026-03-30T14:44:20.1717683Z       at ExecuteController.log (src/controller/execute.controller.ts:457:15)
+2026-03-30T14:44:20.1718304Z 
+2026-03-30T14:44:20.2305277Z PASS src/__tests__/unit/execute.controller.test.ts (6.963 s)
+2026-03-30T14:44:20.2306014Z   ExecuteController
+2026-03-30T14:44:20.2306574Z     Validacao de Payload
+2026-03-30T14:44:20.2307738Z       ✓ Deve aceitar payload correto (128 ms)
+2026-03-30T14:44:20.2308503Z       ✓ Deve validar campos obrigatorios (10 ms)
+2026-03-30T14:44:20.2309226Z       ✓ Deve aceitar payload OAS com image/envs (22 ms)
+2026-03-30T14:44:20.2309814Z     Validacao de Funcoes
+2026-03-30T14:44:20.2310396Z       ✓ Deve rejeitar funcao inexistente (1 ms)
+2026-03-30T14:44:20.2311058Z       ✓ Deve aceitar funcao get_pods (9 ms)
+2026-03-30T14:44:20.2311730Z       ✓ Deve aceitar funcao get_all_resources (10 ms)
+2026-03-30T14:44:20.2312319Z     Chamada de Automacao
+2026-03-30T14:44:20.2312929Z       ✓ Deve chamar fetch para enviar log (105 ms)
+2026-03-30T14:44:20.2313632Z       ✓ Deve gerar token JWT com scope SEND_LOGS (105 ms)
+2026-03-30T14:44:20.2314391Z       ✓ Deve enviar token JWT no header Authorization (105 ms)
+2026-03-30T14:44:20.2315181Z       ✓ Deve retornar mensagem de sucesso imediatamente (20 ms)
+2026-03-30T14:44:20.2316105Z       ✓ Deve acionar job dinamico quando image nao mapeada para funcao conhecida (106 ms)
+2026-03-30T14:44:20.2317206Z       ✓ Deve persistir logs localmente para rastreabilidade da execucao (109 ms)
+2026-03-30T14:44:20.2318221Z       ✓ Deve persistir status RUNNING local quando job dinamico for acionado (11 ms)
+2026-03-30T14:44:20.2318915Z     Sanitizacao XSS
+2026-03-30T14:44:20.2319566Z       ✓ Deve sanitizar entrada com caracteres perigosos (10 ms)
+2026-03-30T14:44:20.2319988Z 
+2026-03-30T14:44:20.2416724Z PASS src/__tests__/unit/create-cronjob.test.ts
+2026-03-30T14:44:20.2417789Z   CreateCronjobController
+2026-03-30T14:44:20.2418898Z     getMessage (método estático)
+2026-03-30T14:44:20.2419753Z       ✓ Deve retornar mensagem de sucesso (1 ms)
+2026-03-30T14:44:20.2420427Z       ✓ Deve retornar string
+2026-03-30T14:44:20.2421027Z       ✓ Deve retornar string não nula (1 ms)
+2026-03-30T14:44:20.2421785Z       ✓ Deve ser método estático (chamável sem instância)
+2026-03-30T14:44:20.2422545Z       ✓ Deve retornar mesma mensagem em múltiplas chamadas
+2026-03-30T14:44:20.2423303Z     Comportamento de erro
+2026-03-30T14:44:20.2424028Z       ✓ Deve executar sem lançar exceção em caso de sucesso (1 ms)
+2026-03-30T14:44:20.2425157Z       ✓ Deve retornar Promise que resolve
+2026-03-30T14:44:20.2425699Z     Tipo de retorno
+2026-03-30T14:44:20.2428873Z       ✓ Deve retornar string ou null conforme assinatura (1 ms)
+2026-03-30T14:44:20.2429760Z       ✓ Deve retornar exatamente a mensagem esperada
+2026-03-30T14:44:20.2430378Z     Funcionalidade placeholder
+2026-03-30T14:44:20.2431107Z       ✓ Deve ser um endpoint placeholder (não cria cronjob real)
+2026-03-30T14:44:20.2431957Z       ✓ Deve funcionar de forma síncrona (resolve imediatamente) (1 ms)
+2026-03-30T14:44:20.2432413Z 
+2026-03-30T14:44:20.2805987Z   console.error
+2026-03-30T14:44:20.2806978Z     [ControllerClient] Erro ao enviar log ao Controller: Error: network down
+2026-03-30T14:44:20.2808395Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/__tests__/unit/controller-client.service.test.ts:22:51
+2026-03-30T14:44:20.2809516Z         at Generator.next (<anonymous>)
+2026-03-30T14:44:20.2810609Z         at /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/__tests__/unit/controller-client.service.test.ts:8:71
+2026-03-30T14:44:20.2811602Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.2812795Z         at Object.<anonymous>.__awaiter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/__tests__/unit/controller-client.service.test.ts:4:12)
+2026-03-30T14:44:20.2814597Z         at Object.<anonymous> (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/src/__tests__/unit/controller-client.service.test.ts:21:79)
+2026-03-30T14:44:20.2816300Z         at Promise.then.completed (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/utils.js:298:28)
+2026-03-30T14:44:20.2817358Z         at new Promise (<anonymous>)
+2026-03-30T14:44:20.2818790Z         at callAsyncCircusFn (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/utils.js:231:10)
+2026-03-30T14:44:20.2820356Z         at _callCircusTest (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/run.js:316:40)
+2026-03-30T14:44:20.2821530Z         at processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-03-30T14:44:20.2822710Z         at _runTest (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/run.js:252:3)
+2026-03-30T14:44:20.2824234Z         at _runTestsForDescribeBlock (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/run.js:126:9)
+2026-03-30T14:44:20.2825997Z         at _runTestsForDescribeBlock (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/run.js:121:9)
+2026-03-30T14:44:20.2827685Z         at run (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/run.js:71:3)
+2026-03-30T14:44:20.2829466Z         at runAndTransformResultsToJestFormat (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+2026-03-30T14:44:20.2831628Z         at jestAdapter (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+2026-03-30T14:44:20.2920428Z         at runTestInternal (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-runner/build/runTest.js:367:16)
+2026-03-30T14:44:20.2923614Z         at runTest (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-runner/build/runTest.js:444:34)
+2026-03-30T14:44:20.2926685Z         at Object.worker (/opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent/node_modules/jest-runner/build/testWorker.js:106:12)
+2026-03-30T14:44:20.2927818Z 
+2026-03-30T14:44:20.2928773Z     [0m [90m 137 |[39m           [33m?[39m [32m`[ControllerClient] Timeout ao enviar log ao Controller após ${timeoutMs}ms:`[39m
+2026-03-30T14:44:20.2930007Z      [90m 138 |[39m           [33m:[39m [32m"[ControllerClient] Erro ao enviar log ao Controller:"[39m[33m;[39m
+2026-03-30T14:44:20.2931113Z     [31m[1m>[22m[39m[90m 139 |[39m       console[33m.[39merror(prefix[33m,[39m error)[33m;[39m
+2026-03-30T14:44:20.2931974Z      [90m     |[39m               [31m[1m^[22m[39m
+2026-03-30T14:44:20.2932587Z      [90m 140 |[39m     }
+2026-03-30T14:44:20.2933097Z      [90m 141 |[39m   }
+2026-03-30T14:44:20.2933628Z      [90m 142 |[39m }[0m
+2026-03-30T14:44:20.2933947Z 
+2026-03-30T14:44:20.2934434Z       at ControllerClientService.error (src/services/controller-client.service.ts:139:15)
+2026-03-30T14:44:20.2935224Z           at Generator.throw (<anonymous>)
+2026-03-30T14:44:20.2935958Z       at rejected (src/services/controller-client.service.ts:1788:32)
+2026-03-30T14:44:20.2936541Z 
+2026-03-30T14:44:20.2937113Z PASS src/__tests__/unit/controller-client.service.test.ts
+2026-03-30T14:44:20.2937752Z   ControllerClientService
+2026-03-30T14:44:20.2938526Z     ✓ persists log locally even when controller callback fails (18 ms)
+2026-03-30T14:44:20.2939297Z     ✓ sends callback fetch with abort signal (1 ms)
+2026-03-30T14:44:20.2939996Z     ✓ logs configured timeout when callback aborts
+2026-03-30T14:44:20.2940373Z 
+2026-03-30T14:44:20.3128583Z PASS src/__tests__/unit/auto-register.util.test.ts
+2026-03-30T14:44:20.3129294Z   auto-register util
+2026-03-30T14:44:20.3130310Z     ✓ builds settings from environment with defaults (2 ms)
+2026-03-30T14:44:20.3131092Z     ✓ maps http status to actionable hints
+2026-03-30T14:44:20.3131784Z     ✓ describes nested network errors with stable hints
+2026-03-30T14:44:20.3133082Z     ✓ reads json response detail and builds a stable fingerprint (2 ms)
+2026-03-30T14:44:20.3133583Z 
+2026-03-30T14:44:20.3137235Z PASS src/__tests__/unit/server.test.ts
+2026-03-30T14:44:20.3138087Z   Server auto-register
+2026-03-30T14:44:20.3138976Z     ✓ Auto-registro deve enviar token com scope REGISTER_AGENT (2 ms)
+2026-03-30T14:44:20.3139793Z     ✓ Auto-registro deve enviar Authorization header
+2026-03-30T14:44:20.3140190Z 
+2026-03-30T14:44:20.3687257Z PASS src/__tests__/unit/controller-callback.util.test.ts
+2026-03-30T14:44:20.3688181Z   controller callback util
+2026-03-30T14:44:20.3689129Z     ✓ uses explicit controller URLs when provided (1 ms)
+2026-03-30T14:44:20.3690089Z     ✓ derives execute logs URL from register URL when dedicated env is missing
+2026-03-30T14:44:20.3691037Z     ✓ keeps default scopes unless env override is provided (2 ms)
+2026-03-30T14:44:20.3691951Z     ✓ supports configurable callback scopes (1 ms)
+2026-03-30T14:44:20.3692395Z 
+2026-03-30T14:44:20.3734940Z   console.log
+2026-03-30T14:44:20.3735754Z     [AutomationHTTP] Executando get_pods em https://automation.local/run
+2026-03-30T14:44:20.3736378Z 
+2026-03-30T14:44:20.3736843Z       at AutomationHttpService.log (src/services/automation-http.service.ts:33:13)
+2026-03-30T14:44:20.3737346Z 
+2026-03-30T14:44:20.3744006Z   console.log
+2026-03-30T14:44:20.3744611Z     [AutomationHTTP] get_pods executado com sucesso
+2026-03-30T14:44:20.3745185Z 
+2026-03-30T14:44:20.3745732Z       at AutomationHttpService.log (src/services/automation-http.service.ts:61:15)
+2026-03-30T14:44:20.3746586Z 
+2026-03-30T14:44:20.3771824Z   console.log
+2026-03-30T14:44:20.3772612Z     [AutomationHTTP] Executando get_pods em https://automation.local/run
+2026-03-30T14:44:20.3773169Z 
+2026-03-30T14:44:20.3773652Z       at AutomationHttpService.log (src/services/automation-http.service.ts:33:13)
+2026-03-30T14:44:20.3774156Z 
+2026-03-30T14:44:20.3838064Z   console.error
+2026-03-30T14:44:20.3838951Z     [AutomationHTTP] Erro ao executar get_pods: Request timed out after 1234ms
+2026-03-30T14:44:20.3839565Z 
+2026-03-30T14:44:20.3840376Z     [0m [90m 85 |[39m         detail [33m=[39m [33mString[39m(error)[33m;[39m
+2026-03-30T14:44:20.3841547Z      [90m 86 |[39m       }
+2026-03-30T14:44:20.3842454Z     [31m[1m>[22m[39m[90m 87 |[39m       console[33m.[39merror(
+2026-03-30T14:44:20.3843308Z      [90m    |[39m               [31m[1m^[22m[39m
+2026-03-30T14:44:20.3844460Z      [90m 88 |[39m         [32m`[AutomationHTTP] Erro ao executar ${functionName}:`[39m[33m,[39m
+2026-03-30T14:44:20.3845413Z      [90m 89 |[39m         detail[33m,[39m
+2026-03-30T14:44:20.3846286Z      [90m 90 |[39m       )[33m;[39m[0m
+2026-03-30T14:44:20.3846811Z 
+2026-03-30T14:44:20.3860839Z       at AutomationHttpService.error (src/services/automation-http.service.ts:87:15)
+2026-03-30T14:44:20.3862326Z           at Generator.throw (<anonymous>)
+2026-03-30T14:44:20.3863494Z       at rejected (src/services/automation-http.service.ts:1313:32)
+2026-03-30T14:44:20.3864193Z 
+2026-03-30T14:44:20.3889641Z PASS src/__tests__/unit/automation-http.service.test.ts
+2026-03-30T14:44:20.3890550Z   AutomationHttpService
+2026-03-30T14:44:20.3891527Z     ✓ returns parsed JSON payload on success (6 ms)
+2026-03-30T14:44:20.3892423Z     ✓ returns timeout error when automation request aborts (8 ms)
+2026-03-30T14:44:20.3892904Z 
+2026-03-30T14:44:20.3924249Z PASS src/__tests__/unit/jwt.test.ts
+2026-03-30T14:44:20.3925102Z   JWTService
+2026-03-30T14:44:20.3925921Z     ✓ Deve gerar token com scope obrigatório (1 ms)
+2026-03-30T14:44:20.3927181Z     ✓ Deve gerar token sem execId (para register) (1 ms)
+2026-03-30T14:44:20.3928901Z     ✓ Deve lançar erro se JWT_SECRET não estiver definido (11 ms)
+2026-03-30T14:44:20.3929631Z 
+2026-03-30T14:44:20.4335549Z PASS src/__tests__/unit/sample.ut.test.ts
+2026-03-30T14:44:20.4336475Z   Sample scenario
+2026-03-30T14:44:20.4337386Z     ✓ adds 1 + 2 equals 3 (1 ms)
+2026-03-30T14:44:20.4337801Z 
+2026-03-30T14:44:20.5582580Z PASS test/apis/cronjob-callback.test.ts
+2026-03-30T14:44:20.5584115Z   ✓ placeholder
+2026-03-30T14:44:20.5626858Z 
+2026-03-30T14:44:20.7754078Z Test Suites: 1 failed, 18 passed, 19 total
+2026-03-30T14:44:20.7757060Z Tests:       1 failed, 129 passed, 130 total
+2026-03-30T14:44:20.7759434Z Snapshots:   0 total
+2026-03-30T14:44:20.7761561Z Time:        7.767 s
+2026-03-30T14:44:20.7763636Z Ran all test suites.
+2026-03-30T14:44:20.8115406Z ##[error]Process completed with exit code 1.
+2026-03-30T14:44:20.8155018Z ##[group]Run echo "## Resultado dos Testes Unitários" >> $GITHUB_STEP_SUMMARY
+2026-03-30T14:44:20.8155876Z [36;1mecho "## Resultado dos Testes Unitários" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-30T14:44:20.8156679Z [36;1mif [[ failure == "success" ]];[0m
+2026-03-30T14:44:20.8157228Z [36;1mthen[0m
+2026-03-30T14:44:20.8157909Z [36;1m  echo ":white_check_mark: Testes Unitários realizados com sucesso" >> $GITHUB_STEP_SUMMARY[0m
+2026-03-30T14:44:20.8158709Z [36;1melse[0m
+2026-03-30T14:44:20.8159590Z [36;1m  echo -e ":x: Erro durante execução de testes unitários. O "npm run test" detectou falhas a serem corrigidas." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-30T14:44:20.8160976Z [36;1m  echo -e "> [!IMPORTANT]\n> Por favor, verifique a seção de Annotations logo abaixo para consultar o log completo." >> $GITHUB_STEP_SUMMARY[0m
+2026-03-30T14:44:20.8162086Z [36;1m  exit 1[0m
+2026-03-30T14:44:20.8162560Z [36;1mfi[0m
+2026-03-30T14:44:20.8166483Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-30T14:44:20.8167162Z env:
+2026-03-30T14:44:20.8167620Z   REPO_NAME: psc-sre-automacao-agent
+2026-03-30T14:44:20.8168172Z   TECNOLOGIA: npm
+2026-03-30T14:44:20.8168616Z   BRANCH_NAME: main
+2026-03-30T14:44:20.8169242Z   NPM_RESOLVE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm/
+2026-03-30T14:44:20.8170221Z   NPM_RELEASE_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-local/
+2026-03-30T14:44:20.8171303Z   NPM_DEV_URL: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm-bb-dev-local/
+2026-03-30T14:44:20.8172154Z   BINARIOS_HOST: binarios.intranet.bb.com.br
+2026-03-30T14:44:20.8173095Z   DOCKER_RELEASE_REGISTRY: docker-bb-local.binarios.intranet.bb.com.br
+2026-03-30T14:44:20.8173935Z   DOCKER_DEV_REGISTRY: docker-bb-dev-local.binarios.intranet.bb.com.br
+2026-03-30T14:44:20.8174693Z   DOCKER_RESOLVE_REGISTRY: docker.binarios.intranet.bb.com.br
+2026-03-30T14:44:20.8175416Z   CI_READER: aic-actions-user-temp
+2026-03-30T14:44:20.8175963Z   CI_PUBLISHER: aic-actions-user-temp
+2026-03-30T14:44:20.8176660Z   HADOLINT_CONTINUE_ON_ERROR: false
+2026-03-30T14:44:20.8177235Z   GIT_LFS: false
+2026-03-30T14:44:20.8177681Z   AUTO_VERSIONAMENTO: false
+2026-03-30T14:44:20.8178151Z   VERSAO: 2.3.3
+2026-03-30T14:44:20.8178588Z   TIPO_VERSAO: fechada
+2026-03-30T14:44:20.8179083Z   EXIST_TAG: false
+2026-03-30T14:44:20.8179651Z   SIGLA: psc
+2026-03-30T14:44:20.8180237Z   VERSAO_NODE: 22
+2026-03-30T14:44:20.8180847Z   NODE_OPTS: --max-old-space-size=4096
+2026-03-30T14:44:20.8181649Z   SASS_BINARY_SITE: https://binarios.intranet.bb.com.br/artifactory/generic-node-sass-remote
+2026-03-30T14:44:20.8182753Z   PUPPETEER_DOWNLOAD_HOST: https://binarios.intranet.bb.com.br/artifactory/generic-puppeteer-remote
+2026-03-30T14:44:20.8183772Z   PUPPETEER_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-30T14:44:20.8184802Z   PUPPETEER_CHROME_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-30T14:44:20.8185899Z   PUPPETEER_CHROME_HEADLESS_SHELL_DOWNLOAD_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/puppeteer
+2026-03-30T14:44:20.8187071Z   CHROMEDRIVER_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-chromedriver-remote
+2026-03-30T14:44:20.8187917Z   GATSBY_TELEMETRY_DISABLED: 1
+2026-03-30T14:44:20.8188383Z   HUSKY: 0
+2026-03-30T14:44:20.8189131Z   npm_config_appd_cdn_base_url: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-30T14:44:20.8190675Z   npm_config_sharp_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-remote
+2026-03-30T14:44:20.8191861Z   npm_config_sharp_libvips_binary_host: https://binarios.intranet.bb.com.br/artifactory/generic-sharp-libvips-remote
+2026-03-30T14:44:20.8193076Z   ELECTRON_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-aic-local/publico/electron/
+2026-03-30T14:44:20.8194218Z   CANVAS_BINARY_HOST_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-30T14:44:20.8195326Z   canvas_binary_host_mirror: https://binarios.intranet.bb.com.br/artifactory/generic-node-canvas-remote/
+2026-03-30T14:44:20.8196337Z   NG_CLI_ANALYTICS: ci
+2026-03-30T14:44:20.8197276Z   PHANTOMJS_CDNURL: https://binarios.intranet.bb.com.br/artifactory/generic-bb-binarios-ptn-local/publico/phantomjs
+2026-03-30T14:44:20.8198366Z   NPM_CONFIG_DIST_URL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-30T14:44:20.8199387Z   NPM_CONFIG_DISTURL: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-30T14:44:20.8200426Z   NODEJS_ORG_MIRROR: https://binarios.intranet.bb.com.br/artifactory/generic-nodejsdist-remote
+2026-03-30T14:44:20.8201596Z   APPD_CDN_BASE_URL: https://binarios.intranet.bb.com.br/artifactory/generic-appdynamics-node-remote/
+2026-03-30T14:44:20.8202610Z   COREPACK_NPM_REGISTRY: https://binarios.intranet.bb.com.br/artifactory/api/npm/npm
+2026-03-30T14:44:20.8203572Z   IBM_DB_INSTALLER_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-remote
+2026-03-30T14:44:20.8204592Z   MQIJS_LOCAL_URL: https://binarios.intranet.bb.com.br/artifactory/generic-ibm-mqclient-remote/
+2026-03-30T14:44:20.8205520Z   NPM_CONFIG_USERCONFIG: /opt/github/actions-runner/_work/_temp/.npmrc
+2026-03-30T14:44:20.8206270Z   NODE_AUTH_TOKEN: XXXXX-XXXXX-XXXXX-XXXXX
+2026-03-30T14:44:20.8206853Z ##[endgroup]
+2026-03-30T14:44:20.8259183Z ##[error]Process completed with exit code 1.
+2026-03-30T14:44:20.8827487Z Post job cleanup.
+2026-03-30T14:44:20.8915248Z Post job cleanup.
+2026-03-30T14:44:20.9001481Z Post job cleanup.
+2026-03-30T14:44:21.0456091Z [command]/usr/bin/git version
+2026-03-30T14:44:21.0518880Z git version 2.47.3
+2026-03-30T14:44:21.0574572Z Copying '/opt/github/runner/.gitconfig' to '/opt/github/actions-runner/_work/_temp/3a7341f8-a2d7-41a2-8980-7dd2f5110776/.gitconfig'
+2026-03-30T14:44:21.0602535Z Temporarily overriding HOME='/opt/github/actions-runner/_work/_temp/3a7341f8-a2d7-41a2-8980-7dd2f5110776' before making global git config changes
+2026-03-30T14:44:21.0604288Z Adding repository directory to the temporary git global config as a safe directory
+2026-03-30T14:44:21.0635278Z [command]/usr/bin/git config --global --add safe.directory /opt/github/actions-runner/_work/psc-sre-automacao-agent/psc-sre-automacao-agent
+2026-03-30T14:44:21.0717277Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-03-30T14:44:21.0784434Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-03-30T14:44:21.1528957Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-03-30T14:44:21.1589065Z http.https://github.com/.extraheader
+2026-03-30T14:44:21.1628052Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-03-30T14:44:21.1691685Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-03-30T14:44:21.2385558Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-03-30T14:44:21.2475596Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-03-30T14:44:21.3270569Z A job completed hook has been configured by the self-hosted runner administrator
+2026-03-30T14:44:21.3292381Z ##[group]Run '/opt/github/post-job.sh'
+2026-03-30T14:44:21.3296121Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-03-30T14:44:21.3297065Z ##[endgroup]
+2026-03-30T14:44:21.3386401Z Running post-job cleanup v1.0.2
+2026-03-30T14:44:21.3387251Z Removing checked-out code directories...
+2026-03-30T14:44:21.3462163Z Deleting directory: /opt/github/actions-runner/_work/psc-sre-automacao-agent
+2026-03-30T14:44:22.5447782Z Stopping and removing Docker containers...
+2026-03-30T14:44:22.5841693Z Post-job cleanup completed
+2026-03-30T14:44:22.5961474Z Evaluate and set job outputs
+2026-03-30T14:44:22.5971931Z Set output 'versao_projeto'
+2026-03-30T14:44:22.5975036Z Set output 'sigla_projeto'
+2026-03-30T14:44:22.5976808Z Set output 'tipo_versao'
+2026-03-30T14:44:22.5977716Z Set output 'matricula_solicitante'
+2026-03-30T14:44:22.5978652Z Set output 'publicar_docker'
+2026-03-30T14:44:22.5979527Z Set output 'versao_node'
+2026-03-30T14:44:22.5980579Z Set output 'publicar_versao'
+2026-03-30T14:44:22.5981477Z Set output 'gerenciador_pacotes'
+2026-03-30T14:44:22.5982418Z Set output 'ref'
+2026-03-30T14:44:22.5984412Z Cleaning up orphan processes
+2026-03-30T14:44:22.6900979Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-node@v4. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

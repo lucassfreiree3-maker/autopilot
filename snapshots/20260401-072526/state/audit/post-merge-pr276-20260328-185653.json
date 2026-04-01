@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr276-20260328-185653",
+  "event": "post-merge-monitor",
+  "prNumber": 276,
+  "branch": "claude/fix-dashboard-sync",
+  "mergeSha": "1d2373f23502e83de4e31a4d0f57fdabb2327b94",
+  "timestamp": "2026-03-28T18:56:53Z",
+  "runId": "23692063016",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

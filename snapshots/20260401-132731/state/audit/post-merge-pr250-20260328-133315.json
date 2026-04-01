@@ -1,0 +1,13 @@
+{
+  "id": "post-merge-pr250-20260328-133315",
+  "event": "post-merge-monitor",
+  "prNumber": 250,
+  "branch": "claude/copilot-native-config",
+  "mergeSha": "20e13707de74655e945ca707cf2cd21e7aebbaf0",
+  "timestamp": "2026-03-28T13:33:15Z",
+  "runId": "23686304574",
+  "healthCheck": {
+    "status": "degraded",
+    "details": "state-branch:ok main-branch:ok recent-failures:HIGH(5) "
+  }
+}

@@ -3,7 +3,7 @@
 # Source: bbvinet/psc_releases_cap_sre-aut-controller (GitHub)
 # Path: releases/openshift/hml/deploy/values.yaml
 # Image: docker.binarios.intranet.bb.com.br/bb/psc/psc-sre-automacao-controller
-# Current tag: 3.7.7
+# Current tag: 3.8.9
 # Secret: psc-sre-automacao-controller-runtime
 # Auto-promote: Stage 4 of apply-source-change.yml updates tag
 #   after corporate CI passes (Esteira de Build NPM green)

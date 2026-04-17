@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-04-14T11:52:17Z",
+  "lastUpdated": "2026-04-17T00:00:00Z",
   "lastSessionId": "session_01N6wTVvkGd7Hs1zMtus8i5i",
   "multiCompanyModel": {
     "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
@@ -22,7 +22,7 @@
           "bbvinet/psc-sre-automacao-controller": {
             "role": "Controller — orquestra automacoes, despacha para agents, gerencia logs de execucao",
             "type": "source-code",
-            "currentVersion": "3.7.4",
+            "currentVersion": "3.9.1",
             "stack": "Node 22, TypeScript, Express, Jest, SQLite, S3",
             "ci": "Esteira de Build NPM (corporate runner)",
             "actionsUrl": "https://github.com/bbvinet/psc-sre-automacao-controller/actions",
@@ -499,8 +499,8 @@
     ]
   },
   "versioningRules": {
-    "currentVersion": "3.8.4",
-    "previousVersion": "3.7.7",
+    "currentVersion": "3.9.1",
+    "previousVersion": "3.9.0",
     "rule": "Se a esteira ja gerou imagem para uma versao, a proxima DEVE incrementar o patch. CI rejeita tags duplicadas no registry.",
     "versioningPattern": "CRITICO: Apos X.Y.9, a proxima versao e X.(Y+1).0 — NUNCA X.Y.10. Exemplos: 3.5.9 → 3.6.0, 3.6.9 → 3.7.0, 3.9.9 → 3.10.0. O terceiro digito (patch) vai de 0 a 9 apenas.",
     "versionFiles": [
@@ -1384,7 +1384,30 @@
       "checkmarx_indirect_data_flow": "Checkmarx faz TAINT ANALYSIS em profundidade. Mesmo que validacao exista, se o taint flow cruza funcoes sem verificacao explicita no ponto de entrada, ele reporta. Ex: req.params.execId → getExecutionSnapshot(execId) → pickPreferredSnapshot → for-loop. O fix Math.min no for-loop resolve porque Checkmarx ve o bound explicito.",
       "security_scanner_completed": "security-vuln-scanner.yml completou primeiro scan com sucesso em 27s. Encontrou 64 CVEs do build 3.7.4. Report salvo em autopilot-state: security-scan-controller-3.7.4.json. Script: scripts/security/scan-corporate-vulns.sh. Triggers: workflow_run (apply-source-change + ci-monitor-loop), push, dispatch.",
       "vuln_scanner_timeout_fix": "CRITICO: scan-corporate-vulns.sh original travava porque: (1) gh api .../logs download sem timeout, (2) jq dentro de while-loop (O(n^2)), (3) declare -A nao portavel. FIX: timeout 60s no download, batch npm/rpm parsing com sed+jq -s, limit 20 CVEs com timeout 10s cada. PR #424.",
-      "checkmarx_xss_array_in_response": "CRITICO: Checkmarx Reflected_XSS traceia req.body → validation → clustersNames/authMode/missingTargets → res.json() mesmo que parseSafeIdentifier tenha sido usado. FIX: .map(sanitizeForOutput) em arrays e sanitizeForOutput() em strings. Afeta oas-sre-controller: clustersNames, authMode, missingTargets, cluster em summarizeDispatches. Fix deployado em 3.7.6 (run 84)."
+      "checkmarx_xss_array_in_response": "CRITICO: Checkmarx Reflected_XSS traceia req.body → validation → clustersNames/authMode/missingTargets → res.json() mesmo que parseSafeIdentifier tenha sido usado. FIX: .map(sanitizeForOutput) em arrays e sanitizeForOutput() em strings. Afeta oas-sre-controller: clustersNames, authMode, missingTargets, cluster em summarizeDispatches. Fix deployado em 3.7.6 (run 84).",
+      "package_lock_sed_corruption": {
+        "pattern": "sed -g on package-lock.json replaces version strings inside third-party package entries (e.g. ci-info@3.9.0 → 3.9.1)",
+        "symptom": "npm ci fails: GET ci-info@3.9.1 — Not found",
+        "fix": "Use targeted line-specific replacement: sed -i '3s/version: X.Y.Z/version: A.B.C/' or Python script targeting specific line numbers",
+        "lesson": "NEVER use sed -i s/.../.../ with g flag on package-lock.json for version bumps. Always target specific line numbers or use Python.",
+        "first_seen": "2026-04-15",
+        "apply_source_change_action": "Use multi-line search-replace or replace-file for package-lock.json"
+      },
+      "for_of_loop_eslint_rejection": {
+        "pattern": "for...of loop triggers ESLint no-restricted-syntax",
+        "symptom": "Unexpected use of ForOfStatement",
+        "fix": "Use Array.find(), Array.forEach(), Array.map(), Array.reduce() instead of for...of",
+        "lesson": "ESLint no-restricted-syntax rejects for...of in this codebase. Always use functional array methods.",
+        "first_seen": "2026-03-31",
+        "updated": "2026-04-15"
+      },
+      "mock_response_missing_setHeader": {
+        "pattern": "Test uses middleware that calls res.setHeader() but MockResponse type only has res.status/json",
+        "symptom": "TypeError: res.setHeader is not a function",
+        "fix": "Add setHeader: jest.fn() to MockResponse in the test file",
+        "lesson": "When adding HTTP headers middleware (deprecation, CORS, etc.), add corresponding mocks to test MockResponse.",
+        "first_seen": "2026-04-15"
+      }
     },
     "gha_yaml_markdown_bold": "CRITICO: NUNCA usar **texto**: (markdown bold seguido de dois-pontos) dentro de blocos run: | em workflows GitHub Actions. O parser YAML do GHA interpreta ** como alias syntax e : como mapping key, quebrando o YAML ANTES de avaliar o shell. Fix: remover ** ou usar variaveis. Corrigido em 6 workflows: emergency-watchdog, auto-dispatch-task, continuous-improvement, dashboard-auto-improve, deploy-auto-learn, workflow-sentinel.",
     "gha_no_heredoc_in_run": "CRITICO: NUNCA usar heredoc (cat <<EOF / cat <<'EOF') dentro de blocos run: | em GitHub Actions. O GHA parser le TODO o bloco run: como YAML literal ANTES de avaliar como shell. Qualquer linha com dois-pontos (ex: 'Workspace: $WS') e interpretada como YAML key-value e quebra. FIX: usar variavel simples com string inline. Ex: BODY='texto sem colon' e depois gh issue comment --body \"$BODY\". NUNCA heredoc.",
@@ -1546,21 +1569,22 @@
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
   "currentState": {
-    "controllerVersion": "3.8.4",
+    "controllerVersion": "3.9.1",
     "agentVersion": "2.4.4",
     "lastTriggerRun": 85,
     "lastSuccessfulRun": 82,
     "historia930217": "completed — all 4 deploys passed (3.6.5, 3.6.6, 2.2.8, 2.2.9)",
     "historia930188": "COMPLETED — controller 3.7.2 CI PASSED (run #80, 2026-03-30T19:03Z). ciOutcome=success. CAP tag=3.7.2. Security fixes: XSS sanitizeForOutput, SSRF validateTrustedUrl, DoS boundedEntries, no for...of. 3 iterations: run78(for...of ESLint), run79(count:1 test), run80(PASS).",
+    "historia1009376": "COMPLETED (2026-04-13) — cross-cluster Secret/ConfigMap relay deployed. Controller v3.8.4 + Agent v2.4.4. Both PRs merged. Main CIs green. CAPs promoted.",
+    "historia783361_oas_sre_controller": "IN_PROGRESS — Controller v3.9.1 deployed. POST /oas/sre-controller now accepts all 6 automations (migration_origem, migration_destino, migration, manage_namespace_origem, manage_namespace_destino, copy_resources_origem, copy_resources_destino). namespace is required. function or image accepted. Pending: preflight image changes (separate repo) + agent IJobResult extension (colleague implementing).",
     "pendingDeploy": null,
     "nextDeploy": {
       "note": "No pending deploy.",
       "nextVersion": {
-        "controller": "3.8.5",
+        "controller": "3.9.2",
         "agent": "2.4.5"
       }
-    },
-    "historia1009376": "COMPLETED (2026-04-13) — cross-cluster Secret/ConfigMap relay deployed. Controller v3.8.4 + Agent v2.4.4. Both PRs merged (bbvinet/psc-sre-automacao-controller#15, bbvinet/psc-sre-automacao-agent#18). Main CIs green. CAPs promoted to 3.8.4 and 2.4.4."
+    }
   },
   "deployCompliancePipeline": {
     "_ref": "contracts/archive/static-reference.json#deployCompliancePipeline",

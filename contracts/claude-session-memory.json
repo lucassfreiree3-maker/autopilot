@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "contractId": "claude-session-memory",
   "description": "Memoria cumulativa de TUDO que foi feito, decidido e aprendido. Cada sessao DEVE ler isso e aplicar automaticamente. O objetivo e reduzir tempo de execucao e melhorar qualidade a cada sessao.",
-  "lastUpdated": "2026-04-17T00:00:00Z",
+  "lastUpdated": "2026-04-20T00:00:00Z",
   "lastSessionId": "session_01N6wTVvkGd7Hs1zMtus8i5i",
   "multiCompanyModel": {
     "description": "Control plane centralizado gerenciando multiplas empresas. Cada empresa e um contexto COMPLETAMENTE ISOLADO.",
@@ -1407,6 +1407,12 @@
         "fix": "Add setHeader: jest.fn() to MockResponse in the test file",
         "lesson": "When adding HTTP headers middleware (deprecation, CORS, etc.), add corresponding mocks to test MockResponse.",
         "first_seen": "2026-04-15"
+      },
+      "autopilot_push_proxy_403": {
+        "pattern": "git push to lucassfreiree3-maker/autopilot returns remote rejected (permission denied) via http://127.0.0.1:64384/git/ proxy",
+        "cause": "Local proxy route lacks write permission even with token",
+        "fix": "User must push manually from their machine — Claude Code cannot push",
+        "lesson": "Never rely on automated git push for this repo. Always inform user when commits are created locally."
       }
     },
     "gha_yaml_markdown_bold": "CRITICO: NUNCA usar **texto**: (markdown bold seguido de dois-pontos) dentro de blocos run: | em workflows GitHub Actions. O parser YAML do GHA interpreta ** como alias syntax e : como mapping key, quebrando o YAML ANTES de avaliar o shell. Fix: remover ** ou usar variaveis. Corrigido em 6 workflows: emergency-watchdog, auto-dispatch-task, continuous-improvement, dashboard-auto-improve, deploy-auto-learn, workflow-sentinel.",
@@ -1569,7 +1575,7 @@
     "_note": "Externalized by token-auto-optimize. Read on demand."
   },
   "currentState": {
-    "controllerVersion": "3.9.1",
+    "controllerVersion": "3.9.2",
     "agentVersion": "2.4.4",
     "lastTriggerRun": 85,
     "lastSuccessfulRun": 82,
@@ -1584,7 +1590,9 @@
         "controller": "3.9.2",
         "agent": "2.4.5"
       }
-    }
+    },
+    "pipelineSmokeTest_3_9_2": "SUCCESS — bump 3.9.1 → 3.9.2 via direct GitHub REST API (not autopilot workflow). PR #26 merged, CI run 24668801765 passed, CAP ef1b230085. Validated end-to-end flow.",
+    "manualDirectDeployDocs": "COMPLETED — ops/docs/manual-direct-deploy/ with 13 docs + 2 scripts (deploy-controller.sh, monitor-ci.sh). Covers auth, repos, version bump, PR/merge API, CI monitoring, CAP promotion, deploy monitoring, troubleshooting. ~16 local commits on claude/secrets-movement-monitoring-Bwot8 PENDING MANUAL PUSH (proxy 403 blocks automated push)."
   },
   "deployCompliancePipeline": {
     "_ref": "contracts/archive/static-reference.json#deployCompliancePipeline",

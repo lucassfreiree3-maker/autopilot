@@ -27,3 +27,4 @@ Thumbs.db
 
 # Ops logs (auto-generated, not tracked)
 ops/logs/
+manual-deploy-docs.bundle

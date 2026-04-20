@@ -29,3 +29,4 @@ Thumbs.db
 ops/logs/
 manual-deploy-docs.bundle
 manual-deploy-package.tar.gz
+install-manual-deploy-docs.sh
